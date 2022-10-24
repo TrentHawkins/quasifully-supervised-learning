@@ -1,0 +1,10 @@
+giraffe
+wolf
+chihuahua
+rat
+weasel
+otter
+buffalo
+zebra
+giant+panda
+deer

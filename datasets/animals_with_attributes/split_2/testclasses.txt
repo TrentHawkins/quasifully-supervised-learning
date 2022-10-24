@@ -1,0 +1,10 @@
+skunk
+mole
+tiger
+hippopotamus
+leopard
+moose
+spider+monkey
+humpback+whale
+elephant
+gorilla

@@ -1,0 +1,10 @@
+ox
+fox
+sheep
+seal
+chimpanzee
+hamster
+squirrel
+rhinoceros
+rabbit
+bat

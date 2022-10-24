@@ -130,9 +130,6 @@ dmypy.json
 
 ### QuasifullySupervisedLearning
 
-# Images
-*.jpg
-*.png
-
-# Text files
-*.txt
+# Animals with Attributes
+JPEGImages/
+licenses/
