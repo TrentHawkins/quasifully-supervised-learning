@@ -9,6 +9,9 @@
 	],
 	"python.linting.pycodestyleEnabled": true,
 
+//	Make sure code user keeps using tabs instead of spaces:
+	"editor.detectIndentation": true,
+
 //	Enable unit testing
 	"python.testing.unittestArgs": [
 		"-v",
