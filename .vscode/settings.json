@@ -1,5 +1,7 @@
 {
 //	Python code style linting:
+	"python.linting.pycodestyleEnabled": true,
+	"python.linting.pydocstyleEnabled": false,
 	"python.linting.pycodestyleArgs":
 	[
 	// 	Freeform line width:
@@ -7,7 +9,6 @@
 	// 	Use tabs instead of spaces and allow arbitrary line breaking around operators:
 		"--ignore=E122,E124,E128,E265,W191,W503,W504",
 	],
-	"python.linting.pycodestyleEnabled": true,
 
 //	Make sure code user keeps using tabs instead of spaces:
 	"editor.detectIndentation": true,
