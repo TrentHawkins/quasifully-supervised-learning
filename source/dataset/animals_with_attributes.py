@@ -26,8 +26,8 @@ class Dataset:
 	"""
 
 	def __init__(self,
-		images_path: str = "datasets/Animals_with_Attributes",
-		labels_path: str = "standard_split",
+		images_path: str = "./datasets/animals_with_attributes",
+		labels_path: str = "./standard_split",
 	):
 		"""Initialize paths for dataset.
 
@@ -244,7 +244,7 @@ class Dataset:
 			image_paths = glob.glob(os.path.join(self.images_path, "JPEGImages/*/*.jpg"))
 			images = pd.Series(
 				data=[os.path.basename(os.path.dirname(image)) for image in image_paths],
-				index=images,
+				index=image_paths,
 				name="labels",
 				dtype=str,
 			#	copy=None
@@ -255,10 +255,10 @@ class Dataset:
 
 animals_with_attributes = Dataset()
 animals_with_attributes_loader = tf.keras.utils.image_dataset_from_directory(
-	"../../datasets/animals_with_attributes",
+	"datasets/animals_with_attributes/JPEGImages",
 #	labels="inferred",
 	label_mode="categorical",
-	class_names=animals_with_attributes.labels().tolist(),
+	class_names=animals_with_attributes.labels().index.tolist(),
 #	color_mode="rgb",
 	batch_size=1,
 	image_size=(
