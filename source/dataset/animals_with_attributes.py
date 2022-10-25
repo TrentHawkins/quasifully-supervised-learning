@@ -253,23 +253,24 @@ class Dataset:
 		return images[images.isin(labels)].replace(self.labels(select))
 
 
-animals_with_attributes = Dataset()
-animals_with_attributes_loader = tf.keras.utils.image_dataset_from_directory(
-	"datasets/animals_with_attributes/JPEGImages",
-#	labels="inferred",
-	label_mode="categorical",
-	class_names=animals_with_attributes.labels().index.tolist(),
-#	color_mode="rgb",
-	batch_size=1,
-	image_size=(
-		600,
-		600,
-	),
-#	shuffle=True,
-	seed=0,
-	validation_split=None,
-	subset=None,
-#	interpolation="bilinear",
-#	follow_links=False,
-	crop_to_aspect_ratio=True,
-)
+if __name__ == "__main__":
+	animals_with_attributes = Dataset()
+	animals_with_attributes_loader = tf.keras.utils.image_dataset_from_directory(
+		"datasets/animals_with_attributes/JPEGImages",
+	#	labels="inferred",
+		label_mode="categorical",
+		class_names=animals_with_attributes.labels().index.tolist(),
+	#	color_mode="rgb",
+		batch_size=1,
+		image_size=(
+			600,
+			600,
+		),
+	#	shuffle=True,
+		seed=0,
+		validation_split=None,
+		subset=None,
+	#	interpolation="bilinear",
+	#	follow_links=False,
+		crop_to_aspect_ratio=True,
+	)
