@@ -9,7 +9,6 @@ from typing import Callable
 import matplotlib.pyplot
 import matplotlib.ticker
 import pandas
-import scipy.special
 import seaborn
 
 
@@ -93,7 +92,7 @@ class Dataset:
 	def predicates(self,
 		selection: pandas.Series | str = "allclasses.txt",
 		binary: bool = False,
-		logits: bool = False,
+		modification: Callable[[float], float] = lambda _: _,
 	) -> pandas.DataFrame:
 		"""Get label predicates (features).
 
@@ -102,8 +101,8 @@ class Dataset:
 				default: list all labels in dataset
 			binary: continuous if `False`
 				default: continuous
-			logits: expanded to real numbers range
-				default: probability range
+			modification: modify probabilistic range to any using a (preferrably smooth) function
+				default: none
 
 		Returns:
 			predicate `pandas.DataFrame` indexed with labels and named with predicates
@@ -135,11 +134,10 @@ class Dataset:
 			predicate_matrix = predicate_matrix / 100
 
 	#	Expand probabilities to logits if desired.
-		if logits:
-			predicate_matrix = predicate_matrix\
-				.replace(0., 0. + float_info.epsilon)\
-				.replace(1., 1. - float_info.epsilon)\
-				.applymap(scipy.special.logit)
+		predicate_matrix = predicate_matrix\
+			.replace(0., 0. + float_info.epsilon)\
+			.replace(1., 1. - float_info.epsilon)\
+			.applymap(modification)
 
 		return predicate_matrix.filter(self.read(selection), axis="index")
 
@@ -168,11 +166,9 @@ class Dataset:
 
 	def plot_predicates(self,
 		binary: bool = False,
-		logits: bool = False,
 	):
 		"""Plot predicates heatmap against labels."""
 		predicate_range = "binary" if binary else "continuous"
-		predicate_logit = "logits" if logits else ""
 
 		fig, ax = matplotlib.pyplot.subplots(
 			figsize=(
@@ -185,14 +181,10 @@ class Dataset:
 		ax.xaxis.set_tick_params(length=0)
 		ax.yaxis.set_tick_params(length=0)
 
-		seaborn.heatmap(self.predicates(
-				binary=binary,
-				logits=logits,
-			),
-			vmin=0. if not logits else None,
-			vmax=1. if not logits else None,
+		seaborn.heatmap(self.predicates(binary=binary),
+			vmin=0.,
+			vmax=1.,
 			cmap="gnuplot",
-			robust=logits,
 			linewidths=1,
 			linecolor="black",
 			cbar=False,
@@ -202,11 +194,11 @@ class Dataset:
 			ax=ax,
 		)
 
-		ax.set_title(f"class {predicate_range} predicate {predicate_logit} matrix")
+		ax.set_title(f"class {predicate_range} predicate matrix")
 		ax.set_xlabel("predicates")
 		ax.set_ylabel("class label")
 
-		matplotlib.pyplot.savefig(path.join(self.images_path, f"predicate-matrix-{predicate_range}{predicate_logit}.pdf"))
+		matplotlib.pyplot.savefig(path.join(self.images_path, f"predicate-matrix-{predicate_range}.pdf"))
 
 	def plot_labels(self):
 		"""Plot label statistics."""
