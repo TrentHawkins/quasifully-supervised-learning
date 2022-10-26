@@ -38,7 +38,6 @@ class Dataset:
 			images_path: absolute
 				default: assumes root directory
 		"""
-
 		self.images_path = images_path
 		self.labels_path = labels_path
 
@@ -51,12 +50,9 @@ class Dataset:
 		Returns:
 			list with items in selection
 		"""
-
-	#	Prepare filter iterable, either from another series, or
 		if isinstance(selection, pandas.Series):
 			selection = selection.tolist()
 
-	#	from another labels file.
 		if isinstance(selection, str):
 			with open(os.path.join(self.images_path, self.labels_path, selection)) as labels_file:
 				selection = [label.strip() for label in labels_file]
@@ -75,8 +71,6 @@ class Dataset:
 		Returns:
 			label set indexed from 0 (contrary to the vanilla index starting from 1)
 		"""
-
-	#	Read labels from file with all labels numbered. Shift numbering to start from 0.
 		labels: pandas.Series = pandas.read_csv(
 			os.path.join(self.images_path, "classes.txt"),
 			sep=r"\s+",
@@ -113,17 +107,25 @@ class Dataset:
 		Returns:
 			predicate `pandas.DataFrame` indexed with labels and named with predicates
 		"""
-
-	#	Get the predicates from file that lists them incrementally. Ignore the numbering.
-		with open(os.path.join(self.images_path, "predicates.txt")) as predicates_file:
-			predicates = [predicate.split()[1] for predicate in predicates_file]
+		predicates: pandas.Series = pandas.read_csv(
+			os.path.join(self.images_path, "predicates.txt"),
+			sep=r"\s+",
+			names=[
+				"index"
+			],
+			index_col=1,
+			dtype={
+				0: int,
+				1: str,
+			},
+		).squeeze(axis="columns")
 
 	#	Form predicate matrix, with predicates as columns, labels are rows.
 		predicate_matrix = pandas.read_csv(
 			os.path.join(self.images_path, "predicate-matrix-binary.txt") if binary else
 			os.path.join(self.images_path, "predicate-matrix-continuous.txt"),
 			sep=r"\s+",
-			names=predicates,
+			names=predicates.index.tolist(),
 			dtype=float,
 		).set_index(self.labels().index)
 
@@ -152,8 +154,6 @@ class Dataset:
 		Returns:
 			label `pandas.Series` indexed with image paths
 		"""
-
-	#	Get all image paths first.
 		images_path = glob.glob(os.path.join(self.images_path, "JPEGImages/*/*.jpg"))
 
 	#	Get image labels.
@@ -170,7 +170,6 @@ class Dataset:
 		logits: bool = False,
 	):
 		"""Plot predicates heatmap against labels."""
-
 		predicate_range = "binary" if binary else "continuous"
 		predicate_logit = "logits" if logits else ""
 
@@ -210,7 +209,6 @@ class Dataset:
 
 	def plot_labels(self):
 		"""Plot label statistics."""
-
 		fig, ax = matplotlib.pyplot.subplots(
 			figsize=(
 				9.,
@@ -274,14 +272,5 @@ if __name__ == "__main__":
 	dataset = Dataset()
 
 	dataset.plot_predicates()
-	dataset.plot_predicates(
-		binary=True,
-	)
-#	dataset.plot_predicates(
-#		logits=True,
-#	)
-#	dataset.plot_predicates(
-#		binary=True,
-#		logits=True,
-#	)
+	dataset.plot_predicates(binary=True)
 	dataset.plot_labels()
