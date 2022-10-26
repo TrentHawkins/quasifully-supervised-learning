@@ -136,7 +136,7 @@ class BaseDense(BaseLayer):
 		self.dense = tensorflow.keras.layers.Dense(units,
 			activation=activation,
 		#	use_bias=True,
-		#	kernel_initializer='glorot_uniform',"
+		#	kernel_initializer='glorot_uniform',
 		#	bias_initializer='zeros',
 			kernel_regularizer=regularizer,
 			bias_regularizer=regularizer,
@@ -176,7 +176,7 @@ class BaseDense(BaseLayer):
 
 
 class AttentionDense(tensorflow.keras.layers.Layer):
-	"""Wrapper for Dense layer operating on a stacks of input to recombine them with attention.
+	"""Wrapper for dense layer operating on a stacks of input to recombine them with attention.
 
 	Such a layer is expected to have no bias and be trainable with no dropout.
 	Other dense features include activation only.
@@ -203,7 +203,7 @@ class AttentionDense(tensorflow.keras.layers.Layer):
 		self.dense = tensorflow.keras.layers.Dense(1,
 			activation=activation,
 			use_bias=False,
-		#	kernel_initializer='glorot_uniform',"
+		#	kernel_initializer='glorot_uniform',
 		#	bias_initializer='zeros',
 		#	kernel_regularizer=regularizer,
 		#	bias_regularizer=regularizer,
