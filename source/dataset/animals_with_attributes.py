@@ -4,12 +4,14 @@
 from glob import glob
 from os import path
 from sys import float_info
-from typing import Callable
 
 import matplotlib.pyplot
 import matplotlib.ticker
+import numpy
 import pandas
+import scipy.special
 import seaborn
+import tensorflow
 
 
 class Dataset:
@@ -92,7 +94,7 @@ class Dataset:
 	def predicates(self,
 		selection: pandas.Series | str = "allclasses.txt",
 		binary: bool = False,
-		modification: Callable[[float], float] = lambda _: _,
+		logits: bool = False,
 	) -> pandas.DataFrame:
 		"""Get label predicates (features).
 
@@ -101,8 +103,8 @@ class Dataset:
 				default: list all labels in dataset
 			binary: continuous if `False`
 				default: continuous
-			modification: modify probabilistic range to any using a (preferrably smooth) function
-				default: none
+			logits: modify probabilistic range to logits
+				default: not
 
 		Returns:
 			predicate `pandas.DataFrame` indexed with labels and named with predicates
@@ -131,13 +133,15 @@ class Dataset:
 
 	#	Normalize continuous predicates.
 		if not binary:
-			predicate_matrix = predicate_matrix / 100
+			predicate_matrix /= 100
 
-	#	Expand probabilities to logits if desired.
-		predicate_matrix = predicate_matrix\
-			.replace(0., 0. + float_info.epsilon)\
-			.replace(1., 1. - float_info.epsilon)\
-			.applymap(modification)
+	#	logit(0) == -inf
+	#	logit(1) == +inf
+		if logits:
+			predicate_matrix = predicate_matrix\
+				.replace(0., 0. + float_info.epsilon)\
+				.replace(1., 1. - float_info.epsilon)\
+				.applymap(scipy.special.logit)
 
 		return predicate_matrix.filter(self.read(selection), axis="index")
 
@@ -163,42 +167,6 @@ class Dataset:
 		)
 
 		return images[images.isin(self.read(selection))].replace(self.labels(selection))
-
-	def plot_predicates(self,
-		binary: bool = False,
-	):
-		"""Plot predicates heatmap against labels."""
-		predicate_range = "binary" if binary else "continuous"
-
-		fig, ax = matplotlib.pyplot.subplots(
-			figsize=(
-				15.,
-				10.
-			)
-		)
-		fig.set_tight_layout(True)
-
-		ax.xaxis.set_tick_params(length=0)
-		ax.yaxis.set_tick_params(length=0)
-
-		seaborn.heatmap(self.predicates(binary=binary),
-			vmin=0.,
-			vmax=1.,
-			cmap="gnuplot",
-			linewidths=1,
-			linecolor="black",
-			cbar=False,
-			square=True,
-			xticklabels=True,  # type: ignore
-			yticklabels=True,  # type: ignore
-			ax=ax,
-		)
-
-		ax.set_title(f"class {predicate_range} predicate matrix")
-		ax.set_xlabel("predicates")
-		ax.set_ylabel("class label")
-
-		matplotlib.pyplot.savefig(path.join(self.images_path, f"predicate-matrix-{predicate_range}.pdf"))
 
 	def plot_labels(self):
 		"""Plot label statistics."""
@@ -260,10 +228,94 @@ class Dataset:
 
 		matplotlib.pyplot.savefig(path.join(self.images_path, "classes.pdf"))
 
+	def plot_predicates(self,
+		binary: bool = False,
+	):
+		"""Plot predicates heatmap against labels.
+
+		Arguments:
+			binary: continuous if `False`
+				default: continuous
+		"""
+		predicate_range = "binary" if binary else "continuous"
+
+		fig, ax = matplotlib.pyplot.subplots(
+			figsize=(
+				15.,
+				10.
+			)
+		)
+		fig.set_tight_layout(True)
+
+		ax.xaxis.set_tick_params(length=0)
+		ax.yaxis.set_tick_params(length=0)
+
+		seaborn.heatmap(self.predicates(binary=binary),
+			vmin=0.,
+			vmax=1.,
+			cmap="gnuplot",
+			linewidths=1,
+			linecolor="black",
+			cbar=False,
+			square=True,
+			xticklabels=True,  # type: ignore
+			yticklabels=True,  # type: ignore
+			ax=ax,
+		)
+
+		ax.set_title(f"class {predicate_range} predicate matrix")
+		ax.set_xlabel("predicates")
+		ax.set_ylabel("class label")
+
+		matplotlib.pyplot.savefig(path.join(self.images_path, f"predicate-matrix-{predicate_range}.pdf"))
+
+	def plot_label_predicate_correlation(self,
+		logits: bool = False,
+	):
+		"""Plot label-predicate correlation heatmap using dot product on logits.
+
+		Arguments:
+			logits: modify probabilistic range to logits
+				default: not
+		"""
+		fig, ax = matplotlib.pyplot.subplots(
+			figsize=(
+				10.,
+				10.
+			)
+		)
+		fig.set_tight_layout(True)
+
+		ax.xaxis.set_tick_params(length=0)
+		ax.yaxis.set_tick_params(length=0)
+
+		seaborn.heatmap(self.predicates(logits=logits).dot(self.predicates(logits=logits).transpose()).apply(
+				tensorflow.nn.softmax,
+				axis=0,
+			),
+			vmin=0.,
+			vmax=1.,
+			cmap="gnuplot",
+			linewidths=1,
+			linecolor="black",
+			cbar=False,
+			square=True,
+			xticklabels=True,  # type: ignore
+			yticklabels=True,  # type: ignore
+			ax=ax,
+		)
+
+		ax.set_title(f"class label-predicate correlation matrix")
+		ax.set_xlabel("predicted")
+		ax.set_ylabel("true")
+
+		matplotlib.pyplot.savefig(path.join(self.images_path, f"class-correlation.pdf"))
+
 
 if __name__ == "__main__":
 	dataset = Dataset()
 
+	dataset.plot_labels()
 	dataset.plot_predicates()
 	dataset.plot_predicates(binary=True)
-	dataset.plot_labels()
+	dataset.plot_label_predicate_correlation()
