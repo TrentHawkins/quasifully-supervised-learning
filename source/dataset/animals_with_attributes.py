@@ -1,9 +1,10 @@
 """Create image data loading pipeline for the Animals with Attributes 2 dataset using TensorFlow."""
 
 
-import glob
-import os
-import sys
+from glob import glob
+from os import path
+from sys import float_info
+from typing import Callable
 
 import matplotlib.pyplot
 import matplotlib.ticker
@@ -54,7 +55,7 @@ class Dataset:
 			selection = selection.tolist()
 
 		if isinstance(selection, str):
-			with open(os.path.join(self.images_path, self.labels_path, selection)) as labels_file:
+			with open(path.join(self.images_path, self.labels_path, selection)) as labels_file:
 				selection = [label.strip() for label in labels_file]
 
 		return selection
@@ -72,7 +73,7 @@ class Dataset:
 			label set indexed from 0 (contrary to the vanilla index starting from 1)
 		"""
 		labels: pandas.Series = pandas.read_csv(
-			os.path.join(self.images_path, "classes.txt"),
+			path.join(self.images_path, "classes.txt"),
 			sep=r"\s+",
 			names=[
 				"index"
@@ -108,7 +109,7 @@ class Dataset:
 			predicate `pandas.DataFrame` indexed with labels and named with predicates
 		"""
 		predicates: pandas.Series = pandas.read_csv(
-			os.path.join(self.images_path, "predicates.txt"),
+			path.join(self.images_path, "predicates.txt"),
 			sep=r"\s+",
 			names=[
 				"index"
@@ -122,8 +123,8 @@ class Dataset:
 
 	#	Form predicate matrix, with predicates as columns, labels are rows.
 		predicate_matrix = pandas.read_csv(
-			os.path.join(self.images_path, "predicate-matrix-binary.txt") if binary else
-			os.path.join(self.images_path, "predicate-matrix-continuous.txt"),
+			path.join(self.images_path, "predicate-matrix-binary.txt") if binary else
+			path.join(self.images_path, "predicate-matrix-continuous.txt"),
 			sep=r"\s+",
 			names=predicates.index.tolist(),
 			dtype=float,
@@ -136,8 +137,8 @@ class Dataset:
 	#	Expand probabilities to logits if desired.
 		if logits:
 			predicate_matrix = predicate_matrix\
-				.replace(0., 0. + sys.float_info.epsilon)\
-				.replace(1., 1. - sys.float_info.epsilon)\
+				.replace(0., 0. + float_info.epsilon)\
+				.replace(1., 1. - float_info.epsilon)\
 				.applymap(scipy.special.logit)
 
 		return predicate_matrix.filter(self.read(selection), axis="index")
@@ -154,10 +155,10 @@ class Dataset:
 		Returns:
 			label `pandas.Series` indexed with image paths
 		"""
-		images_path = glob.glob(os.path.join(self.images_path, "JPEGImages/*/*.jpg"))
+		images_path = glob(path.join(self.images_path, "JPEGImages/*/*.jpg"))
 
 	#	Get image labels.
-		images = pandas.Series([os.path.basename(os.path.dirname(image)) for image in images_path],
+		images = pandas.Series([path.basename(path.dirname(image)) for image in images_path],
 			index=images_path,
 			name="labels",
 			dtype=str,
@@ -205,7 +206,7 @@ class Dataset:
 		ax.set_xlabel("predicates")
 		ax.set_ylabel("class label")
 
-		matplotlib.pyplot.savefig(os.path.join(self.images_path, f"predicate-matrix-{predicate_range}{predicate_logit}.pdf"))
+		matplotlib.pyplot.savefig(path.join(self.images_path, f"predicate-matrix-{predicate_range}{predicate_logit}.pdf"))
 
 	def plot_labels(self):
 		"""Plot label statistics."""
@@ -265,7 +266,7 @@ class Dataset:
 			labelcolor="#AAAAAA",
 		)
 
-		matplotlib.pyplot.savefig(os.path.join(self.images_path, "classes.pdf"))
+		matplotlib.pyplot.savefig(path.join(self.images_path, "classes.pdf"))
 
 
 if __name__ == "__main__":
