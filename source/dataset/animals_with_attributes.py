@@ -4,6 +4,7 @@
 from glob import glob
 from os import path
 from sys import float_info
+from typing import Callable
 
 import matplotlib.pyplot
 import matplotlib.ticker
@@ -12,6 +13,8 @@ import pandas
 import scipy.special
 import seaborn
 import tensorflow
+
+from ..similarity import dotDataFrame, similarityCosine, similarityJaccard
 
 
 class Dataset:
@@ -250,7 +253,9 @@ class Dataset:
 		ax.xaxis.set_tick_params(length=0)
 		ax.yaxis.set_tick_params(length=0)
 
-		seaborn.heatmap(self.predicates(binary=binary),
+		predicates = self.predicates(binary=binary)
+
+		seaborn.heatmap(predicates,
 			vmin=0.,
 			vmax=1.,
 			cmap="gnuplot",
@@ -269,14 +274,20 @@ class Dataset:
 
 		matplotlib.pyplot.savefig(path.join(self.images_path, f"predicate-matrix-{predicate_range}.pdf"))
 
-	def plot_label_predicate_correlation(self,
+	def plot_label_correlation(self,
+		binary: bool = False,
 		logits: bool = False,
+		softmx: bool = False, alter_dot: Callable = numpy.dot
 	):
-		"""Plot label-predicate correlation heatmap using dot product on logits.
+		"""Plot label correlation on predicates heatmap using dot product, optinally on logits.
 
 		Arguments:
+			binary: continuous if `False`
+				default: continuous
 			logits: modify probabilistic range to logits
 				default: not
+			softmx: apply softmax to predictions
+				default not
 		"""
 		fig, ax = matplotlib.pyplot.subplots(
 			figsize=(
@@ -289,13 +300,25 @@ class Dataset:
 		ax.xaxis.set_tick_params(length=0)
 		ax.yaxis.set_tick_params(length=0)
 
-		seaborn.heatmap(self.predicates(logits=logits).dot(self.predicates(logits=logits).transpose()).apply(
-				tensorflow.nn.softmax,
-				axis=0,
-			),
-			vmin=0.,
-			vmax=1.,
+		predicates = self.predicates(
+			binary=binary,
+			logits=logits,
+		)
+		label_correlation = dotDataFrame(
+			predicates,
+			predicates.transpose(), alter_dot=alter_dot
+		)
+
+		if softmx:
+			label_correlation = label_correlation.apply(tensorflow.nn.softmax,
+				axis="index",
+			)
+
+		seaborn.heatmap(label_correlation,
+			vmin=0. if softmx or alter_dot != numpy.dot else None,
+			vmax=1. if softmx or alter_dot != numpy.dot else None,
 			cmap="gnuplot",
+			robust=not softmx and alter_dot == numpy.dot,
 			linewidths=1,
 			linecolor="black",
 			cbar=False,
@@ -309,7 +332,9 @@ class Dataset:
 		ax.set_xlabel("predicted")
 		ax.set_ylabel("true")
 
-		matplotlib.pyplot.savefig(path.join(self.images_path, f"class-correlation.pdf"))
+		atered_dot = f".{alter_dot.__name__}" if alter_dot != numpy.dot else ""
+
+		matplotlib.pyplot.savefig(path.join(self.images_path, f"class-correlation{atered_dot}.pdf"))
 
 
 if __name__ == "__main__":
@@ -318,4 +343,12 @@ if __name__ == "__main__":
 	dataset.plot_labels()
 	dataset.plot_predicates()
 	dataset.plot_predicates(binary=True)
-	dataset.plot_label_predicate_correlation()
+
+	kwargs = {
+	#	"binary": True,
+	#	"logits": True,
+	#	"softmx": True,
+	}
+	dataset.plot_label_correlation(**kwargs)
+	dataset.plot_label_correlation(**kwargs, alter_dot=similarityJaccard)
+	dataset.plot_label_correlation(**kwargs, alter_dot=similarityCosine)
