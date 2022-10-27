@@ -175,7 +175,10 @@ class BaseDense(BaseLayer):
 		return x
 
 
-class AttentionDense(tensorflow.keras.layers.Layer):
+"""What follows are special types of dense layers."""
+
+
+class AttentionDense(tensorflow.keras.layers.Dense):
 	"""Wrapper for dense layer operating on a stacks of input to recombine them with attention.
 
 	Such a layer is expected to have no bias and be trainable with no dropout.
@@ -196,11 +199,7 @@ class AttentionDense(tensorflow.keras.layers.Layer):
 		Keyword arguments:
 			activation: to apply on output of decision
 		"""
-		super(AttentionDense, self).__init__(
-			name=name,
-		**kwargs)
-
-		self.dense = tensorflow.keras.layers.Dense(1,
+		super(AttentionDense, self).__init__(1,
 			activation=activation,
 			use_bias=False,
 		#	kernel_initializer='glorot_uniform',
@@ -210,8 +209,8 @@ class AttentionDense(tensorflow.keras.layers.Layer):
 		#	activity_regularizer=regularizer,
 		#	kernel_constraint=constraint,
 		#	bias_constraint=constraint,
-			name=name,  # None
-		)
+			name=name,
+		**kwargs)
 
 	def call(self, inputs):
 		"""Call the model on new inputs.
@@ -227,7 +226,7 @@ class AttentionDense(tensorflow.keras.layers.Layer):
 		x = inputs
 
 	#	recombination layer
-		x = tensorflow.squeeze(self.dense(tensorflow.stack(x,
+		x = tensorflow.squeeze(super(AttentionDense, self).call(tensorflow.stack(x,
 					axis=-1,
 				)
 			),
