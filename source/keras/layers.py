@@ -9,6 +9,8 @@ Basic attention layer assigning a trainable weight for each input in an array of
 """
 
 
+from typing import Callable
+
 import tensorflow
 
 from ..seed import SEED
@@ -18,17 +20,20 @@ class BaseLayer(tensorflow.keras.layers.Layer):
 	"""Custom base layer equipped with (optional) batch normalization and dropout.
 
 	Attributes:
-		dropout: layer with optionally fixed random seeding
-		activation: optional activation to layer
 		normalization: batch normalization of layer
+		dropout: layer with optionally fixed random seeding
+		layer: to modify with normalization and dropout
 	"""
 
-	def __init__(self,
+	def __init__(self, layer: tensorflow.keras.layers.Layer,
 		normalization: bool = False,
 		dropout: float = .5,
 		name: str = "base_layer",
 	**kwargs):
 		"""Hyperparametrize custom base layer.
+
+		Arguments:
+			layer: to modify with normalization and dropout
 
 		Keyword Arguments:
 			normalization: whether to batch-nosmalize or not
@@ -48,10 +53,10 @@ class BaseLayer(tensorflow.keras.layers.Layer):
 			#	epsilon=0.001,
 			#	center=True,
 			#	scale=True,
-			#	beta_initializer='zeros',
-			#	gamma_initializer='ones',
-			#	moving_mean_initializer='zeros',
-			#	moving_variance_initializer='ones',
+			#	beta_initializer="zeros",
+			#	gamma_initializer="ones",
+			#	moving_mean_initializer="zeros",
+			#	moving_variance_initializer="ones",
 			#	beta_regularizer=regularizer,
 			#	gamma_regularizer=regularizer,
 			#	beta_constraint=constraint,
@@ -66,6 +71,9 @@ class BaseLayer(tensorflow.keras.layers.Layer):
 			seed=SEED,  # None,
 			name=f"dropout_{name}",  # None
 		**kwargs)
+
+	#	layer to modify with normalization and dropout
+		self.layer = layer
 
 	def call(self, inputs: tensorflow.Tensor,
 		training: bool | None = None,
@@ -99,6 +107,11 @@ class BaseLayer(tensorflow.keras.layers.Layer):
 			training=training,
 		)
 
+	#	layer to modify with normalization and dropout
+		x = self.layer(x,
+			training=training,
+		)
+
 		return x
 
 
@@ -110,8 +123,8 @@ class BaseDense(BaseLayer):
 	"""
 
 	def __init__(self, units: int,
-			activation: str | None = None,
-			regularizer: str | None = None,
+			activation: Callable | str | None = None,
+			regularizer: tensorflow.keras.regularizers.Regularizer | str | None = None,
 			normalization: bool = False,
 			dropout: float = .5,
 			name: str = "base_dense",
@@ -136,8 +149,8 @@ class BaseDense(BaseLayer):
 		self.dense = tensorflow.keras.layers.Dense(units,
 			activation=activation,
 		#	use_bias=True,
-		#	kernel_initializer='glorot_uniform',
-		#	bias_initializer='zeros',
+		#	kernel_initializer="glorot_uniform",
+		#	bias_initializer="zeros",
 			kernel_regularizer=regularizer,
 			bias_regularizer=regularizer,
 		#	activity_regularizer=regularizer,
@@ -184,14 +197,14 @@ class AttentionDense(tensorflow.keras.layers.Dense):
 	Such a layer is expected to have no bias and be trainable with no dropout.
 	Other dense features include activation only.
 
-	Attributes:
+	Call:
 		stack: stack inputs horizontally
 		dense: one weight for each input
 		squeeze: eliminate redudant dims on output
 	"""
 
 	def __init__(self,
-		activation: str = "linear",
+		activation: Callable | str | None = None,
 		name: str = "attention",
 	**kwargs):
 		"""Hyperparametrize recombination layer.
@@ -202,8 +215,8 @@ class AttentionDense(tensorflow.keras.layers.Dense):
 		super(AttentionDense, self).__init__(1,
 			activation=activation,
 			use_bias=False,
-		#	kernel_initializer='glorot_uniform',
-		#	bias_initializer='zeros',
+		#	kernel_initializer="glorot_uniform",
+		#	bias_initializer="zeros",
 		#	kernel_regularizer=regularizer,
 		#	bias_regularizer=regularizer,
 		#	activity_regularizer=regularizer,
@@ -223,14 +236,72 @@ class AttentionDense(tensorflow.keras.layers.Dense):
 		Returns:
 			output of layer
 		"""
-		x = inputs
-
-	#	recombination layer
-		x = tensorflow.squeeze(super(AttentionDense, self).call(tensorflow.stack(x,
+		return tensorflow.squeeze(super(AttentionDense, self).call(tensorflow.stack(inputs,
 					axis=-1,
 				)
 			),
 			axis=-1,
 		)
 
-		return x
+
+class JaccardDense(tensorflow.keras.layers.Dense):
+	"""A dense layer that perform the jaccard operation per input and kernel vector instead of a dot product.
+
+	Such a modified layer has no bias explicitely.
+	"""
+
+	def __init__(self,
+		activation: Callable | str | None = None,
+		kernel_initializer: tensorflow.keras.initializers.Initializer | str = "glorot_uniform",
+		name: str = "jaccard",
+	**kwargs):
+		"""Hyperparametrize recombination layer.
+
+		Keyword arguments:
+			activation: to apply on output of decision
+			kernel_initializer: weight values to begin with
+		"""
+		super(JaccardDense, self).__init__(1,
+			activation=activation,
+			use_bias=False,
+			kernel_initializer=kernel_initializer,
+			bias_initializer="zeros",
+		#	kernel_regularizer=regularizer,
+		#	bias_regularizer=regularizer,
+		#	activity_regularizer=regularizer,
+		#	kernel_constraint=constraint,
+		#	bias_constraint=constraint,
+			name=name,
+		**kwargs)
+
+	def call(self, inputs):
+		"""Call the model on new inputs.
+
+		In this case call just reapplies all ops in the graph to the new inputs.
+
+		Arguments:
+			inputs: a tensor or list of tensors
+
+		Returns:
+			output of layer
+		"""
+		x_y = super(JaccardDense, self).call(inputs)
+
+	#	the norm of inputs vector
+		x_x = tensorflow.tensordot(
+			inputs,
+			inputs, 1
+		)
+
+	#	the norm of kernel vectors
+		y_y = tensorflow.linalg.trace(
+			tensorflow.linalg.matmul(
+				super(JaccardDense, self).kernel,
+				super(JaccardDense, self).kernel,
+
+			#	transpose_a=True,
+				transpose_b=True,
+			)
+		)
+
+		return x_y / (x_x + y_y + x_y)
