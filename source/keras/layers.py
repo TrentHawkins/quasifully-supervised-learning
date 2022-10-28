@@ -123,11 +123,12 @@ class BaseDense(BaseLayer):
 	"""
 
 	def __init__(self, units: int,
-			activation: Callable | str | None = None,
-			regularizer: tensorflow.keras.regularizers.Regularizer | str | None = None,
-			normalization: bool = False,
-			dropout: float = .5,
-			name: str = "base_dense",
+		activation: Callable | str | None = None,
+	#	regularizer: tensorflow.keras.regularizers.Regularizer | str | None = None,
+	#	constraint: tensorflow.keras.constraints.Constraint | str | None = None,
+		normalization: bool = False,
+		dropout: float = .5,
+		name: str = "base_dense",
 	**kwargs):
 		"""Hyrparametrize base layer with dense topping.
 
@@ -135,7 +136,8 @@ class BaseDense(BaseLayer):
 			units: number of neurons in layer
 
 		Keyword arguments:
-			regularizer: on the weights of the layer
+		#	regularizer: on the weights of the layer
+		#	constraint: on the weights of the layer
 			activation: of layer
 				default: none
 		"""
@@ -151,8 +153,8 @@ class BaseDense(BaseLayer):
 		#	use_bias=True,
 		#	kernel_initializer="glorot_uniform",
 		#	bias_initializer="zeros",
-			kernel_regularizer=regularizer,
-			bias_regularizer=regularizer,
+		#	kernel_regularizer=regularizer,
+		#	bias_regularizer=regularizer,
 		#	activity_regularizer=regularizer,
 		#	kernel_constraint=constraint,
 		#	bias_constraint=constraint,
@@ -175,17 +177,11 @@ class BaseDense(BaseLayer):
 		Returns:
 			output of layer
 		"""
-		x = inputs
-
-	#	base layer
-		x = super().call(x,
+		return self.dense(
+			super().call(inputs,
 				training=training,
+			)
 		)
-
-	#	dense layer
-		x = self.dense(x)
-
-		return x
 
 
 """What follows are special types of dense layers."""
@@ -236,7 +232,9 @@ class AttentionDense(tensorflow.keras.layers.Dense):
 		Returns:
 			output of layer
 		"""
-		return tensorflow.squeeze(super(AttentionDense, self).call(tensorflow.stack(inputs,
+		return tensorflow.squeeze(
+			super(AttentionDense, self).call(
+				tensorflow.stack(inputs,
 					axis=-1,
 				)
 			),
@@ -285,16 +283,16 @@ class JaccardDense(tensorflow.keras.layers.Dense):
 		Returns:
 			output of layer
 		"""
-		x_y = super(JaccardDense, self).call(inputs)
+		dot_product = super(JaccardDense, self).call(inputs)
 
 	#	the norm of inputs vector
-		x_x = tensorflow.tensordot(
+		inputs_norm = tensorflow.tensordot(
 			inputs,
 			inputs, 1
 		)
 
 	#	the norm of kernel vectors
-		y_y = tensorflow.linalg.trace(
+		kernel_norm = tensorflow.linalg.trace(
 			tensorflow.linalg.matmul(
 				super(JaccardDense, self).kernel,
 				super(JaccardDense, self).kernel,
@@ -304,4 +302,7 @@ class JaccardDense(tensorflow.keras.layers.Dense):
 			)
 		)
 
-		return x_y / (x_x + y_y + x_y)
+		return dot_product / (
+			inputs_norm +
+			kernel_norm + dot_product
+		)
