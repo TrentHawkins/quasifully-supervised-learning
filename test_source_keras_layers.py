@@ -6,9 +6,11 @@ class TestTensorFlowLinearOperations:
 
     def test_tensordot(self):
         """Test tensordot as a vector dot product on the last dimension of tensors."""
-        from tensorflow import constant
+        from tensorflow import constant, einsum
+        from tensorflow.python.framework.errors_impl import InvalidArgumentError
 
-        self.x = constant(
+    #   Use prime numbers for chape of tensor for better dot compatibility testing.
+        x = constant(
             [
                 [
                     [10, 11, 12, 13, 14],
@@ -22,5 +24,10 @@ class TestTensorFlowLinearOperations:
                 ],
             ],
         )
+        assert x.shape == (2, 3, 5)
 
-        assert self.x.shape == (2, 3, 5)
+    #   Assume x is a (2,3)-shaped batch of 5-sized feature vectors. The norm should be (2,3) then.
+        assert einsum("...i, ...i -> ...", x, x).shape == (2, 3)
+
+    #   Assume x is a 2-sized batch of (3,5)-shaped weight kernels. The norm should be (2,3) again, via the diagonal dots.
+        assert einsum("...ji, ...ji -> ...j", x, x).shape == (2, 3)

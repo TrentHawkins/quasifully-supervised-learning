@@ -283,26 +283,18 @@ class JaccardDense(tensorflow.keras.layers.Dense):
 		Returns:
 			output of layer
 		"""
-		dot_product = super(JaccardDense, self).call(inputs)
+		xy = super(JaccardDense, self).call(inputs)
 
-	#	the norm of inputs vector
-		inputs_norm = tensorflow.tensordot(
+	#	the norms of inputs vectors
+		xx = tensorflow.einsum("...i, ...i -> ...",
 			inputs,
-			inputs, 1
+			inputs,
 		)
 
-	#	the norm of kernel vectors
-		kernel_norm = tensorflow.linalg.trace(
-			tensorflow.linalg.matmul(
-				super(JaccardDense, self).kernel,
-				super(JaccardDense, self).kernel,
-
-			#	transpose_a=True,
-				transpose_b=True,
-			)
+	#	the norms of kernel vectors
+		yy = tensorflow.einsum("...ji, ...ji -> ...j",
+			super(JaccardDense, self).kernel,
+			super(JaccardDense, self).kernel,
 		)
 
-		return dot_product / (
-			inputs_norm +
-			kernel_norm + dot_product
-		)
+		return xy / (xx + yy + xy)
