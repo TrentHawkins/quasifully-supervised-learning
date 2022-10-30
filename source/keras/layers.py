@@ -272,6 +272,12 @@ class JaccardDense(tensorflow.keras.layers.Dense):
 			name=name,
 		**kwargs)
 
+	#	the norms of kernel vectors (diagonal)
+		self.kernel_kernel = tensorflow.einsum("...ji, ...ji -> ...j",
+			self.kernel,
+			self.kernel,
+		)
+
 	def call(self, inputs):
 		"""Call the model on new inputs.
 
@@ -283,18 +289,12 @@ class JaccardDense(tensorflow.keras.layers.Dense):
 		Returns:
 			output of layer
 		"""
-		xy = super(JaccardDense, self).call(inputs)
+		inputs_kernel = super(JaccardDense, self).call(inputs)
 
 	#	the norms of inputs vectors
-		xx = tensorflow.einsum("...i, ...i -> ...",
+		inputs_inputs = tensorflow.einsum("...i, ...i -> ...",
 			inputs,
 			inputs,
 		)
 
-	#	the norms of kernel vectors
-		yy = tensorflow.einsum("...ji, ...ji -> ...j",
-			super(JaccardDense, self).kernel,
-			super(JaccardDense, self).kernel,
-		)
-
-		return xy / (xx + yy + xy)
+		return inputs_kernel / (inputs_inputs + self.kernel_kernel + inputs_kernel)
