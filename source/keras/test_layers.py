@@ -22,7 +22,7 @@ class TestTensorFlowLinearOperations:
 		]
 	)
 
-	def test_xx(self):
+	def test_vector_dot_product(self):
 		"""Test tensordot as a vector dot product on the last dimension of tensors."""
 		from tensorflow import constant, einsum
 		from tensorflow import math
@@ -36,9 +36,9 @@ class TestTensorFlowLinearOperations:
 			einsum("...i, ...i -> ...", self.x, self.x) == constant([[j @ j for j in i] for i in self.x.numpy()])
 		)
 
-	def test_yy(self):
+	def test_matrix_multiplication(self):
 		"""Test tensordot as a vector dot product on the last dimension of tensors."""
-		from tensorflow import constant, einsum, transpose
+		from tensorflow import constant, einsum
 		from tensorflow import math
 
 	#   Use prime numbers for chape of tensor for better dot compatibility testing.
