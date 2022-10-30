@@ -248,7 +248,7 @@ class JaccardDense(tensorflow.keras.layers.Dense):
 	Such a modified layer has no bias explicitely.
 	"""
 
-	def __init__(self,
+	def __init__(self, units,
 		activation: Callable | str | None = None,
 		kernel_initializer: tensorflow.keras.initializers.Initializer | str = "glorot_uniform",
 		name: str = "jaccard",
@@ -259,7 +259,7 @@ class JaccardDense(tensorflow.keras.layers.Dense):
 			activation: to apply on output of decision
 			kernel_initializer: weight values to begin with
 		"""
-		super(JaccardDense, self).__init__(1,
+		super(JaccardDense, self).__init__(units,
 			activation=activation,
 			use_bias=False,
 			kernel_initializer=kernel_initializer,
