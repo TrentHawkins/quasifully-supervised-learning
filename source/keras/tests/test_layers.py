@@ -7,7 +7,7 @@ class TestTensorFlowLinearOperations:
 	from tensorflow import constant
 
 #	A small sample tensor to test linear operations.
-	x = constant(
+	inputs = constant(
 		[
 			[
 				[10, 11, 12, 13, 14],
@@ -28,13 +28,16 @@ class TestTensorFlowLinearOperations:
 		from tensorflow import math
 
 	#   Use prime numbers for chape of tensor for better dot compatibility testing.
-		assert self.x.shape == (2, 3, 5)
+		assert self.inputs.shape == (
+			2,
+			3,
+			5,
+		)
 
 	#	Assume x is a (2,3)-shaped batch of 5-sized feature vectors. The norm should be (2,3) then.
-		assert einsum("...i, ...i -> ...", self.x, self.x).shape == (2, 3)
-		assert math.reduce_all(
-			einsum("...i, ...i -> ...", self.x, self.x) == constant([[j @ j for j in i] for i in self.x.numpy()])
-		)
+		assert einsum("...i, ...i -> ...", self.inputs, self.inputs).shape == (2, 3)
+		assert math.reduce_all(einsum("...i, ...i -> ...", self.inputs, self.inputs)
+			== constant([[j @ j for j in i] for i in self.inputs.numpy()]))
 
 	def test_matrix_multiplication(self):
 		"""Test tensordot as a vector dot product on the last dimension of tensors."""
@@ -42,10 +45,76 @@ class TestTensorFlowLinearOperations:
 		from tensorflow import math
 
 	#   Use prime numbers for chape of tensor for better dot compatibility testing.
-		assert self.x.shape == (2, 3, 5)
+		assert self.inputs.shape == (
+			2,
+			3,
+			5,
+		)
 
 	#	Assume x is a 2-sized batch of (3,5)-shaped kernel weights. The norm should be (2,3) again, via the diagonal dots.
-		assert einsum("...ji, ...ji -> ...j", self.x, self.x).shape == (2, 3)
-		assert math.reduce_all(
-			einsum("...i, ...i -> ...", self.x, self.x) == constant([(i @ i.transpose()).diagonal() for i in self.x.numpy()])
+		assert einsum("...ji, ...ji -> ...j", self.inputs, self.inputs).shape == (2, 3)
+		assert math.reduce_all(einsum("...i, ...i -> ...", self.inputs, self.inputs)
+			== constant([(i @ i.transpose()).diagonal() for i in self.inputs.numpy()]))
+
+
+class TestMetricDense:
+	"""Test the custom Jaccard layer as a sinlge layer model."""
+
+	from tensorflow import constant, random
+
+#	A small sample tensor of sigmoids to test the Jaccard layer.
+	inputs = random.uniform(
+		(
+			2,
+			3,
+			5,
 		)
+	)
+
+	def test_jaccard(self):
+		"""Test if operations are carried out successfully over a batch of inputs."""
+		from tensorflow import keras, random
+		from tensorflow import math
+		from source.keras.layers import JaccardDense
+
+		testDense = JaccardDense(
+			self.inputs.shape[-1], kernel_initializer=keras.initializers.Constant(
+				random.uniform(
+					(
+						5,
+						5,
+					)
+				)
+			)
+		)
+
+	#	Assert `JaccardDense` forwards successfully and with the same shapes as a normal `Dense`.
+		assert testDense(self.inputs).shape == keras.layers.Dense(5)(self.inputs).shape
+
+	#	Assert the range of values of `JaccardDense` pass is 0 to 1.
+		assert math.reduce_all(0 <= testDense(self.inputs))
+		assert math.reduce_all(1 >= testDense(self.inputs))
+
+	def test_cosine(self):
+		"""Test if operations are carried out successfully over a batch of inputs."""
+		from tensorflow import keras, random
+		from tensorflow import math
+		from source.keras.layers import JaccardDense
+
+		testDense = JaccardDense(
+			self.inputs.shape[-1], kernel_initializer=keras.initializers.Constant(
+				random.uniform(
+					(
+						5,
+						5,
+					)
+				)
+			)
+		)
+
+	#	Assert `JaccardDense` forwards successfully and with the same shapes as a normal `Dense`.
+		assert testDense(self.inputs).shape == keras.layers.Dense(5)(self.inputs).shape
+
+	#	Assert the range of values of `JaccardDense` pass is 0 to 1.
+		assert math.reduce_all(0 <= testDense(self.inputs))
+		assert math.reduce_all(1 >= testDense(self.inputs))

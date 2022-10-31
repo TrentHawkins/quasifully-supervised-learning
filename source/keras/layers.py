@@ -242,8 +242,8 @@ class AttentionDense(tensorflow.keras.layers.Dense):
 		)
 
 
-class JaccardDense(tensorflow.keras.layers.Dense):
-	"""A dense layer that perform the jaccard operation per input and kernel vector instead of a dot product.
+class MetricDense(tensorflow.keras.layers.Dense):
+	"""A non-linear dense layer emulating the action of a metric and outputing in sigmoid range.
 
 	Such a modified layer has no bias explicitely.
 	"""
@@ -251,7 +251,7 @@ class JaccardDense(tensorflow.keras.layers.Dense):
 	def __init__(self, units,
 		activation: Callable | str | None = None,
 		kernel_initializer: tensorflow.keras.initializers.Initializer | str = "glorot_uniform",
-		name: str = "jaccard",
+		name: str = "metric",
 	**kwargs):
 		"""Hyperparametrize recombination layer.
 
@@ -259,7 +259,7 @@ class JaccardDense(tensorflow.keras.layers.Dense):
 			activation: to apply on output of decision
 			kernel_initializer: weight values to begin with
 		"""
-		super(JaccardDense, self).__init__(units,
+		super(MetricDense, self).__init__(units,
 			activation=activation,
 			use_bias=False,
 			kernel_initializer=kernel_initializer,
@@ -272,11 +272,22 @@ class JaccardDense(tensorflow.keras.layers.Dense):
 			name=name,
 		**kwargs)
 
+	def build(self, input_shape):
+		"""Build the kerne weight along with weight-related variables."""
+		super(MetricDense, self).build(input_shape)
+
 	#	the norms of kernel vectors (diagonal)
-		self.kernel_kernel = tensorflow.einsum("...ji, ...ji -> ...j",
+		self.kernel_kernel = tensorflow.einsum("...ji, ...ji -> ...i",
 			self.kernel,
 			self.kernel,
 		)
+
+
+class JaccardDense(MetricDense):
+	"""A dense layer that perform the jaccard operation per input and kernel vector instead of a dot product.
+
+	Such a modified layer has no bias explicitely.
+	"""
 
 	def call(self, inputs):
 		"""Call the model on new inputs.
@@ -297,4 +308,39 @@ class JaccardDense(tensorflow.keras.layers.Dense):
 			inputs,
 		)
 
-		return inputs_kernel / (inputs_inputs + self.kernel_kernel + inputs_kernel)
+		return inputs_kernel / (
+			tensorflow.expand_dims(inputs_inputs, -1) +
+			tensorflow.broadcast_to(self.kernel_kernel, inputs_kernel.shape) +
+			inputs_kernel
+		)
+
+
+class CosineDense(MetricDense):
+	"""A dense layer that perform the cosine operation per input and kernel vector instead of a dot product.
+
+	Such a modified layer has no bias explicitely.
+	"""
+
+	def call(self, inputs):
+		"""Call the model on new inputs.
+
+		In this case call just reapplies all ops in the graph to the new inputs.
+
+		Arguments:
+			inputs: a tensor or list of tensors
+
+		Returns:
+			output of layer
+		"""
+		inputs_kernel = super(CosineDense, self).call(inputs)
+
+	#	the norms of inputs vectors
+		inputs_inputs = tensorflow.einsum("...i, ...i -> ...",
+			inputs,
+			inputs,
+		)
+
+		return inputs_kernel / tensorflow.math.sqrt(
+			tensorflow.expand_dims(inputs_inputs, -1) *
+			tensorflow.broadcast_to(self.kernel_kernel, inputs_kernel.shape)
+		)
