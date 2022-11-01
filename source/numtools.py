@@ -38,10 +38,10 @@ def is_prime(dividee: int) -> bool:
 	return dividee > 1 and len(divisors(dividee)) == 1
 
 
-def hidden_dims(inputs_dim: int, output_dim: int,
-	skip: int = 1,
-	thin: bool = True,
-):
+def hidden_dims(
+	inputs_dim: int,
+	output_dim: int, skip: int = 1, less: bool = True,
+) -> list[int]:
 	"""Get all possible layers given by a divisor logic.
 
 	Take inputs_dim*outputs_dim and find all divisors in range(inputs_dim, outputs_dim+1, skip).
@@ -51,14 +51,14 @@ def hidden_dims(inputs_dim: int, output_dim: int,
 		output_dim: the output dimension for the requested architecture
 		skip: subsample proposed architecture uniformly by skipping layers with (possibly) a divisor of the depth
 			default: no skip
-		thin: whether to thin out results by selection of multiples of the GCD only
+		less: whether to thin out results by selection of multiples of the GCD only
 			default: thin out
 
 	Returns:
 		reversed list of divisors as proposed layer sizes
 	"""
-	_lcm = math.lcm(inputs_dim, output_dim) if thin else inputs_dim * output_dim
-	_gcd = math.gcd(inputs_dim, output_dim) if thin else 1
+	_lcm = math.lcm(inputs_dim, output_dim) if less else inputs_dim * output_dim
+	_gcd = math.gcd(inputs_dim, output_dim) if less else 1
 
 #	shrinking model
 	if inputs_dim > output_dim:
@@ -69,11 +69,10 @@ def hidden_dims(inputs_dim: int, output_dim: int,
 		return [x for x in divisors(_lcm) if inputs_dim <= x <= output_dim and x % _gcd == 0][::+skip]
 
 #	projecting model
-	if inputs_dim == output_dim:
-		return [inputs_dim]
+	return [inputs_dim]
 
 
-def metallic(n: int, m: int):
+def metallic(n: int, m: int) -> int:
 	"""Metallic sequence of rank `m`.
 
 	metallic(n)=m*metallic(n-1)+metallic(n-2)
@@ -95,7 +94,7 @@ def metallic(n: int, m: int):
 	return a
 
 
-def golden(n: int):
+def golden(n: int) -> int:
 	"""Golden ratio (m=1, Fibonacci) sequence.
 
 	Arguments:
@@ -107,7 +106,7 @@ def golden(n: int):
 	return metallic(n, 1)
 
 
-def silver(n: int):
+def silver(n: int) -> int:
 	"""	Silver ratio (m=2) sequence.
 
 	Arguments:
@@ -119,7 +118,7 @@ def silver(n: int):
 	return metallic(n, 2)
 
 
-def bronze(n: int):
+def bronze(n: int) -> int:
 	"""	Bronze ratio (m-3) sequence.
 
 	Arguments:

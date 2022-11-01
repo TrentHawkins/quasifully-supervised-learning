@@ -98,6 +98,7 @@ class TestMetricDense:
 	def test_cosine(self):
 		"""Test if operations are carried out successfully over a batch of inputs."""
 		from tensorflow import keras, math, random
+
 		from source.keras.layers import CosineDense
 
 		testDense = CosineDense(
@@ -137,6 +138,7 @@ class TestBaseDense:
 	def test_forward_pass(self):
 		"""Test if operations are carried out successfully over a batch of inputs."""
 		from tensorflow import keras, math
+
 		from source.keras.layers import BaseDense
 
 		testDense = BaseDense(self.inputs.shape[-1],

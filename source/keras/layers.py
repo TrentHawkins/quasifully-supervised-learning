@@ -80,7 +80,18 @@ class BaseLayer(tensorflow.keras.layers.Layer):
 		self.layer = layer
 
 	def build(self, input_shape):
-		"""Build the kerne weight along with weight-related variables."""
+		"""Create the variables of the layer (optional, for subclass implementers).
+
+		This is a method that implementers of subclasses of `Layer` or `Model` can override
+		if they need a state-creation step in-between layer instantiation and layer call.
+
+		It is invoked automatically before the first execution of `call()`.
+
+		This is typically used to create the weights of `Layer` subclasses (at the discretion of the subclass implementer).
+
+		Arguments:
+			input_shape: instance of `TensorShape` or list of instances of `TensorShape` if the layer expects a list of inputs
+		"""
 		super(BaseLayer, self).build(input_shape)
 
 		self.normalization.build(input_shape)
@@ -263,7 +274,18 @@ class MetricDense(tensorflow.keras.layers.Dense):
 		**kwargs)
 
 	def build(self, input_shape):
-		"""Build the kerne weight along with weight-related variables."""
+		"""Create the variables of the layer (optional, for subclass implementers).
+
+		This is a method that implementers of subclasses of `Layer` or `Model` can override
+		if they need a state-creation step in-between layer instantiation and layer call.
+
+		It is invoked automatically before the first execution of `call()`.
+
+		This is typically used to create the weights of `Layer` subclasses (at the discretion of the subclass implementer).
+
+		Arguments:
+			input_shape: instance of `TensorShape` or list of instances of `TensorShape` if the layer expects a list of inputs
+		"""
 		super(MetricDense, self).build(input_shape)
 
 	#	the norms of kernel vectors (diagonal)
