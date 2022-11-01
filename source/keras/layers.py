@@ -6,6 +6,10 @@ Compound dense layer containing:
 -	dense sublayer
 
 Basic attention layer assigning a trainable weight for each input in an array of inputs.
+
+Metric sigmoid-like non-linear dense layers using similarity metrics in their definition:
+-	based on the jaccard similarity metric (sigmoid-like only on sigmoid-like features)
+-	based on the cosine similarity metric (sigmoid-like always)
 """
 
 
