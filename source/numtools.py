@@ -6,23 +6,26 @@ import math
 import numpy
 
 
-def divisors(dividee: int) -> list[int]:
+def divisors(dividee: int, reverse: bool = False) -> list[int]:
 	"""	Get all divisors of dividee.
 
 	Arguments:
 		dividee: the number to divide
 
+	Keyword Arguments:
+		reverse: the order of devisors
+
 	Returns:
 		list of divisors
 	"""
-	_divisors = {1}
+	_divisors = set()
 
-	for divisor in range(2, int(numpy.sqrt(dividee)) + 1):
+	for divisor in range(1, int(numpy.sqrt(dividee)) + 1):
 		if dividee % divisor == 0:
 			_divisors.add(divisor)
 			_divisors.add(dividee // divisor)
 
-	return sorted(_divisors)
+	return sorted(_divisors, reverse=reverse)
 
 
 def is_prime(dividee: int) -> bool:
