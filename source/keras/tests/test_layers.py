@@ -60,7 +60,7 @@ class TestTensorFlowLinearOperations:
 class TestMetricDense:
 	"""Test the custom Jaccard layer as a sinlge layer model."""
 
-	from tensorflow import constant, random
+	from tensorflow import random
 
 #	A small sample tensor of sigmoids to test the Jaccard layer.
 	inputs = random.uniform(
@@ -73,12 +73,12 @@ class TestMetricDense:
 
 	def test_jaccard(self):
 		"""Test if operations are carried out successfully over a batch of inputs."""
-		from tensorflow import keras, random
-		from tensorflow import math
+		from tensorflow import keras, math, random
 		from source.keras.layers import JaccardDense
 
 		testDense = JaccardDense(
-			self.inputs.shape[-1], kernel_initializer=keras.initializers.Constant(
+			self.inputs.shape[-1],
+			kernel_initializer=keras.initializers.Constant(
 				random.uniform(
 					(
 						5,
@@ -97,12 +97,12 @@ class TestMetricDense:
 
 	def test_cosine(self):
 		"""Test if operations are carried out successfully over a batch of inputs."""
-		from tensorflow import keras, random
-		from tensorflow import math
-		from source.keras.layers import JaccardDense
+		from tensorflow import keras, math, random
+		from source.keras.layers import CosineDense
 
-		testDense = JaccardDense(
-			self.inputs.shape[-1], kernel_initializer=keras.initializers.Constant(
+		testDense = CosineDense(
+			self.inputs.shape[-1],
+			kernel_initializer=keras.initializers.Constant(
 				random.uniform(
 					(
 						5,
@@ -116,5 +116,37 @@ class TestMetricDense:
 		assert testDense(self.inputs).shape == keras.layers.Dense(5)(self.inputs).shape
 
 	#	Assert the range of values of a `CosineDense` pass is 0 to 1.
+		assert math.reduce_all(0 <= testDense(self.inputs))
+		assert math.reduce_all(1 >= testDense(self.inputs))
+
+
+class TestBaseDense:
+	"""Test the custom Jaccard layer as a sinlge layer model."""
+
+	from tensorflow import random
+
+#	A small sample tensor of sigmoids to test the Jaccard layer.
+	inputs = random.normal(
+		(
+			2,
+			3,
+			5,
+		)
+	)
+
+	def test_forward_pass(self):
+		"""Test if operations are carried out successfully over a batch of inputs."""
+		from tensorflow import keras, math
+		from source.keras.layers import BaseDense
+
+		testDense = BaseDense(self.inputs.shape[-1],
+			activation="sigmoid",
+			normalization=True,
+		)
+
+	#	Assert `JaccardDense` forwards successfully and with the same shapes as a normal `Dense`.
+		assert testDense(self.inputs).shape == keras.layers.Dense(self.inputs.shape[-1])(self.inputs).shape
+
+	#	Assert the range of values of a `JaccardDense` pass is 0 to 1.
 		assert math.reduce_all(0 <= testDense(self.inputs))
 		assert math.reduce_all(1 >= testDense(self.inputs))

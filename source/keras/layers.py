@@ -79,6 +79,14 @@ class BaseLayer(tensorflow.keras.layers.Layer):
 	#	layer to modify with normalization and dropout
 		self.layer = layer
 
+	def build(self, input_shape):
+		"""Build the kerne weight along with weight-related variables."""
+		super(BaseLayer, self).build(input_shape)
+
+		self.normalization.build(input_shape)
+		self.dropout.build(input_shape)
+		self.layer.build(input_shape)
+
 	def call(self, inputs: tensorflow.Tensor,
 		training: bool | None = None,
 	):
@@ -140,52 +148,30 @@ class BaseDense(BaseLayer):
 			units: number of neurons in layer
 
 		Keyword arguments:
-		#	regularizer: on the weights of the layer
-		#	constraint: on the weights of the layer
 			activation: of layer
 				default: none
+			regularizer: on the weights of the layer
+				default: Glorot uniform
+			constraint: on the weights of the layer
+				default: none
 		"""
-		super(BaseDense, self).__init__(
+		assert units > 0
+		super(BaseDense, self).__init__(layer=tensorflow.keras.layers.Dense(units,
+				activation=activation,
+			#	use_bias=True,
+			#	kernel_initializer="glorot_uniform",
+			#	bias_initializer="zeros",
+			#	kernel_regularizer=regularizer,
+			#	bias_regularizer=regularizer,
+			#	activity_regularizer=regularizer,
+			#	kernel_constraint=constraint,
+			#	bias_constraint=constraint,
+				name=name,  # None
+			),
 			dropout=dropout,
 			normalization=normalization,
 			name=name,
 		**kwargs)
-
-		assert units > 0
-		self.dense = tensorflow.keras.layers.Dense(units,
-			activation=activation,
-		#	use_bias=True,
-		#	kernel_initializer="glorot_uniform",
-		#	bias_initializer="zeros",
-		#	kernel_regularizer=regularizer,
-		#	bias_regularizer=regularizer,
-		#	activity_regularizer=regularizer,
-		#	kernel_constraint=constraint,
-		#	bias_constraint=constraint,
-			name=name,  # None
-		)
-
-	def call(self, inputs,
-		training: bool | None = None,
-	):
-		"""Call the model on new inputs.
-
-		In this case call just reapplies all ops in the graph to the new inputs.
-
-		Arguments:
-			inputs: a tensor or list of tensors
-
-		Keyword arguments:
-			training: boolean indicating whether to run the network in training mode or inference mode
-
-		Returns:
-			output of layer
-		"""
-		return self.dense(
-			super().call(inputs,
-				training=training,
-			)
-		)
 
 
 """What follows are special types of dense layers."""
