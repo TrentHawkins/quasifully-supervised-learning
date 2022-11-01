@@ -42,7 +42,7 @@ class BaseLayer(tensorflow.keras.layers.Layer):
 		Keyword Arguments:
 			normalization: whether to batch-nosmalize or not
 				default: no batch-normalization
-			dropout: dropout factor applied on input of the dense layer
+			dropout: dropout factor applied on input of the layer
 				default: half
 		"""
 		super(BaseLayer, self).__init__(
@@ -94,7 +94,12 @@ class BaseLayer(tensorflow.keras.layers.Layer):
 		"""
 		super(BaseLayer, self).build(input_shape)
 
-		self.normalization.build(input_shape)
+		try:
+			self.normalization.build(input_shape)
+
+		except AttributeError:
+			pass
+
 		self.dropout.build(input_shape)
 		self.layer.build(input_shape)
 
@@ -234,11 +239,7 @@ class AttentionDense(tensorflow.keras.layers.Dense):
 			output of layer
 		"""
 		return tensorflow.squeeze(
-			super(AttentionDense, self).call(
-				tensorflow.stack(inputs,
-					axis=-1,
-				)
-			),
+			super(AttentionDense, self).call(inputs),
 			axis=-1,
 		)
 
