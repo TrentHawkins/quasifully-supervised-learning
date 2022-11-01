@@ -11,7 +11,7 @@ def similarityJaccard(
 	a: numpy.ndarray,
 	b: numpy.ndarray,
 ):
-	"""Custom dot product emulating the jaccard similarity metric.
+	"""Customize dot product emulating the jaccard similarity metric.
 
 	The Jaccard similarity of two sets A and B:
 		jaccard(A, B) == |A ∩ B| / |A ∪ B| == |A ∩ B| / (|A| + |B| - |A ∩ B|)
@@ -28,14 +28,14 @@ def similarityJaccard(
 		return numpy.inner(a, b) / (numpy.inner(a, a) + numpy.inner(b, b) - numpy.inner(a, b))
 
 	if len(a.shape) == len(b.shape) >= 2:
-		return numpy.array([[jaccard(i, j) for i in a] for j in b.transpose()])
+		return numpy.array([[similarityJaccard(i, j) for i in a] for j in b.transpose()])
 
 
 def similarityCosine(
 	a: numpy.ndarray,
 	b: numpy.ndarray,
 ):
-	"""Custom dot product emulating the cossine similarity metric.
+	"""Customize dot product emulating the cossine similarity metric.
 
 	The cosine similarity of two vectors x and y:
 		cosine(x, y) == x · y / √((x · x)(y · y))
@@ -47,14 +47,14 @@ def similarityCosine(
 		return numpy.inner(a, b) / numpy.sqrt(numpy.inner(a, a) * numpy.inner(b, b))
 
 	if len(a.shape) == len(b.shape) >= 2:
-		return numpy.array([[cosine(i, j) for i in a] for j in b.transpose()])
+		return numpy.array([[similarityCosine(i, j) for i in a] for j in b.transpose()])
 
 
 def dotDataFrame(
 	a: pandas.DataFrame,
 	b: pandas.DataFrame, alter_dot: Callable = numpy.dot
 ):
-	"""Modified dot product for dataframes.
+	"""Modify dot product for dataframes.
 
 	Keyword Arguments:
 		alter_dot: customized dot product to replace the NumPy original
@@ -80,5 +80,5 @@ if __name__ == "__main__":
 	print(b)
 
 	print(dotDataFrame(a, b))
-	print(dotDataFrame(a, b, alter_dot=jaccard))
-	print(dotDataFrame(a, b, alter_dot=cosine))
+	print(dotDataFrame(a, b, alter_dot=similarityJaccard))
+	print(dotDataFrame(a, b, alter_dot=similarityCosine))

@@ -18,7 +18,7 @@ from ..similarity import dotDataFrame, similarityCosine, similarityJaccard
 
 
 class Dataset:
-	"""Animals with Attributes 2:
+	"""Animals with Attributes 2.
 
 	All label and image loc data are generated dynamically on demand to allow filtering fexibility while maingaining readability.
 	Assumes that internal file structure of the AWA2 (equipped with the standard splits) dataset is left unaltered.
@@ -99,7 +99,7 @@ class Dataset:
 		binary: bool = False,
 		logits: bool = False,
 	) -> pandas.DataFrame:
-		"""Get label predicates (features).
+		"""Get label predicates.
 
 		Argumebts:
 			selection: text file containing the labels to be listed
