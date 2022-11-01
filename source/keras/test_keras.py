@@ -89,7 +89,7 @@ class TestMetricDense:
 		)
 
 	#	Assert `JaccardDense` forwards successfully and with the same shapes as a normal `Dense`.
-		assert testDense(self.inputs).shape == keras.layers.Dense(5)(self.inputs).shape
+		assert testDense(self.inputs).shape == keras.layers.Dense(self.inputs.shape[-1])(self.inputs).shape
 
 	#	Assert the range of values of a `JaccardDense` pass is 0 to 1.
 		assert math.reduce_all(0 <= testDense(self.inputs))
@@ -113,7 +113,7 @@ class TestMetricDense:
 		)
 
 	#	Assert `JaccardDense` forwards successfully and with the same shapes as a normal `Dense`.
-		assert testDense(self.inputs).shape == keras.layers.Dense(5)(self.inputs).shape
+		assert testDense(self.inputs).shape == keras.layers.Dense(self.inputs.shape[-1])(self.inputs).shape
 
 	#	Assert the range of values of a `CosineDense` pass is 0 to 1.
 		assert math.reduce_all(0 <= testDense(self.inputs))
