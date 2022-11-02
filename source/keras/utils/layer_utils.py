@@ -407,7 +407,7 @@ def print_summary(model,
 
 	print_fn(f"Total params: {trainable_count + non_trainable_count}")
 	print_fn(f"Trainable params: {trainable_count}")
-	print_fn(f"Non-trainable params: {trainable_count}")
+	print_fn(f"Non-trainable params: {non_trainable_count}")
 	print_fn("━" * line_length)
 
 
