@@ -14,7 +14,7 @@ import scipy.special
 import seaborn
 import tensorflow
 
-from ..similarity import dotDataFrame, similarityCosine, similarityJaccard
+from ..similarity import dotDataFrame, cosine, jaccard
 
 
 class Dataset:
@@ -350,5 +350,5 @@ if __name__ == "__main__":
 	#	"softmx": True,
 	}
 	dataset.plot_label_correlation(**kwargs)
-	dataset.plot_label_correlation(**kwargs, alter_dot=similarityJaccard)
-	dataset.plot_label_correlation(**kwargs, alter_dot=similarityCosine)
+	dataset.plot_label_correlation(**kwargs, alter_dot=jaccard)
+	dataset.plot_label_correlation(**kwargs, alter_dot=cosine)

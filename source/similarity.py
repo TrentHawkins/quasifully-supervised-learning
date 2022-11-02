@@ -7,7 +7,7 @@ import numpy
 import pandas
 
 
-def similarityJaccard(
+def jaccard(
 	a: numpy.ndarray,
 	b: numpy.ndarray,
 ):
@@ -28,10 +28,10 @@ def similarityJaccard(
 		return numpy.inner(a, b) / (numpy.inner(a, a) + numpy.inner(b, b) - numpy.inner(a, b))
 
 	if len(a.shape) == len(b.shape) >= 2:
-		return numpy.array([[similarityJaccard(i, j) for i in a] for j in b.transpose()])
+		return numpy.array([[jaccard(i, j) for i in a] for j in b.transpose()])
 
 
-def similarityCosine(
+def cosine(
 	a: numpy.ndarray,
 	b: numpy.ndarray,
 ):
@@ -47,7 +47,7 @@ def similarityCosine(
 		return numpy.inner(a, b) / numpy.sqrt(numpy.inner(a, a) * numpy.inner(b, b))
 
 	if len(a.shape) == len(b.shape) >= 2:
-		return numpy.array([[similarityCosine(i, j) for i in a] for j in b.transpose()])
+		return numpy.array([[cosine(i, j) for i in a] for j in b.transpose()])
 
 
 def dotDataFrame(
@@ -80,5 +80,5 @@ if __name__ == "__main__":
 	print(b)
 
 	print(dotDataFrame(a, b))
-	print(dotDataFrame(a, b, alter_dot=similarityJaccard))
-	print(dotDataFrame(a, b, alter_dot=similarityCosine))
+	print(dotDataFrame(a, b, alter_dot=jaccard))
+	print(dotDataFrame(a, b, alter_dot=cosine))
