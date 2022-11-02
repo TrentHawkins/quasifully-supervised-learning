@@ -23,9 +23,87 @@ See the License for the specific language governing permissions and limitations 
 """
 
 
+from re import match
+from shutil import get_terminal_size
 from typing import Callable
 
+import numpy
 import tensorflow
+
+import keras.utils.layer_utils
+
+
+def count_params(weights):
+	"""Count the total number of scalars composing the weights.
+
+	Argumentss:
+		weights: An iterable containing the weights on which to compute params
+
+	Returns:
+		The total number of scalars composing the weights
+	"""
+	unique_weights = {id(w): w for w in weights}.values()
+
+#	Ignore TrackableWeightHandlers, which will not have a shape defined.
+	unique_weights = [w for w in unique_weights if hasattr(w, "shape")]
+	weight_shapes = [w.shape.as_list() for w in unique_weights]
+	standardized_weight_shapes = [[0 if w_i is None else w_i for w_i in w] for w in weight_shapes]
+	return int(sum(numpy.prod(p) for p in standardized_weight_shapes))  # type: ignore
+
+
+def get_layer_index_bound_by_layer_name(model,
+	layer_range: list[str] | tuple[str, str] | None = None,
+):
+	"""Get the layer indexes from the model based on layer names.
+
+	The layer indexes can be used to slice the model into sub models for display.
+
+	Arguments:
+		model: `tf.keras.Model` instance.
+		layer_names: a list or tuple of 2 strings, the starting layer name and ending layer name (both inclusive) for the result.
+			All layers will	be included when `None` is provided.
+
+	Returns:
+		The index value of layer based on its unique name (layer_names).
+		Output will be `[first_layer_index, last_layer_index + 1]`.
+	"""
+	if layer_range is not None:
+		if len(layer_range) != 2:
+			raise ValueError(
+				"layer_range must be a list or tuple of length 2. Received: "
+				f"layer_range = {layer_range} of length {len(layer_range)}"
+			)
+
+		if not isinstance(layer_range[0], str) or not isinstance(layer_range[1], str):
+			raise ValueError(
+				"layer_range should contain string type only. "
+				f"Received: {layer_range}"
+			)
+
+	else:
+		return [0, len(model.layers)]
+
+	lower_index = [
+		idx
+		for idx, layer in enumerate(model.layers)
+		if match(layer_range[0], layer.name)
+	]
+	upper_index = [
+		idx
+		for idx, layer in enumerate(model.layers)
+		if match(layer_range[1], layer.name)
+	]
+
+	if not lower_index or not upper_index:
+		raise ValueError(
+			"Passed layer_names do not match the layer names in the model. "
+			f"Received: {layer_range}"
+		)
+
+	if min(lower_index) > max(upper_index):
+		return [min(upper_index), max(lower_index) + 1]
+
+	return [min(lower_index), max(upper_index) + 1]
 
 
 def print_summary(model,
@@ -60,7 +138,7 @@ def print_summary(model,
 			By default (`None`) all layers in the model are included in the summary.
 	"""
 	if print_fn is None:
-		print_fn: Callable[[str], None] = tensorflow.keras.utils.io_utils.print_msg
+		print_fn: Callable[[str], None] = keras.utils.io_utils.print_msg  # type: ignore
 
 	if model.__class__.__name__ == "Sequential":
 		sequential_like = True
@@ -102,7 +180,7 @@ def print_summary(model,
 					break
 
 	if sequential_like:
-		line_length = line_length or 132  # 65
+		line_length = line_length or get_terminal_size().columns  # 65
 		positions = positions or [
 			0.50,  # 0.45
 			0.75,  # 0.85
@@ -117,7 +195,7 @@ def print_summary(model,
 		]
 
 	else:
-		line_length = line_length or 198  # 98
+		line_length = line_length or get_terminal_size().columns  # 98
 		positions = positions or [
 			0.333,  # 0.33
 			0.500,  # 0.55
@@ -145,7 +223,7 @@ def print_summary(model,
 		positions.append(line_length)
 		to_display.append("T")
 
-	layer_range: list[int] = tensorflow.keras.utils.layer_utils.get_layer_index_bound_by_layer_name(model, layer_range)
+	layer_range: list[int] = get_layer_index_bound_by_layer_name(model, layer_range)
 
 	def print_row(fields: list[str], positions: list[int],
 		nested_level: int = 0,
@@ -320,12 +398,12 @@ def print_summary(model,
 	print_fn("═" * line_length)
 
 	if hasattr(model, "_collected_trainable_weights"):
-		trainable_count = tensorflow.keras.utils.layer_utils.count_params(model._collected_trainable_weights)
+		trainable_count = count_params(model._collected_trainable_weights)
 
 	else:
-		trainable_count = tensorflow.keras.utils.layer_utils.count_params(model.trainable_weights)
+		trainable_count = count_params(model.trainable_weights)
 
-	non_trainable_count = tensorflow.keras.utils.layer_utils.count_params(model.non_trainable_weights)
+	non_trainable_count = count_params(model.non_trainable_weights)
 
 	print_fn(f"Total params: {trainable_count + non_trainable_count}")
 	print_fn(f"Trainable params: {trainable_count}")
@@ -333,4 +411,4 @@ def print_summary(model,
 	print_fn("━" * line_length)
 
 
-tensorflow.keras.utils.layer_utils.print_summary = print_summary  # NOTE: MONKEYPATCH
+keras.utils.layer_utils.print_summary = print_summary  # NOTE: MONKEYPATCH

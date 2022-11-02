@@ -18,6 +18,7 @@ from typing import Callable
 import tensorflow
 
 from ..seed import SEED
+from .utils.layer_utils import print_summary
 
 
 class BaseLayer(tensorflow.keras.layers.Layer):
