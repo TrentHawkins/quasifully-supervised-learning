@@ -144,7 +144,7 @@ class BaseLayer(tensorflow.keras.layers.Layer):
 		return x
 
 
-class BaseDense(BaseLayer):
+class BaseDense(tensorflow.keras.layers.Dense):
 	"""Custom compound dense layer.
 
 	Attribures:
@@ -171,9 +171,12 @@ class BaseDense(BaseLayer):
 				default: Glorot uniform
 			constraint: on the weights of the layer
 				default: none
+			normalization: whether to batch-nosmalize or not
+				default: no batch-normalization
+			dropout: dropout factor applied on input of the layer
+				default: half
 		"""
-		assert units > 0
-		super(BaseDense, self).__init__(layer=tensorflow.keras.layers.Dense(units,
+		super(BaseDense, self).__init__(units,
 				activation=activation,
 			#	use_bias=True,
 			#	kernel_initializer="glorot_uniform",
@@ -184,11 +187,93 @@ class BaseDense(BaseLayer):
 			#	kernel_constraint=constraint,
 			#	bias_constraint=constraint,
 				name=name,  # None
-			),
-			dropout=dropout,
-			normalization=normalization,
-			name=name,
 		**kwargs)
+
+	#	batch-normalization
+		if normalization:
+			self.normalization = tensorflow.keras.layers.BatchNormalization(
+			#	axis=-1,
+			#	momentum=0.99,
+			#	epsilon=0.001,
+			#	center=True,
+			#	scale=True,
+			#	beta_initializer="zeros",
+			#	gamma_initializer="ones",
+			#	moving_mean_initializer="zeros",
+			#	moving_variance_initializer="ones",
+			#	beta_regularizer=regularizer,
+			#	gamma_regularizer=regularizer,
+			#	beta_constraint=constraint,
+			#	gamma_constraint=constraint,
+				name=f"normalization_{name}",
+			**kwargs)
+
+	#	dropout
+		assert dropout >= 0. and dropout <= 1.
+		self.dropout = tensorflow.keras.layers.Dropout(dropout,
+			noise_shape=None,
+			seed=SEED,  # None,
+			name=f"dropout_{name}",  # None
+		**kwargs)
+
+	def build(self, input_shape):
+		"""Create the variables of the layer (optional, for subclass implementers).
+
+		This is a method that implementers of subclasses of `Layer` or `Model` can override
+		if they need a state-creation step in-between layer instantiation and layer call.
+
+		It is invoked automatically before the first execution of `call()`.
+
+		This is typically used to create the weights of `Layer` subclasses (at the discretion of the subclass implementer).
+
+		Arguments:
+			input_shape: instance of `TensorShape` or list of instances of `TensorShape` if the layer expects a list of inputs
+		"""
+		super(BaseDense, self).build(input_shape)
+
+	#	batch-normalization
+		try:
+			self.normalization.build(input_shape)
+
+		except AttributeError:
+			pass
+
+	#	dropout
+		self.dropout.build(input_shape)
+
+	def call(self, inputs: tensorflow.Tensor,
+		training: bool | None = None,
+	):
+		"""Call the model on new inputs.
+
+		In this case call just reapplies all ops in the graph to the new inputs.
+
+		Arguments:
+			inputs: a tensor or list of tensors
+
+		Keyword arguments:
+			training: boolean indicating whether to run the network in training mode or inference mode
+
+		Returns:
+			output of layer
+		"""
+		x = inputs
+
+	#	batch-normalization
+		try:
+			x = self.normalization(x,
+				training=training,
+			)
+
+		except AttributeError:
+			pass
+
+	#	dropout
+		x = self.dropout(x,
+			training=training,
+		)
+
+		return super(BaseDense, self).call(x)
 
 
 """What follows are special types of dense layers."""
@@ -239,8 +324,7 @@ class AttentionDense(tensorflow.keras.layers.Dense):
 		Returns:
 			output of layer
 		"""
-		return tensorflow.squeeze(
-			super(AttentionDense, self).call(inputs),
+		return tensorflow.squeeze(super(AttentionDense, self).call(inputs),
 			axis=-1,
 		)
 
