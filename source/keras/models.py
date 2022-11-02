@@ -12,7 +12,7 @@ from typing import Callable
 
 import tensorflow
 
-from .layers import BaseDense, AttentionDense
+from .layers import Dense, Attention
 from ..numtools import divisors, hidden_dims
 
 
@@ -80,7 +80,7 @@ def DenseStack(
 		)[1:]
 	):
 		model.add(
-			BaseDense(hidden_dim,
+			Dense(hidden_dim,
 				activation=activation,
 			#	regularizer=regularizer,
 			#	constraint=constraint,
@@ -163,7 +163,7 @@ def DenseStackArray(
 		)
 
 #	Attention dense to collate outputs from each dense layer stack.
-	attention = AttentionDense(
+	attention = Attention(
 		activation=attention_activation,
 		name=f"{name}_attention",
 	)

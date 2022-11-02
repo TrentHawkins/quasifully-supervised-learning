@@ -74,9 +74,9 @@ class TestMetricDense:
 	def test_jaccard(self):
 		"""Test if operations are carried out successfully over a batch of inputs."""
 		from tensorflow import keras, math, random
-		from source.keras.layers import JaccardDense
+		from source.keras.layers import Jaccard
 
-		testDense = JaccardDense(
+		testDense = Jaccard(
 			self.inputs.shape[-1],
 			kernel_initializer=keras.initializers.Constant(
 				random.uniform(
@@ -99,9 +99,9 @@ class TestMetricDense:
 		"""Test if operations are carried out successfully over a batch of inputs."""
 		from tensorflow import keras, math, random
 
-		from source.keras.layers import CosineDense
+		from source.keras.layers import Cosine
 
-		testDense = CosineDense(
+		testDense = Cosine(
 			self.inputs.shape[-1],
 			kernel_initializer=keras.initializers.Constant(
 				random.uniform(
@@ -139,9 +139,9 @@ class TestBaseDense:
 		"""Test if operations are carried out successfully over a batch of inputs."""
 		from tensorflow import keras, math
 
-		from source.keras.layers import BaseDense
+		from source.keras.layers import Dense
 
-		testDense = BaseDense(self.inputs.shape[-1],
+		testDense = Dense(self.inputs.shape[-1],
 			activation="sigmoid",
 			normalization=True,
 		)
