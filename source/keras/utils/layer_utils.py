@@ -180,11 +180,11 @@ def print_summary(model,
 					break
 
 	if sequential_like:
-		line_length = line_length or get_terminal_size().columns  # 65
+		line_length = line_length or get_terminal_size().columns - 2  # 65
 		positions = positions or [
-			0.50,  # 0.45
-			0.75,  # 0.85
-			1.00,  # 1.00
+			1 / 2,  # 0.45
+			3 / 4,  # 0.85
+			1 / 1,  # 1.00
 		]  # type: ignore
 
 	#	Header names for the different log elements:
@@ -195,12 +195,12 @@ def print_summary(model,
 		]
 
 	else:
-		line_length = line_length or get_terminal_size().columns  # 98
+		line_length = line_length or get_terminal_size().columns - 2  # 98
 		positions = positions or [
-			0.333,  # 0.33
-			0.500,  # 0.55
-			0.667,  # 0.67
-			1.000,  # 1.00
+			1 / 3,  # 0.33
+			1 / 2,  # 0.55
+			2 / 3,  # 0.67
+			1 / 1,  # 1.00
 		]  # type: ignore
 
 	#	Header names for the different log elements:
@@ -225,10 +225,10 @@ def print_summary(model,
 
 	layer_range: list[int] = get_layer_index_bound_by_layer_name(model, layer_range)
 
-	def print_row(fields: list[str], positions: list[int],
+	def print_row(fields: list, positions: list[int],
 		nested_level: int = 0,
 	):
-		left_to_print = [str(x) for x in fields]
+		left_to_print = [str(x).replace("[", " ").replace("]", " ") for x in fields]
 
 		while any(left_to_print):
 			line = ""
@@ -349,7 +349,7 @@ def print_summary(model,
 				continue
 
 			for (inbound_layer, node_index, tensor_index, _) in node.iterate_inbound():
-				connections.append(f"{inbound_layer.name}[{node_index}][{tensor_index}]")
+				connections.append(f"{inbound_layer.name}")  # f"[{node_index}][{tensor_index}]"
 
 		name = layer.name
 		cls_name = layer.__class__.__name__
