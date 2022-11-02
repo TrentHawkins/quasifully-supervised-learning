@@ -170,11 +170,9 @@ def DenseStackArray(
 
 #	Call:
 	outputs = attention(
-		tensorflow.stack(
-			[
-				sequential(inputs) for sequential in sequentials
-			],
+		tensorflow.stack([sequential(inputs) for sequential in sequentials],
 			axis=-1,
+			name=f"{name}_collation",
 		)
 	)
 
