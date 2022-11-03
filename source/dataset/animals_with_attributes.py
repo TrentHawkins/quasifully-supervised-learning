@@ -275,7 +275,7 @@ class Dataset:
 		matplotlib.pyplot.savefig(path.join(self.images_path, f"predicate-matrix-{predicate_range}.pdf"))
 
 	def plot_label_correlation(self,
-		binary: bool = False,
+		binary: bool | None = None,
 		logits: bool = False,
 		softmx: bool = False, alter_dot: Callable = numpy.dot
 	):
@@ -300,15 +300,31 @@ class Dataset:
 		ax.xaxis.set_tick_params(length=0)
 		ax.yaxis.set_tick_params(length=0)
 
-		predicates = self.predicates(
-			binary=binary,
-			logits=logits,
-		)
-		label_correlation = dotDataFrame(
-			predicates,
-			predicates.transpose(), alter_dot=alter_dot
-		)
+	#	Mix continuous and binary semantic representations, emulating sigmoid predictions against binary truth.
+		if binary is not None:
+			predicates = self.predicates(
+				binary=binary,
+				logits=logits,
+			)
+			label_correlation = dotDataFrame(
+				predicates,
+				predicates.transpose(), alter_dot=alter_dot
+			)
 
+	#	Pure binary or continuous semantic representation correlation.
+		else:
+			label_correlation = dotDataFrame(
+				self.predicates(
+					binary=True,
+					logits=logits,
+				),
+				self.predicates(
+					binary=False,
+					logits=logits,
+				).transpose(), alter_dot=alter_dot
+			)
+
+	#	Optinally dress correlation with a softmax.
 		if softmx:
 			label_correlation = label_correlation.apply(tensorflow.nn.softmax,
 				axis="index",
@@ -319,7 +335,7 @@ class Dataset:
 			vmax=1. if softmx or alter_dot != numpy.dot else None,
 			cmap="gnuplot",
 			robust=not softmx and alter_dot == numpy.dot,
-			linewidths=1,
+			linewidths=0,
 			linecolor="black",
 			cbar=False,
 			square=True,
@@ -332,9 +348,9 @@ class Dataset:
 		ax.set_xlabel("predicted")
 		ax.set_ylabel("true")
 
-		atered_dot = f".{alter_dot.__name__}" if alter_dot != numpy.dot else ""
+		altered_dot = f".{alter_dot.__name__}" if alter_dot != numpy.dot else ""
 
-		matplotlib.pyplot.savefig(path.join(self.images_path, f"class-correlation{atered_dot}.pdf"))
+		matplotlib.pyplot.savefig(path.join(self.images_path, f"class-correlation{altered_dot}.png"))
 
 
 if __name__ == "__main__":
