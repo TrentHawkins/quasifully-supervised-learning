@@ -226,7 +226,7 @@ class Metric(tensorflow.keras.layers.Dense):
 		super(Metric, self).__init__(units,
 			activation=activation,
 			use_bias=False,
-			kernel_initializer=kernel_initializer,
+			kernel_initializer=kernel_initializer,  # type: ignore
 			bias_initializer="zeros",
 		#	kernel_regularizer=regularizer,
 		#	bias_regularizer=regularizer,
