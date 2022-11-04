@@ -389,8 +389,8 @@ def print_summary(model,
 
 			print_fn('│' * nested_level + '╰' + '─' * (line_length - 2 * nested_level - 2) + '╯' + '│' * nested_level)
 
-		if not is_nested_last:
-			print_fn('│' * nested_level + ' ' * (line_length - 2 * nested_level) + '│' * nested_level)
+	#	if not is_nested_last:
+	#		print_fn('│' * nested_level + ' ' * (line_length - 2 * nested_level) + '│' * nested_level)
 
 	for layer in model.layers[layer_range[0]:layer_range[1]]:
 		print_layer(layer)
