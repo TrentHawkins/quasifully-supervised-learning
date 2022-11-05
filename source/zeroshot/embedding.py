@@ -14,7 +14,6 @@ from ..keras.models import DenseStackArray
 
 
 def Model(
-	input,
 	visual: tensorflow.keras.Model,
 	encoder: tensorflow.keras.Model,
 	semantic: tensorflow.keras.Model,
@@ -34,16 +33,14 @@ def Model(
 			Freezing the visual component prevents information loss if it is prettrained.
 			Freezing the semantic component prevents overfitting in favor of seen class labels.
 	"""
-	visual.trainable = freeze
-	semantic.trainable = freeze
+	visual.trainable = not freeze
+	semantic.trainable = not freeze
 
-	model = tensorflow.keras.Model(
-		inputs=input,
-		outputs=semantic(encoder(visual(input))),
+	return tensorflow.keras.Model(
+		inputs=visual.input,
+		outputs=semantic(encoder(visual(visual.input))),
 		name=name,
 	)
-
-	return model
 
 
 def EfficientNetDense(
@@ -63,7 +60,6 @@ def EfficientNetDense(
 			default: simple Dense with no bias (naturally)
 	"""
 	return Model(
-		input=visual.input,
 		visual=visual,
 		encoder=DenseStackArray(
 			visual.output.shape[-1],  # type: ignore
@@ -76,5 +72,6 @@ def EfficientNetDense(
 			semantic_matrix.shape[1],
 			activation="softmax",
 			kernel_initializer=tensorflow.keras.initializers.Constant(semantic_matrix),  # type: ignore
+			name="semantic"
 		),
 	)
