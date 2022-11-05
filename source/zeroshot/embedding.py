@@ -9,6 +9,7 @@ The model consists of 3 main component:
 
 import tensorflow
 
+from ..keras.layers import Metric
 from ..keras.models import DenseStackArray
 
 
@@ -46,24 +47,23 @@ def Model(
 
 
 def EfficientNetDense(
-	input_shape: tensorflow.TensorShape,
 	visual: tensorflow.keras.Model,
 	semantic_matrix: tensorflow.Tensor,
 	*,
-	semanticModel: type = tensorflow.keras.layers.Dense,
+	semanticModel: type = Metric,
 ):
 	"""Build a specific latent embedding model based on EfficientNet for visual featuress and Dense encoding.
 
 	Arguments:
-		input_shape: a tuple or tensor shape with image width, height and channels in proper order
 		visual: a pretrained visual model encoding images into visual features
 		semantic_matrix: a kernel for the (frozen) semantic encoder
 
 	Keyword Arguments:
 		semanticModel: suptype of `tensorflow.keras.layers.Dense` to use in building a semantic component
+			default: simple Dense with no bias (naturally)
 	"""
 	return Model(
-		input=tensorflow.keras.Input(input_shape),
+		input=visual.input,
 		visual=visual,
 		encoder=DenseStackArray(
 			visual.output.shape[-1],  # type: ignore
