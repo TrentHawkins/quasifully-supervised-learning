@@ -36,9 +36,12 @@ def Model(
 	visual.trainable = not freeze
 	semantic.trainable = not freeze
 
-	return tensorflow.keras.Model(
-		inputs=visual.input,
-		outputs=semantic(encoder(visual(visual.input))),
+	return tensorflow.keras.models.Sequential(
+		layers=[
+			visual,
+			encoder,
+			semantic,
+		],
 		name=name,
 	)
 
