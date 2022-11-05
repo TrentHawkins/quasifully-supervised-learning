@@ -180,7 +180,7 @@ def print_summary(model,
 					break
 
 	if sequential_like:
-		line_length = line_length or get_terminal_size().columns - 2  # 65
+		line_length = line_length or get_terminal_size((96, 96)).columns - 2  # 65
 		positions = positions or [
 			1 / 2,  # 0.45
 			3 / 4,  # 0.85
@@ -195,7 +195,7 @@ def print_summary(model,
 		]
 
 	else:
-		line_length = line_length or get_terminal_size().columns - 2  # 98
+		line_length = line_length or get_terminal_size((96, 96)).columns - 2  # 98
 		positions = positions or [
 			1 / 3,  # 0.33
 			1 / 2,  # 0.55
