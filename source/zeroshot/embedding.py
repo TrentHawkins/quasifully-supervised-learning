@@ -38,14 +38,21 @@ def Model(
 	visual.trainable = freeze
 	semantic.trainable = freeze
 
-	return tensorflow.keras.Model(input, semantic(encoder(visual(input))), name)
+	model = tensorflow.keras.Model(
+		inputs=input,
+		outputs=semantic(encoder(visual(input))),
+		name=name,
+	)
+
+	return model
 
 
 def EfficientNetDense(
 	input_shape: tensorflow.TensorShape,
 	visual: tensorflow.keras.Model,
 	semantic_matrix: tensorflow.Tensor,
-	jaccard: bool = False,
+	*,
+	semanticModel: type = tensorflow.keras.layers.Dense,
 ):
 	"""Build a specific latent embedding model based on EfficientNet for visual featuress and Dense encoding.
 
@@ -53,16 +60,23 @@ def EfficientNetDense(
 		input_shape: a tuple or tensor shape with image width, height and channels in proper order
 		visual: a pretrained visual model encoding images into visual features
 		semantic_matrix: a kernel for the (frozen) semantic encoder
-		jaccard: whether to apply semantic non-linearity akin to the jaccard similarity metric replaceing the dot product of Dense
 
 	Keyword Arguments:
-		
+		semanticModel: suptype of `tensorflow.keras.layers.Dense` to use in building a semantic component
 	"""
-	encoder = DenseStackArray(visual.output.shape[-1], semantic_matrix.shape[0],  # type: ignore
-		attention_activation="sigmoid",
-		activation="swish",
-		name="visual_semantic",
+	return Model(
+		input=tensorflow.keras.Input(input_shape),
+		visual=visual,
+		encoder=DenseStackArray(
+			visual.output.shape[-1],  # type: ignore
+			semantic_matrix.shape[0],
+			attention_activation="sigmoid",
+			activation="swish",
+			name="visual_semantic",
+		),
+		semantic=semanticModel(
+			semantic_matrix.shape[1],
+			activation="softmax",
+			kernel_initializer=tensorflow.keras.initializers.Constant(semantic_matrix),  # type: ignore
+		),
 	)
-
-	if jaccard:
-		semantic=Jaccard(encoder.output[-1],
