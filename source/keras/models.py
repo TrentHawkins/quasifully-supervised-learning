@@ -94,8 +94,8 @@ def DenseStack(
 
 
 def DenseStackArray(
-	inputs_dim: int,
-	output_dim: int,
+	inputs_dim,
+	output_dim,
 	threads: int | None = None,
 	attention_activation: Callable | str | None = None,
 	activation: Callable | str | None = None,
