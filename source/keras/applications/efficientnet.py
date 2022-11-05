@@ -21,54 +21,43 @@ See the License for the specific language governing permissions and limitations 
 """
 
 
-from enum import Enum
 from functools import partial
-
 
 import tensorflow
 
 
-class EfficientNetV2(Enum):
-	"""Enumerate the various EfficientNetV2 models specifically with their default input sizes applied."""
+tensorflow.keras.applications.efficientnet.EfficientNetB0 = partial(
+tensorflow.keras.applications.efficientnet.EfficientNetB0, include_top=False, pooling="avg")
+tensorflow.keras.applications.efficientnet.EfficientNetB1 = partial(
+tensorflow.keras.applications.efficientnet.EfficientNetB1, include_top=False, pooling="avg")
+tensorflow.keras.applications.efficientnet.EfficientNetB2 = partial(
+tensorflow.keras.applications.efficientnet.EfficientNetB2, include_top=False, pooling="avg")
+tensorflow.keras.applications.efficientnet.EfficientNetB3 = partial(
+tensorflow.keras.applications.efficientnet.EfficientNetB3, include_top=False, pooling="avg")
+tensorflow.keras.applications.efficientnet.EfficientNetB4 = partial(
+tensorflow.keras.applications.efficientnet.EfficientNetB4, include_top=False, pooling="avg")
+tensorflow.keras.applications.efficientnet.EfficientNetB5 = partial(
+tensorflow.keras.applications.efficientnet.EfficientNetB5, include_top=False, pooling="avg")
+tensorflow.keras.applications.efficientnet.EfficientNetB6 = partial(
+tensorflow.keras.applications.efficientnet.EfficientNetB6, include_top=False, pooling="avg")
+tensorflow.keras.applications.efficientnet.EfficientNetB7 = partial(
+tensorflow.keras.applications.efficientnet.EfficientNetB7, include_top=False, pooling="avg")
 
-#	Small EfficientNetV2 models:
-	B0 = partial(tensorflow.keras.applications.efficientnet_v2.EfficientNetV2B0, include_top=False, pooling="avg")
-	B1 = partial(tensorflow.keras.applications.efficientnet_v2.EfficientNetV2B1, include_top=False, pooling="avg")
-	B2 = partial(tensorflow.keras.applications.efficientnet_v2.EfficientNetV2B2, include_top=False, pooling="avg")
-	B3 = partial(tensorflow.keras.applications.efficientnet_v2.EfficientNetV2B3, include_top=False, pooling="avg")
+tensorflow.keras.applications.efficientnet_v2.EfficientNetV2B0 = partial(
+tensorflow.keras.applications.efficientnet_v2.EfficientNetV2B0, include_top=False, pooling="avg")
+tensorflow.keras.applications.efficientnet_v2.EfficientNetV2B1 = partial(
+tensorflow.keras.applications.efficientnet_v2.EfficientNetV2B1, include_top=False, pooling="avg")
+tensorflow.keras.applications.efficientnet_v2.EfficientNetV2B2 = partial(
+tensorflow.keras.applications.efficientnet_v2.EfficientNetV2B2, include_top=False, pooling="avg")
+tensorflow.keras.applications.efficientnet_v2.EfficientNetV2B3 = partial(
+tensorflow.keras.applications.efficientnet_v2.EfficientNetV2B3, include_top=False, pooling="avg")
 
-#	Large EfficientNetV2 models:
-	S = partial(tensorflow.keras.applications.efficientnet_v2.EfficientNetV2S, include_top=False, pooling="avg")
-	M = partial(tensorflow.keras.applications.efficientnet_v2.EfficientNetV2M, include_top=False, pooling="avg")
-	L = partial(tensorflow.keras.applications.efficientnet_v2.EfficientNetV2L, include_top=False, pooling="avg")
-
-
-class EfficientNet(Enum):
-	"""Enumerate the various EfficientNet models with their default input sizes applied."""
-
-#	EfficientNet models:
-	B0 = partial(tensorflow.keras.applications.efficientnet.EfficientNetB0, include_top=False, pooling="avg")
-	B1 = partial(tensorflow.keras.applications.efficientnet.EfficientNetB1, include_top=False, pooling="avg")
-	B2 = partial(tensorflow.keras.applications.efficientnet.EfficientNetB2, include_top=False, pooling="avg")
-	B3 = partial(tensorflow.keras.applications.efficientnet.EfficientNetB3, include_top=False, pooling="avg")
-	B4 = partial(tensorflow.keras.applications.efficientnet.EfficientNetB4, include_top=False, pooling="avg")
-	B5 = partial(tensorflow.keras.applications.efficientnet.EfficientNetB5, include_top=False, pooling="avg")
-	B6 = partial(tensorflow.keras.applications.efficientnet.EfficientNetB6, include_top=False, pooling="avg")
-	B7 = partial(tensorflow.keras.applications.efficientnet.EfficientNetB7, include_top=False, pooling="avg")
-
-#	EfficientNetV2 models:
-	V2 = EfficientNetV2
-
-	@classmethod
-	def models(cls):
-		"""Iterate over all EfficientNet models."""
-		for old_model in cls:
-			if old_model == cls.V2:
-				for new_model in old_model.__class__.V2.value:
-					yield new_model.value
-
-			else:
-				yield old_model.value
+tensorflow.keras.applications.efficientnet_v2.EfficientNetV2S = partial(
+tensorflow.keras.applications.efficientnet_v2.EfficientNetV2S, include_top=False, pooling="avg")
+tensorflow.keras.applications.efficientnet_v2.EfficientNetV2M = partial(
+tensorflow.keras.applications.efficientnet_v2.EfficientNetV2M, include_top=False, pooling="avg")
+tensorflow.keras.applications.efficientnet_v2.EfficientNetV2L = partial(
+tensorflow.keras.applications.efficientnet_v2.EfficientNetV2L, include_top=False, pooling="avg")
 
 
 inputs_size = {
@@ -92,7 +81,6 @@ inputs_size = {
 		"L": 480,
 	}
 }
-
 output_size = {
 	"B0": 1280,
 	"B1": 1280,
@@ -114,8 +102,3 @@ output_size = {
 		"L": 1280,
 	}
 }
-
-
-if __name__ == "__main__":
-	for model in EfficientNet.models():
-		print(f"Fecthing {model().name} (if not already).")

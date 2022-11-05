@@ -9,8 +9,6 @@ The model consists of 3 main component:
 
 import tensorflow
 
-from ..keras.applications.efficientnet import EfficientNet
-from ..keras.layers import Jaccard
 from ..keras.models import DenseStackArray
 
 

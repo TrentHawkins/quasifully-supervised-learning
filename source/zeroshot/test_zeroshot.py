@@ -9,26 +9,27 @@ class TestEfficientNetDense:
         import numpy
         import tensorflow
 
+        import source.keras.applications.efficientnet
+
         from source.dataset.animals_with_attributes import Dataset
-        from source.keras.applications.efficientnet import EfficientNet, inputs_size
         from source.keras.layers import Jaccard
         from source.zeroshot.embedding import EfficientNetDense
 
         input_shape = tensorflow.TensorShape(
             (
-                inputs_size["B0"],
-                inputs_size["B0"], 3
+                224,
+                224, 3
             )
         )
 
         softmaxModel = EfficientNetDense(
             input_shape=input_shape,
-            visual=EfficientNet.B0.value(),
+            visual=tensorflow.keras.applications.efficientnet.EfficientNetB0(),
             semantic_matrix=tensorflow.constant(Dataset().predicates().transpose().to_numpy(), dtype=tensorflow.float32),
         )
         jaccardModel = EfficientNetDense(
             input_shape=input_shape,
-            visual=EfficientNet.B0.value(),
+            visual=tensorflow.keras.applications.efficientnet.EfficientNetB0(),
             semantic_matrix=tensorflow.constant(Dataset().predicates().transpose().to_numpy(), dtype=tensorflow.float32),
             semanticModel=Jaccard,
         )
