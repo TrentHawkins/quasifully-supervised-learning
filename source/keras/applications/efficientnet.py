@@ -21,6 +21,7 @@ See the License for the specific language governing permissions and limitations 
 """
 
 
+from enum import IntEnum
 from functools import partial
 
 import tensorflow
@@ -60,45 +61,51 @@ tensorflow.keras.applications.efficientnet_v2.EfficientNetV2L = partial(
 tensorflow.keras.applications.efficientnet_v2.EfficientNetV2L, include_top=False, pooling="avg")
 
 
-inputs_size = {
-	"B0": 224,
-	"B1": 240,
-	"B2": 260,
-	"B3": 300,
-	"B4": 380,
-	"B5": 456,
-	"B6": 528,
-	"B7": 600,
+class inputs_size(IntEnum):
+	"""EfficientNet default sizes."""
 
-	"V2": {
-		"B0": 224,
-		"B1": 240,
-		"B2": 260,
-		"B3": 300,
+#	Standard EfficientNet models:
+	B0 = 224
+	B1 = 240
+	B2 = 260
+	B3 = 300
+	B4 = 380
+	B5 = 456
+	B6 = 528
+	B7 = 600
 
-		"S": 384,
-		"M": 480,
-		"L": 480,
-	}
-}
-output_size = {
-	"B0": 1280,
-	"B1": 1280,
-	"B2": 1408,
-	"B3": 1536,
-	"B4": 1792,
-	"B5": 2048,
-	"B6": 2304,
-	"B7": 2560,
+#	Small EfficientNetV2 models:
+	V2B0 = 224
+	V2B1 = 240
+	V2B2 = 260
+	V2B3 = 300
 
-	"V2": {
-		"B0": 1280,
-		"B1": 1280,
-		"B2": 1408,
-		"B3": 1536,
+#	Large EfficientNetV2 models:
+	V2S = 384
+	V2M = 480
+	V2L = 480
 
-		"S": 1280,
-		"M": 1280,
-		"L": 1280,
-	}
-}
+
+class output_size(IntEnum):
+	"""EfficientNet default sizes."""
+
+#	Standard EfficientNet models:
+	B0 = 1280
+	B1 = 1280
+	B2 = 1408
+	B3 = 1536
+	B4 = 1792
+	B5 = 2048
+	B6 = 2304
+	B7 = 2560
+
+#	Small EfficientNetV2 models:
+	V2B0 = 1280
+	V2B1 = 1280
+	V2B2 = 1408
+	V2B3 = 1536
+
+#	Large EfficientNetV2 models:
+	V2S = 1280
+	V2M = 1280
+	V2L = 1280

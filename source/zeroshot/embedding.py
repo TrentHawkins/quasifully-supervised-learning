@@ -14,9 +14,9 @@ from ..keras.models import DenseStackArray
 
 
 def Model(
-	visual: tensorflow.keras.Model,
-	encoder: tensorflow.keras.Model,
-	semantic: tensorflow.keras.Model,
+	visual: tensorflow.keras.Model | tensorflow.keras.layers.Layer,
+	encoder: tensorflow.keras.Model | tensorflow.keras.layers.Layer,
+	semantic: tensorflow.keras.Model | tensorflow.keras.layers.Layer,
 	*,
 	freeze: bool = True,
 	name: str = "generalized_zeroshot_embedding_model"
@@ -50,7 +50,7 @@ def EfficientNetDense(
 	visual: tensorflow.keras.Model,
 	semantic_matrix: tensorflow.Tensor,
 	*,
-	semanticModel: type = Metric,
+	semantic_class: type = Metric,
 ):
 	"""Build a specific latent embedding model based on EfficientNet for visual featuress and Dense encoding.
 
@@ -59,7 +59,7 @@ def EfficientNetDense(
 		semantic_matrix: a kernel for the (frozen) semantic encoder
 
 	Keyword Arguments:
-		semanticModel: suptype of `tensorflow.keras.layers.Dense` to use in building a semantic component
+		semantic_class: suptype of `tensorflow.keras.layers.Dense` to use in building a semantic component
 			default: simple Dense with no bias (naturally)
 	"""
 	return Model(
@@ -71,7 +71,7 @@ def EfficientNetDense(
 			activation="swish",
 			name="visual_semantic",
 		),
-		semantic=semanticModel(
+		semantic=semantic_class(
 			semantic_matrix.shape[1],
 			activation="softmax",
 			kernel_initializer=tensorflow.keras.initializers.Constant(semantic_matrix),  # type: ignore
