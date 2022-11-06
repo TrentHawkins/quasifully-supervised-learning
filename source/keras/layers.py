@@ -219,6 +219,9 @@ class Metric(tensorflow.keras.layers.Dense):
 	**kwargs):
 		"""Hyperparametrize recombination layer.
 
+		No activation is needed as these metric layers are manifestly non-linear to begin with.
+		Option is left (and ignored) for compatibility with other dense-like layers.
+
 		Keyword arguments:
 			activation: to apply on output of decision
 			kernel_initializer: weight values to begin with
@@ -226,7 +229,7 @@ class Metric(tensorflow.keras.layers.Dense):
 		super(Metric, self).__init__(units,
 			activation=activation,
 			use_bias=False,
-			kernel_initializer=kernel_initializer,
+			kernel_initializer=kernel_initializer,  # type: ignore
 			bias_initializer="zeros",
 		#	kernel_regularizer=regularizer,
 		#	bias_regularizer=regularizer,
@@ -285,7 +288,7 @@ class Jaccard(Metric):
 
 		return inputs_kernel / (
 			tensorflow.expand_dims(inputs_inputs, -1) +
-			tensorflow.broadcast_to(self.kernel_kernel, inputs_kernel.shape) +
+			tensorflow.broadcast_to(self.kernel_kernel, tensorflow.shape(inputs_kernel)) +
 			inputs_kernel
 		)
 
@@ -317,5 +320,5 @@ class Cosine(Metric):
 
 		return inputs_kernel / tensorflow.math.sqrt(
 			tensorflow.expand_dims(inputs_inputs, -1) *
-			tensorflow.broadcast_to(self.kernel_kernel, inputs_kernel.shape)
+			tensorflow.broadcast_to(self.kernel_kernel, tensorflow.shape(inputs_kernel))
 		)
