@@ -8,13 +8,16 @@ from typing import Callable
 
 import matplotlib.pyplot
 import matplotlib.ticker
+import keras.utils.dataset_utils
+import keras.utils.image_dataset
 import numpy
 import pandas
 import scipy.special
 import seaborn
 import tensorflow
 
-from ..similarity import dotDataFrame, cosine, jaccard
+from ..seed import SEED
+from ..similarity import dotDataFrame
 
 
 class Dataset:
@@ -37,16 +40,18 @@ class Dataset:
 		images_path: str = "datasets/animals_with_attributes",
 		labels_path: str = "standard_split",
 	):
-		"""Initialize paths for dataset.
+		"""Initialize paths for dataset, then generate dataset from said paths.
 
 		Arguments:
 			images_path: absolute
+				default: assumes root directory
+			labels_path: absolute
 				default: assumes root directory
 		"""
 		self.images_path = images_path
 		self.labels_path = labels_path
 
-	def read(self, selection: list | pandas.Series | str) -> list:
+	def read(self, selection: pandas.Series | str) -> list:
 		"""Read items either from a file or a series into a list.
 
 		Arguments:
@@ -56,13 +61,11 @@ class Dataset:
 			list with items in selection
 		"""
 		if isinstance(selection, pandas.Series):
-			selection = selection.tolist()
+			return selection.tolist()
 
 		if isinstance(selection, str):
 			with open(path.join(self.images_path, self.labels_path, selection)) as labels_file:
-				selection = [label.strip() for label in labels_file]
-
-		return selection
+				return [label.strip() for label in labels_file]
 
 	def labels(self,
 		selection: pandas.Series | str = "allclasses.txt",
@@ -87,7 +90,7 @@ class Dataset:
 				0: int,
 				1: str,
 			},
-		).squeeze(axis="columns")
+		).squeeze()
 
 	#	Reset index to start from 0.
 		labels -= 1
@@ -123,7 +126,7 @@ class Dataset:
 				0: int,
 				1: str,
 			},
-		).squeeze(axis="columns")
+		).squeeze()
 
 	#	Form predicate matrix, with predicates as columns, labels are rows.
 		predicate_matrix = pandas.read_csv(
@@ -170,6 +173,118 @@ class Dataset:
 		)
 
 		return images[images.isin(self.read(selection))].replace(self.labels(selection))
+
+	def paths_to_split_datasets(self, image_size: int,
+		validation_split: float | None = None,
+		selection: pandas.Series | str = "allclasses.txt",
+	):
+		"""Construct split datasets of images and labels.
+
+		Splits include:
+			train dataset: used for training
+			devel dataset: used for training regularization
+			valid dataset: used for validation
+
+		Arguments:
+			image_size: to change images to (square shape)
+			selection: text file containing the labels to be listed
+				default: list all labels in dataset
+
+		Returns:
+			three datasets from Animals with Attributes, one of each of train, devel and valid splits
+		"""
+		total_images = self.images(selection)
+		total_labels = self.labels(selection)
+
+		validation_split = validation_split or len(self.images(selection="testclasses.txt")) / len(self.images())
+
+		keras.utils.dataset_utils.check_validation_split_arg(validation_split,
+			subset="both",
+			shuffle=True,
+			seed=SEED,
+		)
+
+	#	Start by chipping away the validation subset.
+		(
+			valid_images,
+			valid_labels,
+		) = keras.utils.dataset_utils.get_training_or_validation_split(
+			total_images,
+			total_labels,
+			validation_split=validation_split,
+			subset="validation"
+		)
+		(
+			train_images,
+			train_labels,
+		) = keras.utils.dataset_utils.get_training_or_validation_split(
+			total_images,
+			total_labels,
+			validation_split=validation_split,
+			subset="training"
+		)
+
+	#	Further chip away the development from the training subset.
+		(
+			devel_images,
+			devel_labels,
+		) = keras.utils.dataset_utils.get_training_or_validation_split(
+			train_images,
+			train_images,
+			validation_split=validation_split,
+			subset="validation"
+		)
+		(
+			train_images,
+			train_labels,
+		) = keras.utils.dataset_utils.get_training_or_validation_split(
+			train_images,
+			train_labels,
+			validation_split=validation_split,
+			subset="training"
+		)
+
+		return (
+			keras.utils.image_dataset.paths_and_labels_to_dataset(
+				image_paths=train_images.index,
+				image_size=(
+					image_size,
+					image_size,
+				),
+				num_channels=3,
+				labels=train_images,
+				label_mode="int",
+				num_classes=len(train_labels),
+				interpolation="bilinear",
+				crop_to_aspect_ratio=True,
+			),
+			keras.utils.image_dataset.paths_and_labels_to_dataset(
+				image_paths=devel_images.index,
+				image_size=(
+					image_size,
+					image_size,
+				),
+				num_channels=3,
+				labels=devel_images,
+				label_mode="int",
+				num_classes=len(devel_labels),
+				interpolation="bilinear",
+				crop_to_aspect_ratio=True,
+			),
+			keras.utils.image_dataset.paths_and_labels_to_dataset(
+				image_paths=valid_images.index,
+				image_size=(
+					image_size,
+					image_size,
+				),
+				num_channels=3,
+				labels=valid_images,
+				label_mode="int",
+				num_classes=len(valid_labels),
+				interpolation="bilinear",
+				crop_to_aspect_ratio=True,
+			),
+		)
 
 	def plot_labels(self):
 		"""Plot label statistics."""
@@ -351,20 +466,3 @@ class Dataset:
 		altered_dot = f".{alter_dot.__name__}" if alter_dot != numpy.dot else ""
 
 		matplotlib.pyplot.savefig(path.join(self.images_path, f"class-correlation{altered_dot}.png"))
-
-
-if __name__ == "__main__":
-	dataset = Dataset()
-
-	dataset.plot_labels()
-	dataset.plot_predicates()
-	dataset.plot_predicates(binary=True)
-
-	kwargs = {
-	#	"binary": True,
-	#	"logits": True,
-	#	"softmx": True,
-	}
-	dataset.plot_label_correlation(**kwargs)
-	dataset.plot_label_correlation(**kwargs, alter_dot=jaccard)
-	dataset.plot_label_correlation(**kwargs, alter_dot=cosine)
