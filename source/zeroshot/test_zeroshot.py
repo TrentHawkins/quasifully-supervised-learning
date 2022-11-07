@@ -15,7 +15,7 @@ class TestEfficientNetDense:
 		from source.keras.layers import Jaccard
 		from source.zeroshot.embedding import EfficientNetDense
 
-		predicates = Dataset().predicates().transpose().to_numpy()
+		predicates = Dataset().alphas().transpose().to_numpy()
 
 		softmaxModel = EfficientNetDense(
 			visual=tensorflow.keras.applications.efficientnet.EfficientNetB0(),
