@@ -1,7 +1,6 @@
 """Create image data loading pipeline for the Animals with Attributes 2 dataset using TensorFlow."""
 
 
-from glob import glob
 from os import path
 from sys import float_info
 from typing import Callable
@@ -181,8 +180,8 @@ class Dataset:
 	def split(self,
 		labels: str | pandas.Series = "allclasses.txt",
 		*,
-		image_size: int = 256,
-		batch_size: int = None,  # type: ignore  # compliant with the idiot who forgot to properly type-hint this as optional
+		image_size: int = 224,
+		batch_size: int = 1,
 	) -> tuple[
 		tensorflow.data.Dataset,
 		tensorflow.data.Dataset,
@@ -201,48 +200,71 @@ class Dataset:
 		Returns:
 			An optimized (cached and prefeched) TensorFlow dataset.
 		"""
-		paths_and_labels_to_dataset_kwargs = {
-			"image_size": (
-				image_size,
-				image_size,
-			),
-			"num_channels": 3,
-			"label_mode": "categorical",
-			"num_classes": len(self.labels()),
-			"interpolation": "bilinear",
-			"crop_to_aspect_ratio": True,
-		}
+		_total_images = self.images(selection=labels)
 
-		total_images = self.images(selection=labels)
-		total_labels = self.labels(selection=labels)
-
-		train_images, valid_images = sklearn.model_selection.train_test_split(total_images,
-			test_size=self._target_source,  # set slightly more validation examples
+	#	Split validation subset off total data. Use a larger chunk than what corresponds to the source/target labels.
+		_train_images, _valid_images = sklearn.model_selection.train_test_split(_total_images,
+			test_size=self._target_source,  # slightly more validation examples
 			random_state=SEED,
 			shuffle=True,
-			stratify=total_labels,
+			stratify=_total_images,
 		)
-		train_images, devel_images = sklearn.model_selection.train_test_split(train_images,
-			test_size=self._target_totals,  # set slightly less validation examples
+
+	#	Split development subset off training data. Use a smaller chunk than what corresponds to the source/target labels.
+		_train_images, _devel_images = sklearn.model_selection.train_test_split(_train_images,
+			test_size=self._target_totals,  # slightly less validation examples
 			random_state=SEED,
 			shuffle=True,
-			stratify=total_labels,
+			stratify=_train_images,
 		)
 
-		train_images = keras.utils.image_dataset.paths_and_labels_to_dataset(
-			image_paths=train_images.index.values,  # type: ignore
-			labels=train_images.values,  # type: ignore
-		**paths_and_labels_to_dataset_kwargs)
-		devel_images = keras.utils.image_dataset.paths_and_labels_to_dataset(
-			image_paths=devel_images.index.values,  # type: ignore
-			labels=devel_images.values,  # type: ignore
-		**paths_and_labels_to_dataset_kwargs)
-		valid_images = keras.utils.image_dataset.paths_and_labels_to_dataset(
-			image_paths=valid_images.index.values,  # type: ignore
-			labels=valid_images.values,  # type: ignore
-		**paths_and_labels_to_dataset_kwargs)
+	#	Return dataset from paths and labels with preferred settings.
+		def paths_and_labels_to_dataset(_images: pandas.Series) -> tensorflow.data.Dataset:
+			images: tensorflow.data.Dataset = keras.utils.image_dataset.paths_and_labels_to_dataset(
+				image_paths=_images.index,
+				image_size=(
+					image_size,
+					image_size,
+				),
+				num_channels=3,
+				labels=_images,
+				label_mode="categorical",
+				num_classes=len(self._labels),
+				interpolation="bilinear",
+				crop_to_aspect_ratio=True,
+			)
 
-		return train_images, devel_images, valid_images
+		#	Cache subset in RAM for performance.
+			images = images.cache()
+
+		#	Shuffle elements by fixed seed, but set subset for reshuffling after each epoch.
+			images = images.shuffle(len(images),
+				seed=SEED,
+				reshuffle_each_iteration=True,
+			)
+
+		#	If batch size is set, batch subset.
+			if batch_size > 1:
+				images = images.batch(batch_size,
+					num_parallel_calls=tensorflow.data.AUTOTUNE,
+					deterministic=False,
+				)
+
+		#	Prefetch the first examples of subset.
+			images = images.prefetch(tensorflow.data.AUTOTUNE)
+
+			return images
+
+	#	Build datasets.
+		train_images: tensorflow.data.Dataset = paths_and_labels_to_dataset(_train_images)  # type: ignore
+		devel_images: tensorflow.data.Dataset = paths_and_labels_to_dataset(_devel_images)  # type: ignore
+		valid_images: tensorflow.data.Dataset = paths_and_labels_to_dataset(_valid_images)  # type: ignore
+
+		return (
+			train_images,
+			devel_images,
+			valid_images,
+		)
 
 	def plot_labels(self):
 		"""Plot label statistics."""
