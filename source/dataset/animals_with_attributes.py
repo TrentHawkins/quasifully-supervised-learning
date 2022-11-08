@@ -1,20 +1,23 @@
 """Create image data loading pipeline for the Animals with Attributes 2 dataset using TensorFlow."""
 
 
-from glob import glob
 from os import path
 from sys import float_info
 from typing import Callable
 
 import matplotlib.pyplot
 import matplotlib.ticker
+import keras.utils.dataset_utils
+import keras.utils.image_dataset
 import numpy
 import pandas
 import scipy.special
+import sklearn.model_selection
 import seaborn
 import tensorflow
 
-from ..similarity import dotDataFrame, cosine, jaccard
+from ..seed import SEED
+from ..similarity import dotDataFrame
 
 
 class Dataset:
@@ -29,7 +32,7 @@ class Dataset:
 
 	Methods:
 		labels:	a selection of labels given by `labels_path`
-		predicates: the predicate matrix for the selection of labels given by `labels_path`
+		alphas: the predicate matrix for the selection of labels given by `labels_path`
 		images:	the images filtered by the selection of labels given by `labels_path`
 	"""
 
@@ -37,16 +40,61 @@ class Dataset:
 		images_path: str = "datasets/animals_with_attributes",
 		labels_path: str = "standard_split",
 	):
-		"""Initialize paths for dataset.
+		"""Initialize paths for dataset, then generate dataset from said paths.
 
 		Arguments:
 			images_path: absolute
 				default: assumes root directory
+			labels_path: absolute
+				default: assumes root directory
 		"""
-		self.images_path = images_path
-		self.labels_path = labels_path
+		self._images_path: str = images_path
+		self._labels_path: str = labels_path
 
-	def read(self, selection: list | pandas.Series | str) -> list:
+		self._labels: pandas.Series[int] = pandas.read_csv(
+			path.join(self._images_path, "classes.txt"),
+			sep=r"\s+",
+			names=[
+				"index"
+			],
+			index_col=1,
+			dtype={
+				0: int,
+				1: str,
+			},
+		).squeeze() - 1
+		self._alphas: pandas.Series[int] = pandas.read_csv(
+			path.join(self._images_path, "predicates.txt"),
+			sep=r"\s+",
+			names=[
+				"index"
+			],
+			index_col=1,
+			dtype={
+				0: int,
+				1: str,
+			},
+		).squeeze()
+
+	#	Use TensorFlows's image look-up.
+		image_paths, labels, _ = keras.utils.dataset_utils.index_directory(
+			directory=path.join(self._images_path, "JPEGImages"),
+			labels="inferred",
+			formats=(
+				".jpg",
+			),
+			class_names=self._labels.index.tolist(),
+			shuffle=False,  # delegate shuffling to the corresponding splits
+		)
+
+	#	Transform image path and label data to pandas series.
+		self._images: pandas.Series[int] = pandas.Series(dict(zip(image_paths, labels)))
+
+	#	Split ratios to be used:
+		self._target_source: float = len(self.images("testclasses.txt")) / len(self.images("trainvalclasses.txt"))
+		self._target_totals: float = len(self.images("testclasses.txt")) / len(self.images())
+
+	def _read(self, selection: pandas.Series | str) -> list:
 		"""Read items either from a file or a series into a list.
 
 		Arguments:
@@ -55,14 +103,12 @@ class Dataset:
 		Returns:
 			list with items in selection
 		"""
-		if isinstance(selection, pandas.Series):
-			selection = selection.tolist()
-
 		if isinstance(selection, str):
-			with open(path.join(self.images_path, self.labels_path, selection)) as labels_file:
-				selection = [label.strip() for label in labels_file]
+			with open(path.join(self._images_path, self._labels_path, selection)) as labels_file:
+				return [label.strip() for label in labels_file]
 
-		return selection
+		if isinstance(selection, pandas.Series):
+			return selection.tolist()
 
 	def labels(self,
 		selection: pandas.Series | str = "allclasses.txt",
@@ -76,25 +122,9 @@ class Dataset:
 		Returns:
 			label set indexed from 0 (contrary to the vanilla index starting from 1)
 		"""
-		labels: pandas.Series = pandas.read_csv(
-			path.join(self.images_path, "classes.txt"),
-			sep=r"\s+",
-			names=[
-				"index"
-			],
-			index_col=1,
-			dtype={
-				0: int,
-				1: str,
-			},
-		).squeeze(axis="columns")
+		return self._labels.filter(self._read(selection), axis="index")
 
-	#	Reset index to start from 0.
-		labels -= 1
-
-		return labels.filter(self.read(selection), axis="index")
-
-	def predicates(self,
+	def alphas(self,
 		selection: pandas.Series | str = "allclasses.txt",
 		binary: bool = False,
 		logits: bool = False,
@@ -112,41 +142,26 @@ class Dataset:
 		Returns:
 			predicate `pandas.DataFrame` indexed with labels and named with predicates
 		"""
-		predicates: pandas.Series = pandas.read_csv(
-			path.join(self.images_path, "predicates.txt"),
+		alpha_matrix = pandas.read_csv(
+			path.join(self._images_path, "predicate-matrix-binary.txt") if binary else
+			path.join(self._images_path, "predicate-matrix-continuous.txt"),
 			sep=r"\s+",
-			names=[
-				"index"
-			],
-			index_col=1,
-			dtype={
-				0: int,
-				1: str,
-			},
-		).squeeze(axis="columns")
-
-	#	Form predicate matrix, with predicates as columns, labels are rows.
-		predicate_matrix = pandas.read_csv(
-			path.join(self.images_path, "predicate-matrix-binary.txt") if binary else
-			path.join(self.images_path, "predicate-matrix-continuous.txt"),
-			sep=r"\s+",
-			names=predicates.index.tolist(),
+			names=self._alphas.index.tolist(),
 			dtype=float,
 		).set_index(self.labels().index)
 
 	#	Normalize continuous predicates.
 		if not binary:
-			predicate_matrix /= 100
+			alpha_matrix /= 100
 
 	#	logit(0) == -inf
 	#	logit(1) == +inf
 		if logits:
-			predicate_matrix = predicate_matrix\
+			alpha_matrix = alpha_matrix\
 				.replace(0., 0. + float_info.epsilon)\
-				.replace(1., 1. - float_info.epsilon)\
-				.applymap(scipy.special.logit)
+				.replace(1., 1. - float_info.epsilon).applymap(scipy.special.logit)
 
-		return predicate_matrix.filter(self.read(selection), axis="index")
+		return alpha_matrix.filter(self._read(selection), axis="index")
 
 	def images(self,
 		selection: pandas.Series | str = "allclasses.txt",
@@ -160,23 +175,103 @@ class Dataset:
 		Returns:
 			label `pandas.Series` indexed with image paths
 		"""
-		images_path = glob(path.join(self.images_path, "JPEGImages/*/*.jpg"))
+		return self._images[self._images.isin(self.labels(selection))]
 
-	#	Get image labels.
-		images = pandas.Series([path.basename(path.dirname(image)) for image in images_path],
-			index=images_path,
-			name="labels",
-			dtype=str,
+	def split(self,
+		labels: str | pandas.Series = "allclasses.txt",
+		*,
+		image_size: int = 224,
+		batch_size: int = 1,
+	) -> tuple[
+		tensorflow.data.Dataset,
+		tensorflow.data.Dataset,
+		tensorflow.data.Dataset,
+	]:
+		"""Get shuffled split by label and subset.
+
+		Arguments:
+			labels: get examples only from these
+			subset: after splitting dataset get this
+
+		Keyword_arguments:
+			image_size: to rescale fetched examples to (square ratio)
+			batch_size: to batch   fetched examples
+
+		Returns:
+			An optimized (cached and prefeched) TensorFlow dataset.
+		"""
+		_total_images = self.images(selection=labels)
+
+	#	Split validation subset off total data. Use a larger chunk than what corresponds to the source/target labels.
+		_train_images, _valid_images = sklearn.model_selection.train_test_split(_total_images,
+			test_size=self._target_source,  # slightly more validation examples
+			random_state=SEED,
+			shuffle=True,
+			stratify=_total_images,
 		)
 
-		return images[images.isin(self.read(selection))].replace(self.labels(selection))
+	#	Split development subset off training data. Use a smaller chunk than what corresponds to the source/target labels.
+		_train_images, _devel_images = sklearn.model_selection.train_test_split(_train_images,
+			test_size=self._target_totals,  # slightly less validation examples
+			random_state=SEED,
+			shuffle=True,
+			stratify=_train_images,
+		)
+
+	#	Return dataset from paths and labels with preferred settings.
+		def paths_and_labels_to_dataset(_images: pandas.Series) -> tensorflow.data.Dataset:
+			images: tensorflow.data.Dataset = keras.utils.image_dataset.paths_and_labels_to_dataset(
+				image_paths=_images.index,
+				image_size=(
+					image_size,
+					image_size,
+				),
+				num_channels=3,
+				labels=_images,
+				label_mode="categorical",
+				num_classes=len(self._labels),
+				interpolation="bilinear",
+				crop_to_aspect_ratio=True,
+			)
+
+		#	Cache subset in RAM for performance.
+			images = images.cache()
+
+		#	Shuffle elements by fixed seed, but set subset for reshuffling after each epoch.
+			images = images.shuffle(len(images),
+				seed=SEED,
+				reshuffle_each_iteration=True,
+			)
+
+		#	If batch size is set, batch subset.
+			if batch_size > 1:
+				images = images.batch(batch_size,
+					num_parallel_calls=tensorflow.data.AUTOTUNE,
+					deterministic=False,
+				)
+
+		#	Prefetch the first examples of subset.
+			images = images.prefetch(tensorflow.data.AUTOTUNE)
+
+			return images
+
+	#	Build datasets.
+		train_images: tensorflow.data.Dataset = paths_and_labels_to_dataset(_train_images)  # type: ignore
+		devel_images: tensorflow.data.Dataset = paths_and_labels_to_dataset(_devel_images)  # type: ignore
+		valid_images: tensorflow.data.Dataset = paths_and_labels_to_dataset(_valid_images)  # type: ignore
+
+		return (
+			train_images,
+			devel_images,
+			valid_images,
+		)
 
 	def plot_labels(self):
 		"""Plot label statistics."""
 		fig, ax = matplotlib.pyplot.subplots(
 			figsize=(
 				9.,
-				6.
+				6.,
 			)
 		)
 		fig.set_tight_layout(True)
@@ -229,9 +324,9 @@ class Dataset:
 			labelcolor="#AAAAAA",
 		)
 
-		matplotlib.pyplot.savefig(path.join(self.images_path, "classes.pdf"))
+		matplotlib.pyplot.savefig(path.join(self._images_path, "classes.pdf"))
 
-	def plot_predicates(self,
+	def plot_alphas(self,
 		binary: bool = False,
 	):
 		"""Plot predicates heatmap against labels.
@@ -240,7 +335,7 @@ class Dataset:
 			binary: continuous if `False`
 				default: continuous
 		"""
-		predicate_range = "binary" if binary else "continuous"
+		alpha_range = "-binary" if binary else "-continuous"
 
 		fig, ax = matplotlib.pyplot.subplots(
 			figsize=(
@@ -253,9 +348,9 @@ class Dataset:
 		ax.xaxis.set_tick_params(length=0)
 		ax.yaxis.set_tick_params(length=0)
 
-		predicates = self.predicates(binary=binary)
+		alphas = self.alphas(binary=binary)
 
-		seaborn.heatmap(predicates,
+		seaborn.heatmap(alphas,
 			vmin=0.,
 			vmax=1.,
 			cmap="gnuplot",
@@ -268,16 +363,16 @@ class Dataset:
 			ax=ax,
 		)
 
-		ax.set_title(f"class {predicate_range} predicate matrix")
+		ax.set_title(f"class {alpha_range} predicate matrix")
 		ax.set_xlabel("predicates")
 		ax.set_ylabel("class label")
 
-		matplotlib.pyplot.savefig(path.join(self.images_path, f"predicate-matrix-{predicate_range}.pdf"))
+		matplotlib.pyplot.savefig(path.join(self._images_path, f"predicate-matrix{alpha_range}.pdf"))
 
-	def plot_label_correlation(self,
+	def plot_label_correlation(self, alter_dot: Callable = numpy.dot,
 		binary: bool | None = None,
 		logits: bool = False,
-		softmx: bool = False, alter_dot: Callable = numpy.dot
+		softmx: bool = False,
 	):
 		"""Plot label correlation on predicates heatmap using dot product, optinally on logits.
 
@@ -289,6 +384,11 @@ class Dataset:
 			softmx: apply softmax to predictions
 				default not
 		"""
+		alpha_range = "-binary" if binary else "-continuous"
+		alpha_field = "-logits" if logits else "-probabilities"
+
+		alpha_normalization = "-softmax" if softmx else ""
+
 		fig, ax = matplotlib.pyplot.subplots(
 			figsize=(
 				10.,
@@ -302,23 +402,23 @@ class Dataset:
 
 	#	Mix continuous and binary semantic representations, emulating sigmoid predictions against binary truth.
 		if binary is not None:
-			predicates = self.predicates(
+			alphas = self.alphas(
 				binary=binary,
 				logits=logits,
 			)
 			label_correlation = dotDataFrame(
-				predicates,
-				predicates.transpose(), alter_dot=alter_dot
+				alphas,
+				alphas.transpose(), alter_dot=alter_dot
 			)
 
 	#	Pure binary or continuous semantic representation correlation.
 		else:
 			label_correlation = dotDataFrame(
-				self.predicates(
+				self.alphas(
 					binary=True,
 					logits=logits,
 				),
-				self.predicates(
+				self.alphas(
 					binary=False,
 					logits=logits,
 				).transpose(), alter_dot=alter_dot
@@ -350,21 +450,8 @@ class Dataset:
 
 		altered_dot = f".{alter_dot.__name__}" if alter_dot != numpy.dot else ""
 
-		matplotlib.pyplot.savefig(path.join(self.images_path, f"class-correlation{altered_dot}.png"))
-
-
-if __name__ == "__main__":
-	dataset = Dataset()
-
-	dataset.plot_labels()
-	dataset.plot_predicates()
-	dataset.plot_predicates(binary=True)
-
-	kwargs = {
-	#	"binary": True,
-	#	"logits": True,
-	#	"softmx": True,
-	}
-	dataset.plot_label_correlation(**kwargs)
-	dataset.plot_label_correlation(**kwargs, alter_dot=jaccard)
-	dataset.plot_label_correlation(**kwargs, alter_dot=cosine)
+		matplotlib.pyplot.savefig(
+			path.join(self._images_path,
+				f"class-correlation{alpha_range}{alpha_field}{alpha_normalization}{altered_dot}.pdf"
+			)
+		)
