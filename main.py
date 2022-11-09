@@ -9,7 +9,7 @@ import source.keras.utils.layer_utils
 
 from source.dataset.animals_with_attributes import Dataset
 from source.keras.models import DenseStackArray
-from source.zeroshot.embedding import EfficientNetDense
+from source.zeroshot.models import EfficientNetDense
 from source.zeroshot.classifiers import CategoricalClassifier
 
 if __name__ == "__main__":

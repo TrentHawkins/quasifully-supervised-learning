@@ -13,7 +13,7 @@ class TestEfficientNetDense:
 
 		from source.dataset.animals_with_attributes import Dataset
 		from source.keras.layers import Jaccard
-		from source.zeroshot.embedding import EfficientNetDense
+		from source.zeroshot.models import EfficientNetDense
 
 		predicates = Dataset().alphas().transpose().to_numpy()
 
