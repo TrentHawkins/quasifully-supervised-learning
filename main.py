@@ -8,9 +8,9 @@ import source.keras.utils.generic_utils
 import source.keras.utils.layer_utils
 
 from source.dataset.animals_with_attributes import Dataset
-from source.keras.classifiers import Classifier
 from source.keras.models import DenseStackArray
 from source.zeroshot.embedding import EfficientNetDense
+from source.zeroshot.classifiers import CategoricalClassifier
 
 if __name__ == "__main__":
 	"""Learning cycle."""
@@ -28,8 +28,8 @@ if __name__ == "__main__":
 	model = EfficientNetDense(visual, semantic_matrix)
 
 #	Setup model pipeline:
-	classifier = Classifier(*dataset.split(), model)
-	classifier.compile("categorical_crossentropy")
+	classifier = CategoricalClassifier(*dataset.split(), model)
+	classifier.compile()
 	classifier.model.summary()
 
 #	Learning cycle:

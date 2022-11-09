@@ -2,7 +2,6 @@
 
 
 from dataclasses import dataclass
-from math import ceil, sqrt
 
 import tensorflow
 
@@ -27,46 +26,100 @@ class Classifier:
 #	Model to operate:
 	model: tensorflow.keras.Model
 
-	def compile(self, loss: tensorflow.keras.losses.Loss | str,
-		learning_rate: float = 1e-3,
+	def compile(self,
+		optimizer: tensorflow.keras.optimizers.Optimizer | str,
+		loss: tensorflow.keras.losses.Loss | str,
+		metrics: list[tensorflow.keras.metrics.Metric | str] | None = None,
 	):
-		"""Configure the model for training with custom loss.
+		"""Configure the model for training.
 
 		Arguments:
+			optimizer: String (name of optimizer) or `tensorflow.keras.optimizers.Optimizer` instance
+				See `tensorflow.keras.optimizers`.
+
 			loss: Loss function.
-				May be a string (name of loss function), or a `tensorflow.keras.losses.Loss instance`.
+				May be a string (name of loss function), or a `tensorflow.keras.losses.Loss` instance.
 				See `tensorflow.keras.losses`.
-				A loss function is any callable with the signature `loss = fn(y_true, y_pred)`, where
-					`y_true` are the ground truth values with shape `(batch_size, d0, .. dN)`, and
-					`y_pred` are the model's predictions with shape `(batch_size, d0, .. dN)`.
+
+				A loss function is any callable with the signature `loss=fn(y_true, y_pred)`, where
+					`y_true` are the ground truth values with shape `(batch_size,d0,...,dN)`, and
+					`y_pred` are the model's predictions with shape `(batch_size,d0,...,dN)`.
+
 				The loss function should return a `float` tensor.
+
 				If a custom `Loss` instance is used and reduction is set to `None`,
-					return value has shape `(batch_size, d0, .. dN-1)`,
-					i.e. per-sample or per-timestep loss values;
-					otherwise, it is a scalar.
+				return value has shape `(batch_size, d0, .. dN-1)`,
+				i.e. per-sample or per-timestep loss values;
+				otherwise, it is a scalar.
+
 				If the model has multiple outputs,
-					you can use a different loss on each output by passing a dictionary or a list of losses.
+				you can use a different loss on each output by passing a dictionary or a list of losses.
+
 				The loss value that will be minimized by the model will then be the sum of all individual losses,
-					unless loss_weights is specified.
-			learning_rate: A `Tensor`, floating point value,
-				or a schedule that is a `tensorflow.keras.optimizers.schedules.LearningRateSchedule`,
-				or a callable that takes no arguments and returns the actual value to use, the learning rate.
-				Defaults to 0.001.
-				To be used with the `tensorflow.keras.optimizers.Adam` optimizer.
+				unless loss_weights is specified.
+
+			metrics: List of metrics to be evaluated by the model during training and testing.
+				Each of this can be a string (name of a built-in function),
+				function or a `tensorflow.keras.metrics.Metric` instance.
+				See tensorflow.keras.metrics.
+
+				Typically you will use:
+					```
+					metrics=[
+						'accuracy'
+					]
+					```
+
+				A function is any callable with the signature `result=fn(y_true,y_pred)`.
+				To specify different metrics for different outputs of a multi-output model,
+				you could also pass a dictionary, such as:
+					```
+					metrics={
+						'output_a':'accuracy',
+						'output_b':[
+							'accuracy',
+							'mse',
+						],
+					}
+					```
+				You can also pass a list to specify a metric or a list of metrics for each output, such as:
+					```
+					metrics=[
+						[
+							'accuracy',
+						],
+						[
+							'accuracy',
+							'mse',
+						],
+					]
+					```
+				or:
+					```
+					metrics=[
+						'accuracy',
+						[
+							'accuracy',
+							'mse',
+						],
+					]
+					```
+				When you pass the strings 'accuracy' or 'acc', we convert this to one of:
+				-	`tensorflow.keras.metrics.BinaryAccuracy`,
+				-	`tensorflow.keras.metrics.CategoricalAccuracy`,
+				-	`tensorflow.keras.metrics.SparseCategoricalAccuracy`,
+				based on the loss function used and the model output shape.
+
+				We do a similar conversion for the strings 'crossentropy' and 'ce' as well.
+
+				The metrics passed here are evaluated without sample weighting;
+				if you would like sample weighting to apply,
+				you can specify your metrics via the weighted_metrics argument instead.
 		"""
 		self.model.compile(
-			optimizer=tensorflow.keras.optimizers.Adam(
-				learning_rate=learning_rate,
-			#	beta_1=.9,
-			#	beta_2=.999,
-			#	epsilon=1e-7,
-				amsgrad=True,
-			#	name="Adam",
-			),
+			optimizer=optimizer,
 			loss=loss,
-			metrics=[
-				tensorflow.keras.metrics.Accuracy(),
-			],
+			metrics=metrics,
 		#	loss_weights=None,
 		#	weighted_metrics=None,
 		#	run_eagerly=None,
@@ -77,73 +130,77 @@ class Classifier:
 	def fit(self,
 		train: tensorflow.data.Dataset | None = None,
 		devel: tensorflow.data.Dataset | None = None,
+		*,
 		epochs: int = 1,
+		callbacks: list[tensorflow.keras.callbacks.Callback] | None = None,
 	):
 		"""Train the model for a fixed number of epochs (iterations on a dataset).
 
 		Unpacking behavior for iterator-like inputs:
 			A common pattern is to pass a
-				`tf.data.Dataset`,
+				`tensorflow.data.Dataset`,
 				`generator`, or
-				`tf.keras.utils.Sequence`
+				`tensorflow.keras.utils.Sequence`
 			which will in fact yield not only features but optionally targets and sample weights.
+
 			Keras requires that the output of such iterator-likes be unambiguous.
 
-		In this wrapper `tf.data.Dataset` are used.
+		In this wrapper `tensorflow.data.Dataset` are used.
 
 		Arguments:
 			train: Input data as a `tensorflow.data dataset`.
 				Should return a `tuple` of either `(inputs, targets)` or `(inputs, targets, sample_weights)`.
+
 				Defaults to the `tensorflow.data dataset` set at initialization.
+
 			devel: Data as a `tensorflow.data dataset` to evaluate the loss and any model metrics at the end of each epoch on.
 				The model will not be trained on this data.
 				Thus, note the fact that the validation loss is not affected by regularization layers like noise and dropout.
+
 				Defaults to the `tensorflow.data dataset` set at initialization.
+
+		Keyword Arguments:
 			epochs: Integer.
 				Number of epochs to train the model.
+
 				An epoch is an iteration over the entire data provided.
+
 				Note that in conjunction with `initial_epoch`, `epochs` is to be understood as "final epoch".
 				The model is not trained for a number of iterations given by `epochs`,
-					but merely until the epoch of index epochs is reached.
+				but merely until the epoch of index epochs is reached.
+
 				Defaults to 1.
+
+			callbacks: List of `tensorflow.keras.callbacks.Callback` instances.
+				List of callbacks to apply during training.
+				See tensorflow.keras.callbacks.
+
+				Note:
+				-	`tensorflow.keras.callbacks.ProgbarLogger` and
+				-	`tensorflow.keras.callbacks.History`
+				callbacks are created automatically and need not be passed into `model.fit`.
+
+				`tensorflow.keras.callbacks.ProgbarLogger` is created or not based on verbose argument to `model.fit`.
+
+				Callbacks with batch-level calls are currently unsupported with:
+				-	`tensorflow.distribute.experimental.ParameterServerStrategy`,
+				and users are advised to implement epoch-level calls instead with an appropriate `steps_per_epoch` value.
 
 		Returns:
 			A `History` object:
 				Its `History.history` attribute is a record of training loss values and metrics values at successive epochs,
-					as well as validation loss values and validation metrics values (if applicable).
+				as well as validation loss values and validation metrics values (if applicable).
 
 		Raises:
 			RuntimeError: If the model was never compiled or `model.fit` is wrapped in `tensorflow.function`.
+
 			ValueError:	If mismatch between the provided input data and what the model expects or when the input data is empty.
 		"""
-		patience_early_stopping = ceil(sqrt(epochs))
-		patience_reduce_learning_rate_on_plateau = ceil(sqrt(sqrt(epochs)))
-
 		return self.model.fit(train or self.train,
 		#	batch_size=None,  # batches generated from dataset
-			epochs=1,
+			epochs=epochs,
 		#	verbose="auto",  # means 1 in an interactive enviromnemt which is desired
-			callbacks=[
-				tensorflow.keras.callbacks.ReduceLROnPlateau(
-				#	monitor="val_loss",
-				#	factor=1e-1,
-					patience=patience_reduce_learning_rate_on_plateau,
-				#	verbose=0,
-				#	mode="auto",
-				#	min_delta=1e-4,
-					cooldown=patience_reduce_learning_rate_on_plateau,
-				#	min_lr=0,
-				),
-				tensorflow.keras.callbacks.EarlyStopping(
-					monitor="val_loss",
-				#	min_delta=0,
-					patience=patience_early_stopping,
-				#	verbose=0,
-				#	mode="auto",
-				#	baseline=None,
-					restore_best_weights=True,
-				)
-			],
+			callbacks=callbacks,
 		#	validation_split=0.,
 			validation_data=devel or self.devel,
 		#	shuffle=True,  # NOTE: make sure dataset is shuffled with reshuffling enabled
@@ -180,6 +237,7 @@ class Classifier:
 
 		Raises:
 			RuntimeError: If `model.predict` is wrapped in a `tensorflow.function`.
+
 			ValueError: In case of mismatch between the provided input data and the model's expectations,
 				or in case a stateful model receives a number of samples that is not a multiple of the batch size.
 		"""
