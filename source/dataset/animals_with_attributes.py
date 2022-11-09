@@ -1,6 +1,7 @@
 """Create image data loading pipeline for the Animals with Attributes 2 dataset using TensorFlow."""
 
 
+from math import ceil, sqrt
 from os import path
 from sys import float_info
 from typing import Callable
@@ -235,23 +236,22 @@ class Dataset:
 			)
 
 		#	Cache subset in RAM for performance.
-			images = images.cache()
+		#	images = images.cache()
 
 		#	Shuffle elements by fixed seed, but set subset for reshuffling after each epoch.
-			images = images.shuffle(len(images),
+			images = images.shuffle(ceil(sqrt(len(images))),
 				seed=SEED,
 				reshuffle_each_iteration=True,
 			)
 
 		#	If batch size is set, batch subset.
-			if batch_size > 1:
-				images = images.batch(batch_size,
-					num_parallel_calls=tensorflow.data.AUTOTUNE,
-					deterministic=False,
-				)
+			images = images.batch(batch_size,
+				num_parallel_calls=tensorflow.data.AUTOTUNE,
+				deterministic=False,
+			)
 
 		#	Prefetch the first examples of subset.
-			images = images.prefetch(tensorflow.data.AUTOTUNE)
+		#	images = images.prefetch(tensorflow.data.AUTOTUNE)
 
 			return images
 

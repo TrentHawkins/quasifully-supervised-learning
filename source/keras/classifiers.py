@@ -2,7 +2,7 @@
 
 
 from dataclasses import dataclass
-from math import sqrt
+from math import ceil, sqrt
 
 import tensorflow
 
@@ -27,7 +27,7 @@ class Classifier:
 #	Model to operate:
 	model: tensorflow.keras.Model
 
-	def compile(self, loss: tensorflow.keras.losses.Loss,
+	def compile(self, loss: tensorflow.keras.losses.Loss | str,
 		learning_rate: float = 1e-3,
 	):
 		"""Configure the model for training with custom loss.
@@ -65,7 +65,7 @@ class Classifier:
 			),
 			loss=loss,
 			metrics=[
-				tensorflow.keras.metrics.Accuracy,
+				tensorflow.keras.metrics.Accuracy(),
 			],
 		#	loss_weights=None,
 		#	weighted_metrics=None,
@@ -116,8 +116,8 @@ class Classifier:
 			RuntimeError: If the model was never compiled or `model.fit` is wrapped in `tensorflow.function`.
 			ValueError:	If mismatch between the provided input data and what the model expects or when the input data is empty.
 		"""
-		patience_early_stopping = int(sqrt(epochs)) + 1
-		patience_reduce_learning_rate_on_plateau = int(sqrt(sqrt(epochs))) + 1
+		patience_early_stopping = ceil(sqrt(epochs))
+		patience_reduce_learning_rate_on_plateau = ceil(sqrt(sqrt(epochs)))
 
 		return self.model.fit(train or self.train,
 		#	batch_size=None,  # batches generated from dataset

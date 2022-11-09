@@ -239,27 +239,6 @@ class Metric(tensorflow.keras.layers.Dense):
 			name=name,
 		**kwargs)
 
-	def build(self, input_shape):
-		"""Create the variables of the layer (optional, for subclass implementers).
-
-		This is a method that implementers of subclasses of `Layer` or `Model` can override
-		if they need a state-creation step in-between layer instantiation and layer call.
-
-		It is invoked automatically before the first execution of `call()`.
-
-		This is typically used to create the weights of `Layer` subclasses (at the discretion of the subclass implementer).
-
-		Arguments:
-			input_shape: instance of `TensorShape` or list of instances of `TensorShape` if the layer expects a list of inputs
-		"""
-		super(Metric, self).build(input_shape)
-
-	#	the norms of kernel vectors (diagonal)
-		self.kernel_kernel = tensorflow.einsum("...ji, ...ji -> ...i",
-			self.kernel,
-			self.kernel,
-		)
-
 
 class Jaccard(Metric):
 	"""A dense layer that perform the jaccard operation per input and kernel vector instead of a dot product.
@@ -284,6 +263,12 @@ class Jaccard(Metric):
 		inputs_inputs = tensorflow.einsum("...i, ...i -> ...",
 			inputs,
 			inputs,
+		)
+
+	#	the norms of kernel vectors (diagonal)
+		self.kernel_kernel = tensorflow.einsum("...ji, ...ji -> ...i",
+			self.kernel,
+			self.kernel,
 		)
 
 		return inputs_kernel / (
