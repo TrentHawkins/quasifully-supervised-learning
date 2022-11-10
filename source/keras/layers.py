@@ -260,15 +260,25 @@ class CosineDense(MetricDense):
 		inputs_kernel = super(CosineDense, self).call(inputs)
 
 	#	the norms of inputs vectors:
-		inputs_inputs = tensorflow.einsum("...i, ...i -> ...",
-			inputs,
-			inputs,
+		inputs_inputs = tensorflow.expand_dims(
+			tensorflow.einsum("...i, ...i -> ...",
+				inputs,
+				inputs,
+			), -1
+		)
+
+	#	the norms of kernel vectors (diagonal):
+		kernel_kernel = tensorflow.broadcast_to(
+			tensorflow.einsum("...ji, ...ji -> ...i",
+				self.kernel,
+				self.kernel,
+			), tensorflow.shape(inputs_kernel)
 		)
 
 	#	denominator:
 		denominator = tensorflow.math.sqrt(
-			tensorflow.expand_dims(inputs_inputs, -1) *
-			tensorflow.broadcast_to(self.kernel_kernel, tensorflow.shape(inputs_kernel))
+			inputs_inputs *
+			kernel_kernel
 		)
 
 		return inputs_kernel / denominator
@@ -294,21 +304,25 @@ class JaccardDense(MetricDense):
 		inputs_kernel = super(JaccardDense, self).call(inputs)
 
 	#	the norms of inputs vectors:
-		inputs_inputs = tensorflow.einsum("...i, ...i -> ...",
-			inputs,
-			inputs,
+		inputs_inputs = tensorflow.expand_dims(
+			tensorflow.einsum("...i, ...i -> ...",
+				inputs,
+				inputs,
+			), -1
 		)
 
 	#	the norms of kernel vectors (diagonal):
-		self.kernel_kernel = tensorflow.einsum("...ji, ...ji -> ...i",
-			self.kernel,
-			self.kernel,
+		kernel_kernel = tensorflow.broadcast_to(
+			tensorflow.einsum("...ji, ...ji -> ...i",
+				self.kernel,
+				self.kernel,
+			), tensorflow.shape(inputs_kernel)
 		)
 
 	#	denominator:
 		denominator = (
-			tensorflow.expand_dims(inputs_inputs, -1) +
-			tensorflow.broadcast_to(self.kernel_kernel, tensorflow.shape(inputs_kernel)) -
+			inputs_inputs +
+			kernel_kernel -
 			inputs_kernel
 		)
 
@@ -335,21 +349,25 @@ class DiceDense(MetricDense):
 		inputs_kernel = super(DiceDense, self).call(inputs)
 
 	#	the norms of inputs vectors:
-		inputs_inputs = tensorflow.einsum("...i, ...i -> ...",
-			inputs,
-			inputs,
+		inputs_inputs = tensorflow.expand_dims(
+			tensorflow.einsum("...i, ...i -> ...",
+				inputs,
+				inputs,
+			), -1
 		)
 
 	#	the norms of kernel vectors (diagonal):
-		self.kernel_kernel = tensorflow.einsum("...ji, ...ji -> ...i",
-			self.kernel,
-			self.kernel,
+		kernel_kernel = tensorflow.broadcast_to(
+			tensorflow.einsum("...ji, ...ji -> ...i",
+				self.kernel,
+				self.kernel,
+			), tensorflow.shape(inputs_kernel)
 		)
 
 	#	denominator:
 		denominator = (
-			tensorflow.expand_dims(inputs_inputs, -1) +
-			tensorflow.broadcast_to(self.kernel_kernel, tensorflow.shape(inputs_kernel))
+			inputs_inputs +
+			kernel_kernel
 		) / 2
 
 		return inputs_kernel / denominator
@@ -376,15 +394,19 @@ class RandDense(MetricDense):
 		inputs_kernel_complement = 1 - inputs_kernel
 
 	#	the norms of inputs vectors:
-		inputs_inputs = tensorflow.einsum("...i, ...i -> ...",
-			inputs,
-			inputs,
+		inputs_inputs = tensorflow.expand_dims(
+			tensorflow.einsum("...i, ...i -> ...",
+				inputs,
+				inputs,
+			), -1
 		)
 
 	#	the norms of kernel vectors (diagonal):
-		self.kernel_kernel = tensorflow.einsum("...ji, ...ji -> ...i",
-			self.kernel,
-			self.kernel,
+		kernel_kernel = tensorflow.broadcast_to(
+			tensorflow.einsum("...ji, ...ji -> ...i",
+				self.kernel,
+				self.kernel,
+			), tensorflow.shape(inputs_kernel)
 		)
 
 	#	numerator:
@@ -395,8 +417,8 @@ class RandDense(MetricDense):
 
 	#	denominator:
 		denominator = (
-			tensorflow.expand_dims(inputs_inputs, -1) +
-			tensorflow.broadcast_to(self.kernel_kernel, tensorflow.shape(inputs_kernel)) -
+			inputs_inputs +
+			kernel_kernel -
 			inputs_kernel +
 			inputs_kernel_complement
 		)

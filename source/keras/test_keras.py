@@ -71,6 +71,31 @@ class TestMetricDense:
 		)
 	)
 
+	def test_cosine(self):
+		"""Test if operations are carried out successfully over a batch of inputs."""
+		import tensorflow
+
+		from source.keras.layers import CosineDense
+
+		testDense = CosineDense(
+			self.input.shape[-1],
+			kernel_initializer=tensorflow.keras.initializers.Constant(
+				tensorflow.random.uniform(
+					(
+						5,
+						5,
+					)
+				)
+			)
+		)
+
+	#	Assert `JaccardDense` forwards successfully and with the same shapes as a normal `Dense`.
+		assert testDense(self.input).shape == tensorflow.keras.layers.Dense(self.input.shape[-1])(self.input).shape  # type: ignore
+
+	#	Assert the range of values of a `CosineDense` pass is 0 to 1.
+		assert tensorflow.math.reduce_all(0 <= testDense(self.input))  # type: ignore
+		assert tensorflow.math.reduce_all(1 >= testDense(self.input))  # type: ignore
+
 	def test_jaccard(self):
 		"""Test if operations are carried out successfully over a batch of inputs."""
 		import tensorflow
@@ -96,13 +121,13 @@ class TestMetricDense:
 		assert tensorflow.math.reduce_all(0 <= testDense(self.input))  # type: ignore
 		assert tensorflow.math.reduce_all(1 >= testDense(self.input))  # type: ignore
 
-	def test_cosine(self):
+	def test_dice(self):
 		"""Test if operations are carried out successfully over a batch of inputs."""
 		import tensorflow
 
-		from source.keras.layers import CosineDense
+		from source.keras.layers import DiceDense
 
-		testDense = CosineDense(
+		testDense = DiceDense(
 			self.input.shape[-1],
 			kernel_initializer=tensorflow.keras.initializers.Constant(
 				tensorflow.random.uniform(
@@ -117,7 +142,32 @@ class TestMetricDense:
 	#	Assert `JaccardDense` forwards successfully and with the same shapes as a normal `Dense`.
 		assert testDense(self.input).shape == tensorflow.keras.layers.Dense(self.input.shape[-1])(self.input).shape  # type: ignore
 
-	#	Assert the range of values of a `CosineDense` pass is 0 to 1.
+	#	Assert the range of values of a `JaccardDense` pass is 0 to 1.
+		assert tensorflow.math.reduce_all(0 <= testDense(self.input))  # type: ignore
+		assert tensorflow.math.reduce_all(1 >= testDense(self.input))  # type: ignore
+
+	def test_rand(self):
+		"""Test if operations are carried out successfully over a batch of inputs."""
+		import tensorflow
+
+		from source.keras.layers import RandDense
+
+		testDense = RandDense(
+			self.input.shape[-1],
+			kernel_initializer=tensorflow.keras.initializers.Constant(
+				tensorflow.random.uniform(
+					(
+						5,
+						5,
+					)
+				)
+			)
+		)
+
+	#	Assert `JaccardDense` forwards successfully and with the same shapes as a normal `Dense`.
+		assert testDense(self.input).shape == tensorflow.keras.layers.Dense(self.input.shape[-1])(self.input).shape  # type: ignore
+
+	#	Assert the range of values of a `JaccardDense` pass is 0 to 1.
 		assert tensorflow.math.reduce_all(0 <= testDense(self.input))  # type: ignore
 		assert tensorflow.math.reduce_all(1 >= testDense(self.input))  # type: ignore
 
