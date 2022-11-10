@@ -426,7 +426,7 @@ class Dataset:
 
 	#	Optinally dress correlation with a softmax.
 		if softmx:
-			label_correlation = label_correlation.apply(tensorflow.nn.softmax,
+			label_correlation = label_correlation.apply(tensorflow.nn.softmax,  # type: ignore
 				axis="index",
 			)
 
