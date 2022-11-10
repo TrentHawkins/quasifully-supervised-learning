@@ -66,7 +66,7 @@ class Dense(tensorflow.keras.layers.Dense):
 				name=name,  # None
 		**kwargs)
 
-	#	batch-normalization
+	#	batch-normalization:
 		if normalization:
 			self.normalization = tensorflow.keras.layers.BatchNormalization(
 			#	axis=-1,
@@ -85,7 +85,7 @@ class Dense(tensorflow.keras.layers.Dense):
 				name=f"normalization_{name}",
 			**kwargs)
 
-	#	dropout
+	#	dropout:
 		assert dropout >= 0. and dropout <= 1.
 		self.dropout = tensorflow.keras.layers.Dropout(dropout,
 			noise_shape=None,
@@ -108,14 +108,14 @@ class Dense(tensorflow.keras.layers.Dense):
 		"""
 		super(Dense, self).build(input_shape)
 
-	#	batch-normalization
+	#	batch-normalization:
 		try:
 			self.normalization.build(input_shape)
 
 		except AttributeError:
 			pass
 
-	#	dropout
+	#	dropout:
 		self.dropout.build(input_shape)
 
 	def call(self, inputs: tensorflow.Tensor,
@@ -136,7 +136,7 @@ class Dense(tensorflow.keras.layers.Dense):
 		"""
 		x = inputs
 
-	#	batch-normalization
+	#	batch-normalization:
 		try:
 			x = self.normalization(x,
 				training=training,
@@ -145,7 +145,7 @@ class Dense(tensorflow.keras.layers.Dense):
 		except AttributeError:
 			pass
 
-	#	dropout
+	#	dropout:
 		x = self.dropout(x,
 			training=training,
 		)
@@ -240,44 +240,6 @@ class MetricDense(tensorflow.keras.layers.Dense):
 		**kwargs)
 
 
-class JaccardDense(MetricDense):
-	"""A dense layer that perform the jaccard operation per input and kernel vector instead of a dot product.
-
-	Such a modified layer has no bias explicitely.
-	"""
-
-	def call(self, inputs):
-		"""Call the model on new inputs.
-
-		In this case call just reapplies all ops in the graph to the new inputs.
-
-		Arguments:
-			inputs: a tensor or list of tensors
-
-		Returns:
-			output of layer
-		"""
-		inputs_kernel = super(JaccardDense, self).call(inputs)
-
-	#	the norms of inputs vectors
-		inputs_inputs = tensorflow.einsum("...i, ...i -> ...",
-			inputs,
-			inputs,
-		)
-
-	#	the norms of kernel vectors (diagonal)
-		self.kernel_kernel = tensorflow.einsum("...ji, ...ji -> ...i",
-			self.kernel,
-			self.kernel,
-		)
-
-		return inputs_kernel / (
-			tensorflow.expand_dims(inputs_inputs, -1) +
-			tensorflow.broadcast_to(self.kernel_kernel, tensorflow.shape(inputs_kernel)) +
-			inputs_kernel
-		)
-
-
 class CosineDense(MetricDense):
 	"""A dense layer that perform the cosine operation per input and kernel vector instead of a dot product.
 
@@ -297,13 +259,146 @@ class CosineDense(MetricDense):
 		"""
 		inputs_kernel = super(CosineDense, self).call(inputs)
 
-	#	the norms of inputs vectors
+	#	the norms of inputs vectors:
 		inputs_inputs = tensorflow.einsum("...i, ...i -> ...",
 			inputs,
 			inputs,
 		)
 
-		return inputs_kernel / tensorflow.math.sqrt(
+	#	denominator:
+		denominator = tensorflow.math.sqrt(
 			tensorflow.expand_dims(inputs_inputs, -1) *
 			tensorflow.broadcast_to(self.kernel_kernel, tensorflow.shape(inputs_kernel))
 		)
+
+		return inputs_kernel / denominator
+
+
+class JaccardDense(MetricDense):
+	"""A dense layer that perform the Jaccard operation per input and kernel vector instead of a dot product.
+
+	Such a modified layer has no bias explicitely.
+	"""
+
+	def call(self, inputs):
+		"""Call the model on new inputs.
+
+		In this case call just reapplies all ops in the graph to the new inputs.
+
+		Arguments:
+			inputs: a tensor or list of tensors
+
+		Returns:
+			output of layer
+		"""
+		inputs_kernel = super(JaccardDense, self).call(inputs)
+
+	#	the norms of inputs vectors:
+		inputs_inputs = tensorflow.einsum("...i, ...i -> ...",
+			inputs,
+			inputs,
+		)
+
+	#	the norms of kernel vectors (diagonal):
+		self.kernel_kernel = tensorflow.einsum("...ji, ...ji -> ...i",
+			self.kernel,
+			self.kernel,
+		)
+
+	#	denominator:
+		denominator = (
+			tensorflow.expand_dims(inputs_inputs, -1) +
+			tensorflow.broadcast_to(self.kernel_kernel, tensorflow.shape(inputs_kernel)) -
+			inputs_kernel
+		)
+
+		return inputs_kernel / denominator
+
+
+class DiceDense(MetricDense):
+	"""A dense layer that perform the Dice operation per input and kernel vector instead of a dot product.
+
+	Such a modified layer has no bias explicitely.
+	"""
+
+	def call(self, inputs):
+		"""Call the model on new inputs.
+
+		In this case call just reapplies all ops in the graph to the new inputs.
+
+		Arguments:
+			inputs: a tensor or list of tensors
+
+		Returns:
+			output of layer
+		"""
+		inputs_kernel = super(DiceDense, self).call(inputs)
+
+	#	the norms of inputs vectors:
+		inputs_inputs = tensorflow.einsum("...i, ...i -> ...",
+			inputs,
+			inputs,
+		)
+
+	#	the norms of kernel vectors (diagonal):
+		self.kernel_kernel = tensorflow.einsum("...ji, ...ji -> ...i",
+			self.kernel,
+			self.kernel,
+		)
+
+	#	denominator:
+		denominator = (
+			tensorflow.expand_dims(inputs_inputs, -1) +
+			tensorflow.broadcast_to(self.kernel_kernel, tensorflow.shape(inputs_kernel))
+		) / 2
+
+		return inputs_kernel / denominator
+
+
+class RandDense(MetricDense):
+	"""A dense layer that perform the Rand operation per input and kernel vector instead of a dot product.
+
+	Such a modified layer has no bias explicitely.
+	"""
+
+	def call(self, inputs):
+		"""Call the model on new inputs.
+
+		In this case call just reapplies all ops in the graph to the new inputs.
+
+		Arguments:
+			inputs: a tensor or list of tensors
+
+		Returns:
+			output of layer
+		"""
+		inputs_kernel = super(RandDense, self).call(inputs)
+		inputs_kernel_complement = 1 - inputs_kernel
+
+	#	the norms of inputs vectors:
+		inputs_inputs = tensorflow.einsum("...i, ...i -> ...",
+			inputs,
+			inputs,
+		)
+
+	#	the norms of kernel vectors (diagonal):
+		self.kernel_kernel = tensorflow.einsum("...ji, ...ji -> ...i",
+			self.kernel,
+			self.kernel,
+		)
+
+	#	numerator:
+		numerator = (
+			inputs_kernel +
+			inputs_kernel_complement
+		)
+
+	#	denominator:
+		denominator = (
+			tensorflow.expand_dims(inputs_inputs, -1) +
+			tensorflow.broadcast_to(self.kernel_kernel, tensorflow.shape(inputs_kernel)) -
+			inputs_kernel +
+			inputs_kernel_complement
+		)
+
+		return numerator / denominator
