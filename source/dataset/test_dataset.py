@@ -9,7 +9,7 @@ class TestAA:
 		import numpy
 
 		from source.dataset.animals_with_attributes import Dataset
-		from source.similarity import cosine, jaccard
+		from source.similarities import cosine, jaccard, dice, rand
 
 		dataset = Dataset()
 
@@ -19,12 +19,15 @@ class TestAA:
 		dataset.plot_alphas(binary=True)
 
 	#	Plot everything:
-		for binary in (True, False):
-			for logits in (True, False):
-				for softmx in (True, False):
-					for alter_dot in (cosine, jaccard, numpy.dot):
-						dataset.plot_label_correlation(alter_dot,
-							binary,
-							logits,
-							softmx,
-						)
+		for alter_dot in (
+			numpy.dot,
+			cosine,
+			jaccard,
+			dice,
+			rand,
+		):
+			dataset.plot_label_correlation(alter_dot,
+				binary=False,
+				logits=False,
+				softmx=False,
+			)

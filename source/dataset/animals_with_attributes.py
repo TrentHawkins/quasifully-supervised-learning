@@ -18,7 +18,7 @@ import seaborn
 import tensorflow
 
 from ..seed import SEED
-from ..similarity import dotDataFrame
+from ..similarities import dotDataFrame
 
 
 class Dataset:
@@ -384,8 +384,8 @@ class Dataset:
 			softmx: apply softmax to predictions
 				default not
 		"""
-		alpha_range = "-binary" if binary else "-continuous"
-		alpha_field = "-logits" if logits else "-probabilities"
+		alpha_range = "-binary" if binary else ""
+		alpha_field = "-logits" if logits else ""
 
 		alpha_normalization = "-softmax" if softmx else ""
 
