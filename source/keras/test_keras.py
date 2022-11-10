@@ -75,9 +75,9 @@ class TestMetricDense:
 		"""Test if operations are carried out successfully over a batch of inputs."""
 		import tensorflow
 
-		from source.keras.layers import Jaccard
+		from source.keras.layers import JaccardDense
 
-		testDense = Jaccard(
+		testDense = JaccardDense(
 			self.input.shape[-1],
 			kernel_initializer=tensorflow.keras.initializers.Constant(
 				tensorflow.random.uniform(
@@ -100,9 +100,9 @@ class TestMetricDense:
 		"""Test if operations are carried out successfully over a batch of inputs."""
 		import tensorflow
 
-		from source.keras.layers import Cosine
+		from source.keras.layers import CosineDense
 
-		testDense = Cosine(
+		testDense = CosineDense(
 			self.input.shape[-1],
 			kernel_initializer=tensorflow.keras.initializers.Constant(
 				tensorflow.random.uniform(

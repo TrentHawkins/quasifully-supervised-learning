@@ -156,7 +156,7 @@ class Dense(tensorflow.keras.layers.Dense):
 """What follows are special types of dense layers."""
 
 
-class Attention(tensorflow.keras.layers.Dense):
+class AttentionDense(tensorflow.keras.layers.Dense):
 	"""Wrapper for dense layer operating on a stacks of input to recombine them with attention.
 
 	Such a layer is expected to have no bias and be trainable with no dropout.
@@ -177,7 +177,7 @@ class Attention(tensorflow.keras.layers.Dense):
 		Keyword arguments:
 			activation: to apply on output of decision
 		"""
-		super(Attention, self).__init__(1,
+		super(AttentionDense, self).__init__(1,
 			activation=activation,
 			use_bias=False,
 		#	kernel_initializer="glorot_uniform",
@@ -201,12 +201,12 @@ class Attention(tensorflow.keras.layers.Dense):
 		Returns:
 			output of layer
 		"""
-		return tensorflow.squeeze(super(Attention, self).call(inputs),
+		return tensorflow.squeeze(super(AttentionDense, self).call(inputs),
 			axis=-1,
 		)
 
 
-class Metric(tensorflow.keras.layers.Dense):
+class MetricDense(tensorflow.keras.layers.Dense):
 	"""A non-linear dense layer emulating the action of a metric and outputing in sigmoid range.
 
 	Such a modified layer has no bias explicitely.
@@ -226,7 +226,7 @@ class Metric(tensorflow.keras.layers.Dense):
 			activation: to apply on output of decision
 			kernel_initializer: weight values to begin with
 		"""
-		super(Metric, self).__init__(units,
+		super(MetricDense, self).__init__(units,
 			activation=activation,
 			use_bias=False,
 			kernel_initializer=kernel_initializer,  # type: ignore
@@ -240,7 +240,7 @@ class Metric(tensorflow.keras.layers.Dense):
 		**kwargs)
 
 
-class Jaccard(Metric):
+class JaccardDense(MetricDense):
 	"""A dense layer that perform the jaccard operation per input and kernel vector instead of a dot product.
 
 	Such a modified layer has no bias explicitely.
@@ -257,7 +257,7 @@ class Jaccard(Metric):
 		Returns:
 			output of layer
 		"""
-		inputs_kernel = super(Jaccard, self).call(inputs)
+		inputs_kernel = super(JaccardDense, self).call(inputs)
 
 	#	the norms of inputs vectors
 		inputs_inputs = tensorflow.einsum("...i, ...i -> ...",
@@ -278,7 +278,7 @@ class Jaccard(Metric):
 		)
 
 
-class Cosine(Metric):
+class CosineDense(MetricDense):
 	"""A dense layer that perform the cosine operation per input and kernel vector instead of a dot product.
 
 	Such a modified layer has no bias explicitely.
@@ -295,7 +295,7 @@ class Cosine(Metric):
 		Returns:
 			output of layer
 		"""
-		inputs_kernel = super(Cosine, self).call(inputs)
+		inputs_kernel = super(CosineDense, self).call(inputs)
 
 	#	the norms of inputs vectors
 		inputs_inputs = tensorflow.einsum("...i, ...i -> ...",

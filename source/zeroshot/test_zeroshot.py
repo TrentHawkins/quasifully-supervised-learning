@@ -12,7 +12,7 @@ class TestEfficientNetDense:
 		import source.keras.applications.efficientnet
 
 		from source.dataset.animals_with_attributes import Dataset
-		from source.keras.layers import Jaccard
+		from source.keras.layers import JaccardDense
 		from source.zeroshot.models import EfficientNetDense
 
 		predicates = Dataset().alphas().transpose().to_numpy()
@@ -24,7 +24,7 @@ class TestEfficientNetDense:
 		jaccardModel = EfficientNetDense(
 			visual=tensorflow.keras.applications.efficientnet.EfficientNetB0(),
 			semantic_matrix=tensorflow.constant(predicates, dtype=tensorflow.float32),
-			semantic_class=Jaccard,
+			semantic_class=JaccardDense,
 		)
 
 	#   Assert semantic weight are properly initialized

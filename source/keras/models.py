@@ -12,7 +12,7 @@ from typing import Callable
 
 import tensorflow
 
-from .layers import Dense, Attention
+from .layers import Dense, AttentionDense
 from ..numtools import divisors, hidden_dims
 
 
@@ -163,7 +163,7 @@ def DenseStackArray(
 		)
 
 #	Attention dense to collate outputs from each dense layer stack.
-	attention = Attention(
+	attention = AttentionDense(
 		activation=attention_activation,
 		name=f"{name}_attention",
 	)

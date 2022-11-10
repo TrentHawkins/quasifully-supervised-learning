@@ -9,7 +9,7 @@ The model consists of 3 main component:
 
 import tensorflow
 
-from ..keras.layers import Metric
+from ..keras.layers import MetricDense
 from ..keras.models import DenseStackArray
 
 
@@ -50,7 +50,7 @@ def EfficientNetDense(
 	visual: tensorflow.keras.Model,
 	semantic_matrix: tensorflow.Tensor,
 	*,
-	semantic_class: type = Metric,
+	semantic_class: type = MetricDense,
 ):
 	"""Build a specific latent embedding model based on EfficientNet for visual featuress and Dense encoding.
 
