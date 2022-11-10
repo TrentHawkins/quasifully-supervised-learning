@@ -64,7 +64,7 @@ class Classifier:
 				See tensorflow.keras.metrics.
 
 				Typically you will use:
-					```
+					```python
 					metrics=[
 						'accuracy'
 					]
@@ -73,7 +73,7 @@ class Classifier:
 				A function is any callable with the signature `result=fn(y_true,y_pred)`.
 				To specify different metrics for different outputs of a multi-output model,
 				you could also pass a dictionary, such as:
-					```
+					```python
 					metrics={
 						'output_a':'accuracy',
 						'output_b':[
@@ -83,7 +83,7 @@ class Classifier:
 					}
 					```
 				You can also pass a list to specify a metric or a list of metrics for each output, such as:
-					```
+					```python
 					metrics=[
 						[
 							'accuracy',
@@ -95,7 +95,7 @@ class Classifier:
 					]
 					```
 				or:
-					```
+					```python
 					metrics=[
 						'accuracy',
 						[

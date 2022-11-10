@@ -74,7 +74,9 @@ def EfficientNetDense(
 		semantic=semantic_class(
 			semantic_matrix.shape[1],
 			activation="softmax",
-			kernel_initializer=tensorflow.keras.initializers.Constant(semantic_matrix),  # type: ignore
+			kernel_initializer=tensorflow.keras.initializers.Constant(
+				tensorflow.convert_to_tensor(semantic_matrix)  # type: ignore
+			),
 			name="semantic"
 		),
 	)
