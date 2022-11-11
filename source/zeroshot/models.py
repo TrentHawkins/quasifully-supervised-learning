@@ -62,6 +62,8 @@ def EfficientNetDense(
 		semantic_class: suptype of `tensorflow.keras.layers.Dense` to use in building a semantic component
 			default: simple Dense with no bias (naturally)
 	"""
+	visual._name = "visual"
+
 	return Model(
 		visual=visual,
 		encoder=DenseStackArray(
@@ -69,13 +71,13 @@ def EfficientNetDense(
 			semantic_matrix.shape[0],
 			attention_activation="sigmoid",
 			activation="swish",
-			name="visual_semantic",
+			name="encoder",
 		),
 		semantic=semantic_class(
 			semantic_matrix.shape[1],
 			activation="softmax",
 			kernel_initializer=tensorflow.keras.initializers.Constant(
-				tensorflow.convert_to_tensor(semantic_matrix)  # type: ignore
+				tensorflow.convert_to_tensor(semantic_matrix),  # type: ignore
 			),
 			name="semantic"
 		),
