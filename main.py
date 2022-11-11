@@ -8,9 +8,8 @@ import source.keras.utils.layer_utils
 
 from source.dataset.animals_with_attributes import Dataset
 from source.keras.applications.efficientnet import EfficientNet
-from source.keras.models import DenseStackArray
+from source.zeroshot.classifiers import ZeroshotCategoricalClassifier
 from source.zeroshot.models import EfficientNetDense
-from source.zeroshot.classifiers import CategoricalClassifier
 
 if __name__ == "__main__":
 	"""Learning cycle."""
@@ -28,7 +27,9 @@ if __name__ == "__main__":
 	model = EfficientNetDense(visual, semantic_matrix)
 
 #	Setup model pipeline:
-	classifier = CategoricalClassifier(*dataset.split(), model)
+	classifier = ZeroshotCategoricalClassifier(*dataset.split(), model,
+		tensorflow.convert_to_tensor(dataset.labels("trainvalclasses.txt")),
+	)
 	classifier.compile()
 	classifier.summary()
 

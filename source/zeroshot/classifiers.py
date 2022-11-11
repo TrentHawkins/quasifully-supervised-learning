@@ -6,6 +6,7 @@ from math import ceil, sqrt
 import tensorflow
 
 from source.keras.classifiers import Classifier
+from source.zeroshot.losses import ZeroshotCategoricalCrossentropy, QuasifullyZeroshotCategoricalCrossentropy
 
 
 @dataclass
@@ -14,19 +15,17 @@ class CategoricalClassifier(Classifier):
 
 	Includes:
 	-	adam optimizer with adjustable learning rate,
-	-	quasifully supervised loss with definable source and target collections,
+	-	categorical cross-entory loss,
 	-	accuracy metric on top of loss for evaluation
 	-	callbacks:
 		-	early stopping for regularization with patience a small fraction of the number of epochs,
 		-	reduce learning rate on plateau with patience a fraction of the early stopping patience,
-
-	NOTE: For now transdactive generalized zeroshot logic is skipped, so simple categorical cross-entropy is used for loss.
 	"""
 
 	def compile(self, learning_rate: float | None = None):
 		"""Configure the model for training.
 
-		Arguments:
+		Keyword Arguments:
 			learning_rate: The learning rate.
 				Is:
 				-	a `tensorflow.Tensor`,
@@ -151,5 +150,108 @@ class CategoricalClassifier(Classifier):
 				#	baseline=None,
 					restore_best_weights=True,
 				)
+			],
+		)
+
+
+@dataclass
+class ZeroshotCategoricalClassifier(CategoricalClassifier):
+	"""Specialize generic `CategoricalClassifier` instance with zeroshot loss.
+
+	Includes:
+	-	adam optimizer with adjustable learning rate,
+	-	trimmed categorical cross-entroy loss on definable source labels
+	-	accuracy metric on top of loss for evaluation
+	-	callbacks:
+		-	early stopping for regularization with patience a small fraction of the number of epochs,
+		-	reduce learning rate on plateau with patience a fraction of the early stopping patience,
+	"""
+
+	source: tensorflow.Tensor
+
+	def compile(self, learning_rate: float | None = None):
+		"""Configure the model for training.
+
+		Keyword Arguments:
+			learning_rate: The learning rate.
+				Is:
+				-	a `tensorflow.Tensor`,
+				-	floating point value, or
+				-	a schedule that is a `tf.keras.optimizers.schedules.LearningRateSchedule`, or
+				-	a callable that takes no arguments and returns the actual value to use.
+
+				Defaults to the inverse of the training data size.
+		"""
+		super(CategoricalClassifier, self).compile(
+			optimizer=tensorflow.keras.optimizers.Adam(
+				learning_rate=learning_rate or 1 / len(self.train),
+			#	beta_1=.9,
+			#	beta_2=.999,
+			#	epsilon=1e-7,
+				amsgrad=True,
+			#	name="Adam",
+			),
+			loss=ZeroshotCategoricalCrossentropy(
+				self.source,
+			#	from_logits=False,
+			#	label_smoothing=0.,
+			#	axis=-1,
+			#	name='categorical_crossentropy'
+			),
+			metrics=[
+				tensorflow.keras.metrics.CategoricalAccuracy(),
+			],
+		)
+
+
+@dataclass
+class QuasifullyZeroshotCategoricalClassifier(ZeroshotCategoricalClassifier):
+	"""Augment generic `ZeroshotCategoricalClassifier` instance with quasifully supervised learning bias.
+
+	Includes:
+	-	adam optimizer with adjustable learning rate,
+	-	trimmed categorical cross-entroy loss on definable source labels quasifully biased on target labels
+	-	accuracy metric on top of loss for evaluation
+	-	callbacks:
+		-	early stopping for regularization with patience a small fraction of the number of epochs,
+		-	reduce learning rate on plateau with patience a fraction of the early stopping patience,
+	"""
+
+	target: tensorflow.Tensor
+
+#	Set bias as powers of 2.
+	bias: int = 1
+
+	def __post_init__(self):
+		"""Set bias as powers of 2."""
+		self.bias = 2 ** self.bias
+
+	def compile(self, learning_rate: float | None = None):
+		"""Configure the model for training.
+
+		Keyword Arguments:
+			learning_rate: The learning rate:
+				-	a `tensorflow.Tensor`, or
+				-	floating point value, or
+				-	a schedule that is a `tensorflow.keras.optimizers.schedules.LearningRateSchedule`, or
+				-	a callable that takes no arguments and returns the actual value to use.
+
+				Defaults to the inverse of the training data size.
+		"""
+		super(CategoricalClassifier, self).compile(
+			optimizer=tensorflow.keras.optimizers.Adam(
+				learning_rate=learning_rate or 1 / len(self.train),
+			#	beta_1=.9,
+			#	beta_2=.999,
+			#	epsilon=1e-7,
+				amsgrad=True,
+			#	name="Adam",
+			),
+			loss=QuasifullyZeroshotCategoricalCrossentropy(
+				self.source,
+				self.target, bias=self.bias,
+			),
+			metrics=[
+				tensorflow.keras.metrics.CategoricalAccuracy(),
 			],
 		)
