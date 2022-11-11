@@ -6,6 +6,8 @@ class TestEfficientNetDense:
 
 	def test_models(self):
 		"""Test proper instantiation of model."""
+		from random import randint
+
 		import numpy
 		import tensorflow
 
@@ -15,6 +17,17 @@ class TestEfficientNetDense:
 		from source.keras.layers import JaccardDense
 		from source.zeroshot.models import EfficientNetDense
 
+		batch_size = randint(1, 50)
+		image_size = (
+			224,
+			224, 3
+		)
+
+		images = tensorflow.random.uniform((batch_size, *image_size),
+			minval=0,
+			maxval=255,
+			dtype=tensorflow.int64,
+		)
 		predicates = Dataset().alphas().transpose().to_numpy()
 
 		softmaxModel = EfficientNetDense(
@@ -30,3 +43,10 @@ class TestEfficientNetDense:
 	#   Assert semantic weight are properly initialized
 		assert numpy.allclose(softmaxModel.layers[-1].kernel.numpy(), predicates)
 		assert numpy.allclose(jaccardModel.layers[-1].kernel.numpy(), predicates)
+
+	#	Assert softmax output:
+		assert tensorflow.reduce_sum(softmaxModel(images)) == batch_size
+
+	#	Assert sigmoid-like output:
+		assert tensorflow.math.reduce_all(0 <= jaccardModel(images))  # type: ignore
+		assert tensorflow.math.reduce_all(1 >= jaccardModel(images))  # type: ignore
