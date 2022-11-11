@@ -5,6 +5,8 @@ from dataclasses import dataclass
 
 import tensorflow
 
+from source.keras.utils.layer_utils import print_separator
+
 
 @dataclass
 class Classifier:
@@ -281,3 +283,43 @@ class Classifier:
 		#	use_multiprocessing=False,
 			return_dict=True,  # to store as `.json` later
 		)
+
+	def summary(self, **kwargs):
+		"""Print a string summary of the network, with an added separator.
+
+		Keyword Arguments:
+			line_length: Total length of printed lines (e.g. set this to adapt the display to different terminal window sizes).
+				Defaults to terminal width.
+
+			positions: Relative or absolute positions of log elements in each line.
+				If not provided, defaults to `[.33, .55, .67, 1.]`.
+
+			print_fn: Print function to use.
+				Defaults to `print`.
+
+				It will be called on each line of the summary.
+				You can set it to a custom function in order to capture the string summary.
+
+			expand_nested: Whether to expand the nested models.
+				If not provided, defaults to `False`.
+
+			show_trainable: Whether to show if a layer is trainable.
+				If not provided, defaults to `False`.
+
+			layer_range: a list or tuple of 2 strings,
+				which is the starting layer name and ending layer name (both inclusive)
+				indicating the range of layers to be printed in summary.
+
+				It also accepts regex patterns instead of exact	name.
+				In such case,
+				-	start predicate will be the first element it matches to `layer_range[0]` and
+				-	the end predicate will be the last element it matches to `layer_range[1]`.
+
+				By default `None` which considers all layers of model.
+
+		Raises:
+			ValueError: if `summary()` is called before the model is built.
+		"""
+		print_separator(3)
+
+		self.model.summary(**kwargs)
