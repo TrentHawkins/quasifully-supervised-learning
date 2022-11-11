@@ -33,6 +33,35 @@ import tensorflow
 import keras.utils.layer_utils
 
 
+def print_separator(char: str | int = 0,
+	title: str | None = None,
+):
+	"""Repeat character across full terminal width.
+
+	Arguments:
+		char: single character to repeat
+			0: " "
+			1: "─"
+			2: "═"
+			3: "━"
+
+	Keyword Arguments:
+		title: optional text to display before separator
+	"""
+	if isinstance(char, int):
+		char = {
+			0: " ",
+			1: "─",
+			2: "═",
+			3: "━",
+		}[char]
+
+	if title is not None:
+		print(title)
+
+	print(char * get_terminal_size((96, 96)).columns)
+
+
 def count_params(weights):
 	"""Count the total number of scalars composing the weights.
 
