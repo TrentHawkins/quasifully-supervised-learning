@@ -19,9 +19,8 @@ class TestModels:
 		import numpy
 		import tensorflow
 
-		import source.keras.applications.efficientnet
-
 		from source.dataset.animals_with_attributes import Dataset
+		from source.keras.applications.efficientnet import EfficientNet
 		from source.keras.layers import JaccardDense
 		from source.zeroshot.models import EfficientNetDense
 
@@ -33,11 +32,11 @@ class TestModels:
 		predicates = Dataset().alphas().transpose().to_numpy()
 
 		softmaxModel = EfficientNetDense(
-			visual=tensorflow.keras.applications.efficientnet.EfficientNetB0(),
+			visual=EfficientNet.B0,
 			semantic_matrix=tensorflow.constant(predicates, dtype=tensorflow.float32),
 		)
 		jaccardModel = EfficientNetDense(
-			visual=tensorflow.keras.applications.efficientnet.EfficientNetB0(),
+			visual=EfficientNet.B0,
 			semantic_matrix=tensorflow.constant(predicates, dtype=tensorflow.float32),
 			semantic_class=JaccardDense,
 		)
