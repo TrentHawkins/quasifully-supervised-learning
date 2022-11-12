@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from math import ceil, sqrt
+from typing import Iterable
 
 import tensorflow
 
@@ -167,7 +168,7 @@ class ZeroshotCategoricalClassifier(CategoricalClassifier):
 		-	reduce learning rate on plateau with patience a fraction of the early stopping patience,
 	"""
 
-	source: tensorflow.Tensor
+	source: tensorflow.Tensor | Iterable[int]
 
 	def compile(self, learning_rate: float | None = None):
 		"""Configure the model for training.
@@ -217,7 +218,7 @@ class QuasifullyZeroshotCategoricalClassifier(ZeroshotCategoricalClassifier):
 		-	reduce learning rate on plateau with patience a fraction of the early stopping patience,
 	"""
 
-	target: tensorflow.Tensor
+	target: tensorflow.Tensor | Iterable[int]
 
 #	Set bias as powers of 2.
 	bias: int = 1

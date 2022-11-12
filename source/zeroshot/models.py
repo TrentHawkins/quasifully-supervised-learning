@@ -65,7 +65,7 @@ def EfficientNetDense(
 			default: simple Dense with no bias (naturally)
 	"""
 	visual._name = "visual"
-	kernel = tensorflow.convert_to_tensor(semantic_matrix, dtype=float)
+	kernel = tensorflow.convert_to_tensor(semantic_matrix, dtype=tensorflow.float32)
 
 	return Model(
 		visual=visual,

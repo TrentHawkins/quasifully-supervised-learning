@@ -32,11 +32,11 @@ class TestModels:
 		predicates = Dataset().alphas().transpose().to_numpy()
 
 		softmaxModel = EfficientNetDense(
-			visual=EfficientNet.B0,
+			visual=EfficientNet.B0(),
 			semantic_matrix=tensorflow.constant(predicates, dtype=tensorflow.float32),
 		)
 		jaccardModel = EfficientNetDense(
-			visual=EfficientNet.B0,
+			visual=EfficientNet.B0(),
 			semantic_matrix=tensorflow.constant(predicates, dtype=tensorflow.float32),
 			semantic_class=JaccardDense,
 		)

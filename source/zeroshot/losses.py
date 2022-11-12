@@ -106,7 +106,7 @@ class ZeroshotCategoricalCrossentropy(tensorflow.keras.losses.CategoricalCrossen
 		self.axis = axis
 
 	#	labels seen during training:
-		self.source = tensorflow.convert_to_tensor(source, dtype=int)
+		self.source = tensorflow.convert_to_tensor(source, dtype=tensorflow.int32)
 
 	def call(self,
 		y_true,
@@ -244,7 +244,7 @@ class QuasifullyZeroshotCategoricalCrossentropy(ZeroshotCategoricalCrossentropy)
 		)
 
 	#	labels not seen during training
-		self.target = tensorflow.convert_to_tensor(target, dtype=int)
+		self.target = tensorflow.convert_to_tensor(target, dtype=tensorflow.int32)
 
 	#	bias coefficient of quasifully supervised loss influence
 		self.bias = bias

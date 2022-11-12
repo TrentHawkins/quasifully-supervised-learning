@@ -8,7 +8,7 @@ import source.keras.utils.layer_utils
 
 from source.dataset.animals_with_attributes import Dataset
 from source.keras.applications.efficientnet import EfficientNet
-from source.zeroshot.classifiers import ZeroshotCategoricalClassifier
+from source.zeroshot.classifiers import QuasifullyZeroshotCategoricalClassifier
 from source.zeroshot.models import EfficientNetDense
 
 if __name__ == "__main__":
@@ -18,7 +18,7 @@ if __name__ == "__main__":
 	dataset = Dataset()
 
 #	Setup model components:
-	visual = EfficientNet.B0
+	visual = EfficientNet.B0()
 	semantic_matrix = tensorflow.convert_to_tensor(dataset.alphas().transpose(),
 			dtype=tensorflow.float32,
 		)
@@ -27,8 +27,9 @@ if __name__ == "__main__":
 	model = EfficientNetDense(visual, semantic_matrix)
 
 #	Setup model pipeline:
-	classifier = ZeroshotCategoricalClassifier(*dataset.split(), model,
-		tensorflow.convert_to_tensor(dataset.labels("trainvalclasses.txt")),
+	classifier = QuasifullyZeroshotCategoricalClassifier(*dataset.split(), model,
+		dataset.labels("trainvalclasses.txt"),
+		dataset.labels("testclasses.txt"),
 	)
 	classifier.compile()
 	classifier.summary()
