@@ -70,7 +70,7 @@ def EfficientNetDense(
 	return Model(
 		visual=visual,
 		encoder=DenseStackArray(
-			visual.output.shape[-1],  # type: ignore
+			visual.output.shape[-1],  # type: ignore  # output shall be known for pretrained models
 			kernel.shape[0],
 			attention_activation="sigmoid",
 			activation="swish",
