@@ -198,7 +198,9 @@ class Classifier:
 
 			ValueError:	If mismatch between the provided input data and what the model expects or when the input data is empty.
 		"""
-		return self.model.fit(train or self.train,
+		print_separator(2, f"{self.model.name}: fitting")
+
+		history = self.model.fit(train or self.train,
 		#	batch_size=None,  # batches generated from dataset
 			epochs=epochs,
 		#	verbose="auto",  # means 1 in an interactive enviromnemt which is desired
@@ -217,6 +219,10 @@ class Classifier:
 		#	workers=1,
 		#	use_multiprocessing=False
 		)
+
+		print_separator(3)
+
+		return history
 
 	def predict(self,
 		valid: tensorflow.data.Dataset | None = None,
@@ -243,7 +249,9 @@ class Classifier:
 			ValueError: In case of mismatch between the provided input data and the model's expectations,
 				or in case a stateful model receives a number of samples that is not a multiple of the batch size.
 		"""
-		return self.model.predict(valid or self.valid,
+		print_separator(2, f"{self.model.name}: predicting")
+
+		predictions = self.model.predict(valid or self.valid,
 		#	batch_size=None,  # batches generated from dataset
 		#	verbose="auto",  # means 1 in an interactive enviromnemt which is desired
 		#	steps=None,
@@ -252,6 +260,10 @@ class Classifier:
 		#	workers=1,
 		#	use_multiprocessing=False
 		)
+
+		print_separator(3)
+
+		return predictions
 
 	def evaluate(self,
 		valid: tensorflow.data.Dataset | None = None,
@@ -272,7 +284,9 @@ class Classifier:
 		Raises:
 			RuntimeError: If `model.predict` is wrapped in a `tensorflow.function`.
 		"""
-		return self.model.evaluate(valid or self.valid,
+		print_separator(2, f"{self.model.name}: evaluating")
+
+		metrics = self.model.evaluate(valid or self.valid,
 		#	batch_size=None,  # batches generated from dataset
 			verbose="auto",  # means 1 in an interactive enviromnemt which is desired
 		#	sample_weight=None,
@@ -283,6 +297,10 @@ class Classifier:
 		#	use_multiprocessing=False,
 			return_dict=True,  # to store as `.json` later
 		)
+
+		print_separator(3)
+
+		return metrics
 
 	def summary(self, **kwargs):
 		"""Print a string summary of the network, with an added separator.
@@ -320,6 +338,14 @@ class Classifier:
 		Raises:
 			ValueError: if `summary()` is called before the model is built.
 		"""
-		print_separator(3)
+		print_separator()
+
+	#	Force non-expanded mode with trainability column.
+		kwargs.update(
+			{
+				"expand_nested": False,
+				"show_trainable": True,
+			}
+		)
 
 		self.model.summary(**kwargs)

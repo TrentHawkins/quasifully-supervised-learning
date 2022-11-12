@@ -17,6 +17,7 @@ import sklearn.model_selection
 import seaborn
 import tensorflow
 
+from ..keras.utils.layer_utils import print_separator
 from ..seed import SEED
 from ..similarities import dotDataFrame
 
@@ -77,6 +78,9 @@ class Dataset:
 			},
 		).squeeze()
 
+		print_separator(3)
+		print_separator(2, "Animals with Attributes 2: directory look-up")
+
 	#	Use TensorFlows's image look-up.
 		image_paths, labels, _ = keras.utils.dataset_utils.index_directory(
 			directory=path.join(self._images_path, "JPEGImages"),
@@ -87,6 +91,8 @@ class Dataset:
 			class_names=self._labels.index.tolist(),
 			shuffle=False,  # delegate shuffling to the corresponding splits
 		)
+
+		print_separator(3)
 
 	#	Transform image path and label data to pandas series.
 		self._images: pandas.Series[int] = pandas.Series(dict(zip(image_paths, labels)))
