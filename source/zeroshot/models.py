@@ -7,6 +7,8 @@ The model consists of 3 main component:
 """
 
 
+from typing import Iterable
+
 import tensorflow
 
 from ..keras.layers import MetricDense
@@ -48,7 +50,7 @@ def Model(
 
 def EfficientNetDense(
 	visual: tensorflow.keras.Model,
-	semantic_matrix: tensorflow.Tensor,
+	semantic_matrix: tensorflow.Tensor | Iterable[Iterable[float]],
 	*,
 	semantic_class: type = MetricDense,
 ):
@@ -63,22 +65,21 @@ def EfficientNetDense(
 			default: simple Dense with no bias (naturally)
 	"""
 	visual._name = "visual"
+	kernel = tensorflow.convert_to_tensor(semantic_matrix, dtype=float)
 
 	return Model(
 		visual=visual,
 		encoder=DenseStackArray(
 			visual.output.shape[-1],  # type: ignore
-			semantic_matrix.shape[0],
+			kernel.shape[0],
 			attention_activation="sigmoid",
 			activation="swish",
 			name="encoder",
 		),
 		semantic=semantic_class(
-			semantic_matrix.shape[1],
+			kernel.shape[1],
 			activation="softmax",
-			kernel_initializer=tensorflow.keras.initializers.Constant(
-				tensorflow.convert_to_tensor(semantic_matrix),  # type: ignore
-			),
+			kernel_initializer=tensorflow.keras.initializers.Constant(kernel),  # type: ignore  # hinted as int for some reason
 			name="semantic"
 		),
 	)

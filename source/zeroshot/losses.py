@@ -1,6 +1,8 @@
 """Zeroshot loss functions."""
 
 
+from typing import Iterable
+
 import tensorflow
 
 
@@ -26,13 +28,11 @@ class ZeroshotCategoricalCrossentropy(tensorflow.keras.losses.CategoricalCrossen
 	>>> cce(y_true, y_pred).numpy()
 	1.177
 	```
-
 	```
 	>>> # Calling with 'sample_weight'.
 	>>> cce(y_true, y_pred, sample_weight=tf.constant([0.3, 0.7])).numpy()
 	0.814
 	```
-
 	```
 	>>> # Using 'sum' reduction type.
 	>>> cce = tf.keras.losses.CategoricalCrossentropy(
@@ -40,7 +40,6 @@ class ZeroshotCategoricalCrossentropy(tensorflow.keras.losses.CategoricalCrossen
 	>>> cce(y_true, y_pred).numpy()
 	2.354
 	```
-
 	```
 	>>> # Using 'none' reduction type.
 	>>> cce = tf.keras.losses.CategoricalCrossentropy(
@@ -51,12 +50,14 @@ class ZeroshotCategoricalCrossentropy(tensorflow.keras.losses.CategoricalCrossen
 
 	Usage with the `compile()` API:
 	```python
-	model.compile(optimizer='sgd',
-				loss=tf.keras.losses.CategoricalCrossentropy())
+	model.compile(
+		optimizer='sgd',
+		loss=tf.keras.losses.CategoricalCrossentropy()
+	)
 	```
 	"""
 
-	def __init__(self, source: tensorflow.Tensor,
+	def __init__(self, source: tensorflow.Tensor | Iterable[int],
 		axis: int = -1,
 		name: str = "zeroshot_categorical_crossentropy",
 	):
@@ -105,7 +106,7 @@ class ZeroshotCategoricalCrossentropy(tensorflow.keras.losses.CategoricalCrossen
 		self.axis = axis
 
 	#	labels seen during training:
-		self.source = tensorflow.convert_to_tensor(source)
+		self.source = tensorflow.convert_to_tensor(source, dtype=int)
 
 	def call(self,
 		y_true,
@@ -159,13 +160,11 @@ class QuasifullyZeroshotCategoricalCrossentropy(ZeroshotCategoricalCrossentropy)
 	>>> cce(y_true, y_pred).numpy()
 	1.177
 	```
-
 	```
 	>>> # Calling with 'sample_weight'.
 	>>> cce(y_true, y_pred, sample_weight=tf.constant([0.3, 0.7])).numpy()
 	0.814
 	```
-
 	```
 	>>> # Using 'sum' reduction type.
 	>>> cce = tf.keras.losses.CategoricalCrossentropy(
@@ -173,7 +172,6 @@ class QuasifullyZeroshotCategoricalCrossentropy(ZeroshotCategoricalCrossentropy)
 	>>> cce(y_true, y_pred).numpy()
 	2.354
 	```
-
 	```
 	>>> # Using 'none' reduction type.
 	>>> cce = tf.keras.losses.CategoricalCrossentropy(
@@ -184,14 +182,16 @@ class QuasifullyZeroshotCategoricalCrossentropy(ZeroshotCategoricalCrossentropy)
 
 	Usage with the `compile()` API:
 	```python
-	model.compile(optimizer='sgd',
-				loss=tf.keras.losses.CategoricalCrossentropy())
+	model.compile(
+		optimizer='sgd',
+		loss=tf.keras.losses.CategoricalCrossentropy()
+	)
 	```
 	"""
 
 	def __init__(self,
-		source: tensorflow.Tensor,
-		target: tensorflow.Tensor,
+		source: tensorflow.Tensor | Iterable[int],
+		target: tensorflow.Tensor | Iterable[int],
 		bias: float = 0.,
 		axis: int = -1,
 		name: str = "quasifully_categorical_crossentropy",
@@ -244,7 +244,7 @@ class QuasifullyZeroshotCategoricalCrossentropy(ZeroshotCategoricalCrossentropy)
 		)
 
 	#	labels not seen during training
-		self.target = tensorflow.convert_to_tensor(target)
+		self.target = tensorflow.convert_to_tensor(target, dtype=int)
 
 	#	bias coefficient of quasifully supervised loss influence
 		self.bias = bias
@@ -276,11 +276,8 @@ class QuasifullyZeroshotCategoricalCrossentropy(ZeroshotCategoricalCrossentropy)
 		return super(QuasifullyZeroshotCategoricalCrossentropy, self).call(
 			y_true,
 			y_pred,
-		) - self.bias * tensorflow.reduce_mean(
-			tensorflow.math.log(
-				tensorflow.reduce_sum(y_pred_target,
-					axis=self.axis,
-				),
-			),
-			axis=self.axis - 1,
-		)
+		) - tensorflow.math.log(
+			tensorflow.reduce_sum(y_pred_target,
+				axis=self.axis,
+			)
+		) * self.bias  # type: ignore  # Pylance miss-identifies the return type of `tensorflow.math.log` for some reason
