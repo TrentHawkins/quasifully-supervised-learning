@@ -1,6 +1,6 @@
 """Classifier specialized to transductive generalized zeroshot learning with the quasifully supervised learning loss."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from math import ceil, sqrt
 from typing import Iterable
 
@@ -168,7 +168,7 @@ class ZeroshotCategoricalClassifier(CategoricalClassifier):
 		-	reduce learning rate on plateau with patience a fraction of the early stopping patience,
 	"""
 
-	source: tensorflow.Tensor | Iterable[int]
+	source: tensorflow.Tensor | Iterable[int] = field()
 
 	def compile(self, learning_rate: float | None = None):
 		"""Configure the model for training.
@@ -218,10 +218,10 @@ class QuasifullyZeroshotCategoricalClassifier(ZeroshotCategoricalClassifier):
 		-	reduce learning rate on plateau with patience a fraction of the early stopping patience,
 	"""
 
-	target: tensorflow.Tensor | Iterable[int]
+	target: tensorflow.Tensor | Iterable[int] = field()
 
 #	Set bias as powers of 2.
-	bias: int = 1
+	bias: int = field(default=1, kw_only=True)
 
 	def __post_init__(self):
 		"""Set bias as powers of 2."""
