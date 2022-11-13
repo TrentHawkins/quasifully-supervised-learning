@@ -137,6 +137,7 @@ class Classifier:
 		devel: tensorflow.data.Dataset | None = None,
 		*,
 		epochs: int = 1,
+		verbose: str | int = "auto",
 		callbacks: list[tensorflow.keras.callbacks.Callback] | None = None,
 	):
 		"""Train the model for a fixed number of epochs (iterations on a dataset).
@@ -229,6 +230,7 @@ class Classifier:
 
 	def predict(self,
 		valid: tensorflow.data.Dataset | None = None,
+		verbose: str | int = "auto",
 	):
 		"""Generate output predictions for the input samples.
 
@@ -270,6 +272,7 @@ class Classifier:
 
 	def evaluate(self,
 		valid: tensorflow.data.Dataset | None = None,
+		verbose: str | int = "auto",
 	):
 		"""Return the loss value & metrics values for the model in test mode.
 
