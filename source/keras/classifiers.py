@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 import tensorflow
 
-from source.keras.utils.layer_utils import print_separator
+from .utils.layer_utils import print_separator
 
 
 @dataclass

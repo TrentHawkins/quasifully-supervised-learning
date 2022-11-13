@@ -30,6 +30,7 @@ from typing import Callable
 import numpy
 import tensorflow
 
+from tensorflow import keras
 import keras.utils.layer_utils
 
 

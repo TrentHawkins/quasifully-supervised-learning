@@ -6,8 +6,8 @@ from typing import Iterable
 
 import tensorflow
 
-from source.keras.classifiers import Classifier
-from source.zeroshot.losses import ZeroshotCategoricalCrossentropy, QuasifullyZeroshotCategoricalCrossentropy
+from ..keras.classifiers import Classifier
+from .losses import ZeroshotCategoricalCrossentropy, QuasifullyZeroshotCategoricalCrossentropy
 
 
 @dataclass

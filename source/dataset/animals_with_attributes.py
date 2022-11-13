@@ -8,14 +8,15 @@ from typing import Callable
 
 import matplotlib.pyplot
 import matplotlib.ticker
-import keras.utils.dataset_utils
-import keras.utils.image_dataset
 import numpy
 import pandas
 import scipy.special
 import sklearn.model_selection
 import seaborn
 import tensorflow
+
+import keras.utils.dataset_utils
+import keras.utils.image_dataset
 
 from ..keras.utils.layer_utils import print_separator
 from ..seed import SEED
