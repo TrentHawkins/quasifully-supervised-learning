@@ -2,6 +2,7 @@
 
 
 from dataclasses import dataclass, field
+from os import PathLike
 
 import tensorflow
 
@@ -30,6 +31,13 @@ class Classifier:
 
 #	Global verbosity:
 	verbose: str | int = field(default="auto", kw_only=True)
+
+#	Classifier name overriding model name:
+	name: str | None = field(default=None, kw_only=True)
+
+	def __post_init__(self):
+		"""Set classifier name to model name unless any."""
+		self.name = self.name or self.model.name
 
 	def compile(self,
 		optimizer: tensorflow.keras.optimizers.Optimizer | str,
@@ -304,6 +312,100 @@ class Classifier:
 		print_separator(3)
 
 		return metrics
+
+	def save(self, filepath: str | PathLike):
+		"""Save the model in classifier to Tensorflow `SavedModel`.
+
+		Argumentss:
+			filepath: Path to SavedModel or H5 file to save the model.
+
+		Keyword Arguments (fixed):
+			overwrite: Whether to silently overwrite any existing file at the target location,
+				or provide the user with a manual prompt.
+
+			include_optimizer: If True, save optimizer's state together.
+
+			save_format: Either `"tf"` or `"h5"`, indicating whether to save the model to Tensorflow `SavedModel` or HDF5.
+				Defaults to "tf" in TensorFlow 2.X, and "h5" in TensorFlow 1.X.
+
+			signatures: Signatures to save with the SavedModel.
+				Applicable to the "tf" format only.
+				Please see the `signatures` argument in `tensorflow.saved_model.save` for details.
+
+			options: (only applies to `SavedModel` format)
+				`tensorflow.saved_model.SaveOptions` object that specifies options for saving to `SavedModel`.
+
+			save_traces: (only applies to `SavedModel` format)
+				When enabled, the `SavedModel` will store the function traces for each layer.
+				This can be disabled, so that only the configs of each layer are stored.
+
+				Defaults to `True`.
+
+				Disabling this will decrease serialization time and reduce file size,
+				but it requires that all custom layers/models implement a `get_config()` method.
+
+		Example:
+		```python
+		from keras.models import load_model
+		model.save('my_model.h5')  # creates a HDF5 file 'my_model.h5'
+		del model  # deletes the existing model
+		model = load_model('my_model.h5')  # returns a compiled model identical to the previous one
+		```
+		"""
+		self.model.save(filepath,
+			overwrite=True,
+			include_optimizer=True,
+		#	save_format=None,
+		#	signatures=None,
+		#	options=None,
+			save_traces=True,
+		)
+
+	@classmethod
+	def load(cls, filepath: str | PathLike):
+		"""Load a model to the classifier saved via `Classifier.save()`.
+
+		Usage:
+		```
+		>>> model = tensoflow.keras.Sequential([
+		...     tensorflow.keras.layers.Dense(5, input_shape=(3,)),
+		...     tensorflow.keras.layers.Softmax()])
+		>>> model.save('/tmp/model')
+		>>> loaded_model = tensorflow.keras.models.load_model('/tmp/model')
+		>>> x = tensorflow.random.uniform((10, 3))
+		>>> assert np.allclose(model.predict(x), loaded_model.predict(x))
+		```
+
+		NOTE: The model weights may have different scoped names after being loaded.
+		Scoped names include the model/layer names, such as `"dense_1/kernel:0"`.
+		It is recommended that you use the layer properties to access specific variables,
+		e.g. `model.get_layer("dense_1").kernel`.
+
+		Argumentss:
+			filepath: Path to the saved model.
+
+		Keyword Arguments (fixed):
+			custom_objects: Optional dictionary mapping names to custom classes or functions to be considered in deserialization.
+
+			compile: Whether to compile the model after loading.
+
+			options: Optional `tensorflow.saved_model.LoadOptions` object that specifies options for loading from `SavedModel`.
+
+		Returns:
+			A Keras model instance.
+
+			If the original model was compiled, and saved with the optimizer,then the returned model will be compiled.
+			Otherwise, the model will be left uncompiled.
+			In the case that an uncompiled model is returned, a warning is displayed if the `compile` argument is set to `True`.
+
+		Raises:
+			IOError: In case of an invalid savefile.
+		"""
+		return tensorflow.keras.models.load_model(filepath,
+		#	custom_objects=None,
+			compile=True,
+		#	options=None,
+		)
 
 	def summary(self, **kwargs):
 		"""Print a string summary of the network, with an added separator.

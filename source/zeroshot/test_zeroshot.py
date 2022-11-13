@@ -59,6 +59,7 @@ class TestClassifiers:
 	def test_quasifully_zeroshot_categorical_classifier(self):
 		"""Test plain categorical classifier."""
 		import os; os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+		import numpy
 		import tensorflow
 
 		import source.keras.utils.generic_utils
@@ -76,18 +77,21 @@ class TestClassifiers:
 		visual = EfficientNet.B0()
 		semantic_matrix = tensorflow.convert_to_tensor(dataset.alphas().transpose(),
 			dtype=tensorflow.float32,
-			name="quasifully_zeroshot_categorical"
 		)
 
-	#	Setup model:
+	#	Set up model:
 		model = EfficientNetDense(visual, semantic_matrix)
 
-	#	Setup model pipeline:
+	#	Setup model pipeline (classifier):
 		classifier = QuasifullyZeroshotCategoricalClassifier(*dataset.split(), model,
 			dataset.labels("trainvalclasses.txt"),
 			dataset.labels("testclasses.txt"),
+		#	bias=1,
 			verbose=2,
+			name="quasifully_zeroshot_categorical",
 		)
+
+	#	Compile classifier:
 		classifier.compile()
 		classifier.summary()
 
@@ -95,3 +99,19 @@ class TestClassifiers:
 		history = classifier.fit()
 		predict = classifier.predict()
 		metrics = classifier.evaluate()
+
+	#	Save compiled and trained model:
+		classifier.save(f"./models/{classifier.name}")
+
+	#	Load compiled pre-trained model:
+		reloaded_model = QuasifullyZeroshotCategoricalClassifier.load(f"./models/{classifier.name}")
+		reloaded_classifier = QuasifullyZeroshotCategoricalClassifier(*dataset.split(), reloaded_model,  # type: ignore
+			dataset.labels("trainvalclasses.txt"),
+			dataset.labels("testclasses.txt"),
+		#	bias=1,
+			verbose=2,
+			name="quasifully_zeroshot_categorical",
+		)
+
+	#	Assert models are the same:
+		assert numpy.allclose(reloaded_classifier.predict(), predict)

@@ -128,7 +128,7 @@ class CategoricalClassifier(Classifier):
 		patience_reduce_learning_rate_on_plateau = ceil(sqrt(patience_early_stopping))
 
 	#	Callbacks:
-		checkpoint = tensorflow.keras.callbacks.ModelCheckpoint(f"./models/{self.model.name}.checkpoint",
+		checkpoint = tensorflow.keras.callbacks.ModelCheckpoint(f"./models/{self.model.name}",
 			monitor="val_loss",
 		#	verbose=0,
 			save_best_only=True,
