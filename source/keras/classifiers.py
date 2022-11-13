@@ -1,7 +1,7 @@
 """Custom classifier wrappers for keras models."""
 
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import tensorflow
 
@@ -21,12 +21,15 @@ class Classifier:
 	"""
 
 #	Dataset splits:
-	train: tensorflow.data.Dataset
-	devel: tensorflow.data.Dataset
-	valid: tensorflow.data.Dataset
+	train: tensorflow.data.Dataset = field()
+	devel: tensorflow.data.Dataset = field()
+	valid: tensorflow.data.Dataset = field()
 
 #	Model to operate:
-	model: tensorflow.keras.Model
+	model: tensorflow.keras.Model = field()
+
+#	Global verbosity:
+	verbose: str | int = field(default="auto", kw_only=True)
 
 	def compile(self,
 		optimizer: tensorflow.keras.optimizers.Optimizer | str,
@@ -134,6 +137,7 @@ class Classifier:
 		devel: tensorflow.data.Dataset | None = None,
 		*,
 		epochs: int = 1,
+		verbose: str | int = "auto",
 		callbacks: list[tensorflow.keras.callbacks.Callback] | None = None,
 	):
 		"""Train the model for a fixed number of epochs (iterations on a dataset).
@@ -203,7 +207,7 @@ class Classifier:
 		history = self.model.fit(train or self.train,
 		#	batch_size=None,  # batches generated from dataset
 			epochs=epochs,
-		#	verbose="auto",  # means 1 in an interactive enviromnemt which is desired
+			verbose=self.verbose,  # type: ignore  # incorrectly type-hinted in Tensorflow
 			callbacks=callbacks,
 		#	validation_split=0.,
 			validation_data=devel or self.devel,
@@ -226,6 +230,7 @@ class Classifier:
 
 	def predict(self,
 		valid: tensorflow.data.Dataset | None = None,
+		verbose: str | int = "auto",
 	):
 		"""Generate output predictions for the input samples.
 
@@ -253,7 +258,7 @@ class Classifier:
 
 		predictions = self.model.predict(valid or self.valid,
 		#	batch_size=None,  # batches generated from dataset
-		#	verbose="auto",  # means 1 in an interactive enviromnemt which is desired
+			verbose=self.verbose,  # type: ignore  # incorrectly type-hinted in Tensorflow
 		#	steps=None,
 		#	callbacks=None,
 		#	max_queue_size=10,
@@ -267,6 +272,7 @@ class Classifier:
 
 	def evaluate(self,
 		valid: tensorflow.data.Dataset | None = None,
+		verbose: str | int = "auto",
 	):
 		"""Return the loss value & metrics values for the model in test mode.
 
@@ -287,8 +293,8 @@ class Classifier:
 		print_separator(2, f"{self.model.name}: evaluating")
 
 		metrics = self.model.evaluate(valid or self.valid,
-		#	batch_size=None,  # batches generated from dataset
-			verbose="auto",  # means 1 in an interactive enviromnemt which is desired
+		#	batch_size=None,  # batches generated from dataset0
+			verbose=self.verbose,  # type: ignore  # incorrectly type-hinted in Tensorflow
 		#	sample_weight=None,
 		#	steps=None,
 		#	callbacks=None,
