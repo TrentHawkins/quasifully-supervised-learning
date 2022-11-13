@@ -127,30 +127,45 @@ class CategoricalClassifier(Classifier):
 		patience_early_stopping = ceil(sqrt(epochs))
 		patience_reduce_learning_rate_on_plateau = ceil(sqrt(patience_early_stopping))
 
+	#	Callbacks:
+		checkpoint = tensorflow.keras.callbacks.ModelCheckpoint(f"./models/{self.model.name}.checkpoint",
+			monitor="val_loss",
+		#	verbose=0,
+			save_best_only=True,
+		#	save_weights_only=True,
+			mode="auto",
+			save_freq="epoch",
+		#	options=None,
+		#	initial_value_threshold=None,
+		)
+		reduce_learning_rate_on_plateau = tensorflow.keras.callbacks.ReduceLROnPlateau(
+		#	monitor="val_loss",
+		#	factor=1e-1,
+			patience=patience_reduce_learning_rate_on_plateau,
+		#	verbose=0,
+		#	mode="auto",
+		#	min_delta=1e-4,
+			cooldown=patience_reduce_learning_rate_on_plateau,
+		#	min_lr=0,
+		)
+		early_stopping = tensorflow.keras.callbacks.EarlyStopping(
+			monitor="val_loss",
+		#	min_delta=0,
+			patience=patience_early_stopping,
+		#	verbose=0,
+		#	mode="auto",
+		#	baseline=None,
+			restore_best_weights=True,
+		)
+
 		return super(CategoricalClassifier, self).fit(
 			train,
 			devel,
 			epochs=epochs,
 			callbacks=[
-				tensorflow.keras.callbacks.ReduceLROnPlateau(
-				#	monitor="val_loss",
-				#	factor=1e-1,
-					patience=patience_reduce_learning_rate_on_plateau,
-				#	verbose=0,
-				#	mode="auto",
-				#	min_delta=1e-4,
-					cooldown=patience_reduce_learning_rate_on_plateau,
-				#	min_lr=0,
-				),
-				tensorflow.keras.callbacks.EarlyStopping(
-					monitor="val_loss",
-				#	min_delta=0,
-					patience=patience_early_stopping,
-				#	verbose=0,
-				#	mode="auto",
-				#	baseline=None,
-					restore_best_weights=True,
-				)
+				checkpoint,
+				reduce_learning_rate_on_plateau,
+				early_stopping,
 			],
 		)
 
