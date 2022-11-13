@@ -46,8 +46,52 @@ class TestModels:
 		assert numpy.allclose(jaccardModel.layers[-1].kernel.numpy(), predicates)
 
 	#	Assert softmax output:
-		assert tensorflow.reduce_sum(softmaxModel(images)) == self.batch_size
+		assert numpy.isclose(tensorflow.reduce_sum(softmaxModel(images)), self.batch_size)
 
 	#	Assert sigmoid-like output:
 		assert tensorflow.math.reduce_all(0 <= jaccardModel(images))  # type: ignore
 		assert tensorflow.math.reduce_all(1 >= jaccardModel(images))  # type: ignore
+
+
+class TestClassifiers:
+	"""Setup test experiments with one training epoch to test classifiers."""
+
+	def test_quasifully_zeroshot_categorical_classifier(self):
+		"""Test plain categorical classifier."""
+		import os; os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+		import tensorflow
+
+		import source.keras.utils.generic_utils
+		import source.keras.utils.layer_utils
+
+		from source.dataset.animals_with_attributes import Dataset
+		from source.keras.applications.efficientnet import EfficientNet
+		from source.zeroshot.classifiers import QuasifullyZeroshotCategoricalClassifier
+		from source.zeroshot.models import EfficientNetDense
+
+	#	Setup data:
+		dataset = Dataset()
+
+	#	Setup model components:
+		visual = EfficientNet.B0()
+		semantic_matrix = tensorflow.convert_to_tensor(dataset.alphas().transpose(),
+			dtype=tensorflow.float32,
+			name="quasifully_zeroshot_categorical"
+		)
+
+	#	Setup model:
+		model = EfficientNetDense(visual, semantic_matrix)
+
+	#	Setup model pipeline:
+		classifier = QuasifullyZeroshotCategoricalClassifier(*dataset.split(), model,
+			dataset.labels("trainvalclasses.txt"),
+			dataset.labels("testclasses.txt"),
+			verbose=2,
+		)
+		classifier.compile()
+		classifier.summary()
+
+	#	Learning cycle:
+		history = classifier.fit()
+		predict = classifier.predict()
+		metrics = classifier.evaluate()
