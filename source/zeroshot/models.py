@@ -51,8 +51,9 @@ def Model(
 def EfficientNetDense(
 	visual: tensorflow.keras.Model,
 	semantic_matrix: tensorflow.Tensor | Iterable[Iterable[float]],
-	*,
 	semantic_class: type = MetricDense,
+	*,
+	name: str = "efficientnet_zeroshot_embedding_model"
 ):
 	"""Build a specific latent embedding model based on EfficientNet for visual featuress and Dense encoding.
 
@@ -82,4 +83,5 @@ def EfficientNetDense(
 			kernel_initializer=tensorflow.keras.initializers.Constant(kernel),  # type: ignore  # hinted as int for some reason
 			name="semantic"
 		),
+		name=name,
 	)
