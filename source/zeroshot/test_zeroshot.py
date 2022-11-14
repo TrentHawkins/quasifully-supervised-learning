@@ -80,7 +80,9 @@ class TestClassifiers:
 		)
 
 	#	Set up model:
-		model = EfficientNetDense(visual, semantic_matrix)
+		model = EfficientNetDense(visual, semantic_matrix,
+			name="quasifully_zeroshot_categorical",
+		)
 
 	#	Setup model pipeline (classifier):
 		classifier = QuasifullyZeroshotCategoricalClassifier(*dataset.split(), model,

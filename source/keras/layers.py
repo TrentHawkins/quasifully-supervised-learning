@@ -17,7 +17,6 @@ from typing import Callable
 
 import tensorflow
 
-from ..seed import SEED
 from .utils.layer_utils import print_summary
 
 
@@ -34,6 +33,7 @@ class Dense(tensorflow.keras.layers.Dense):
 	#	constraint: tensorflow.keras.constraints.Constraint | str | None = None,
 		normalization: bool = False,
 		dropout: float = .5,
+		seed: int = 0,
 		name: str = "base_dense",
 	**kwargs):
 		"""Hyrparametrize base layer with dense topping.
@@ -52,6 +52,8 @@ class Dense(tensorflow.keras.layers.Dense):
 				default: no batch-normalization
 			dropout: dropout factor applied on input of the layer
 				default: half
+			seed: dropout seed
+				default: 0
 		"""
 		super(Dense, self).__init__(units,
 				activation=activation,
@@ -89,7 +91,7 @@ class Dense(tensorflow.keras.layers.Dense):
 		assert dropout >= 0. and dropout <= 1.
 		self.dropout = tensorflow.keras.layers.Dropout(dropout,
 			noise_shape=None,
-			seed=SEED,  # None,
+			seed=seed,  # None,
 			name=f"dropout_{name}",  # None
 		**kwargs)
 

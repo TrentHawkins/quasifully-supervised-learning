@@ -19,7 +19,6 @@ import keras.utils.dataset_utils
 import keras.utils.image_dataset
 
 from ..keras.utils.layer_utils import print_separator
-from ..seed import SEED
 from ..similarities import dotDataFrame
 
 
@@ -42,6 +41,8 @@ class Dataset:
 	def __init__(self,
 		images_path: str = "datasets/animals_with_attributes",
 		labels_path: str = "standard_split",
+		*,
+		seed: int = 0,
 	):
 		"""Initialize paths for dataset, then generate dataset from said paths.
 
@@ -50,6 +51,10 @@ class Dataset:
 				default: assumes root directory
 			labels_path: absolute
 				default: assumes root directory
+
+		Keyword Arguments:
+			seed: global seed setting for dataset
+				default: 0
 		"""
 		self._images_path: str = images_path
 		self._labels_path: str = labels_path
@@ -101,6 +106,9 @@ class Dataset:
 	#	Split ratios to be used:
 		self._target_source: float = len(self.images("testclasses.txt")) / len(self.images("trainvalclasses.txt"))
 		self._target_totals: float = len(self.images("testclasses.txt")) / len(self.images())
+
+	#	Set global seed for dataset:
+		self.seed = seed
 
 	def _read(self, selection: pandas.Series | str) -> list:
 		"""Read items either from a file or a series into a list.
@@ -213,7 +221,7 @@ class Dataset:
 	#	Split validation subset off total data. Use a larger chunk than what corresponds to the source/target labels.
 		_train_images, _valid_images = sklearn.model_selection.train_test_split(_total_images,
 			test_size=self._target_source,  # slightly more validation examples
-			random_state=SEED,
+			random_state=self.seed,
 			shuffle=True,
 			stratify=_total_images,
 		)
@@ -221,7 +229,7 @@ class Dataset:
 	#	Split development subset off training data. Use a smaller chunk than what corresponds to the source/target labels.
 		_train_images, _devel_images = sklearn.model_selection.train_test_split(_train_images,
 			test_size=self._target_totals,  # slightly less validation examples
-			random_state=SEED,
+			random_state=self.seed,
 			shuffle=True,
 			stratify=_train_images,
 		)
@@ -247,7 +255,7 @@ class Dataset:
 
 		#	Shuffle elements by fixed seed, but set subset for reshuffling after each epoch.
 			images = images.shuffle(ceil(sqrt(len(images))),
-				seed=SEED,
+				seed=self.seed,
 				reshuffle_each_iteration=True,
 			)
 

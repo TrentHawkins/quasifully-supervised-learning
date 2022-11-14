@@ -30,6 +30,9 @@ class Classifier:
 	model: tensorflow.keras.Model = field()
 
 #	Global verbosity:
+	seed: int = field(default=0, kw_only=True)
+
+#	Global verbosity:
 	verbose: str | int = field(default="auto", kw_only=True)
 
 #	Classifier name overriding model name:
