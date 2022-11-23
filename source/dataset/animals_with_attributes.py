@@ -36,6 +36,7 @@ class Dataset:
 		labels:	a selection of labels given by `labels_path`
 		alphas: the predicate matrix for the selection of labels given by `labels_path`
 		images:	the images filtered by the selection of labels given by `labels_path`
+		split: the images into proportionate training, development and validation subsets
 	"""
 
 	def __init__(self,
@@ -469,4 +470,130 @@ class Dataset:
 			path.join(self._images_path,
 				f"class-correlation{alpha_range}{alpha_field}{alpha_normalization}{altered_dot}.pdf"
 			)
+		)
+
+
+class ZeroshotDataset(Dataset):
+	"""Animals with Attributes 2.
+
+	Semi-transductive generalized zeroshot setting.
+
+	Methods:
+		split: the images into proportionate training, development and validation subsets
+	"""
+
+	def split(self,
+		source: str | pandas.Series = "trainvalclasses.txt",
+		target: str | pandas.Series = "testclasses.txt",
+		*,
+		image_size: int = 224,
+		batch_size: int = 1,
+	) -> tuple[
+		tensorflow.data.Dataset,
+		tensorflow.data.Dataset,
+		tensorflow.data.Dataset,
+	]:
+		"""Get shuffled split by label and subset.
+
+		Arguments:
+			source: get examples only from these for training, development and validation
+			target: get examples only from these for validation only
+
+		Keyword_arguments:
+			image_size: to rescale fetched examples to (square ratio)
+			batch_size: to batch   fetched examples
+
+		Returns:
+			An optimized (cached and prefeched) TensorFlow dataset.
+		"""
+		(
+			source_train_images,
+			source_devel_images,
+			source_valid_images,
+		) = super(ZeroshotDataset, self).split(source,
+			image_size=image_size,
+			batch_size=batch_size,
+		)
+		(
+			target_train_images,
+			target_devel_images,
+			target_valid_images,
+		) = super(ZeroshotDataset, self).split(target,
+			image_size=image_size,
+			batch_size=batch_size,
+		)
+
+		train_images = source_train_images
+		devel_images = source_devel_images
+		valid_images = source_valid_images\
+			.concatenate(target_train_images)\
+			.concatenate(target_devel_images)\
+			.concatenate(target_valid_images)
+
+		return (
+			train_images,
+			devel_images,
+			valid_images,
+		)
+
+
+class TransductiveZeroshotDataset(Dataset):
+	"""Animals with Attributes 2.
+
+	Transductive generalized zeroshot setting.
+
+	Methods:
+		split: the images into proportionate training, development and validation subsets
+	"""
+
+	def split(self,
+		source: str | pandas.Series = "trainvalclasses.txt",
+		target: str | pandas.Series = "testclasses.txt",
+		*,
+		image_size: int = 224,
+		batch_size: int = 1,
+	) -> tuple[
+		tensorflow.data.Dataset,
+		tensorflow.data.Dataset,
+		tensorflow.data.Dataset,
+	]:
+		"""Get shuffled split by label and subset.
+
+		Arguments:
+			source: get examples only from these for training, development and validation
+			target: get examples only from these for training, development and validation
+				NOTE: development and validation must be used unlabelled
+
+		Keyword_arguments:
+			image_size: to rescale fetched examples to (square ratio)
+			batch_size: to batch   fetched examples
+
+		Returns:
+			An optimized (cached and prefeched) TensorFlow dataset.
+		"""
+		(
+			source_train_images,
+			source_devel_images,
+			source_valid_images,
+		) = super(TransductiveZeroshotDataset, self).split(source,
+			image_size=image_size,
+			batch_size=batch_size,
+		)
+		(
+			target_train_images,
+			target_devel_images,
+			target_valid_images,
+		) = super(TransductiveZeroshotDataset, self).split(target,
+			image_size=image_size,
+			batch_size=batch_size,
+		)
+
+		train_images = source_train_images.concatenate(target_train_images)
+		devel_images = source_devel_images.concatenate(target_devel_images)
+		valid_images = source_valid_images.concatenate(target_valid_images)
+
+		return (
+			train_images,
+			devel_images,
+			valid_images,
 		)
