@@ -68,25 +68,6 @@ class Dense(tensorflow.keras.layers.Dense):
 				name=name,  # None
 		**kwargs)
 
-	#	batch-normalization:
-		if normalization:
-			self.normalization = tensorflow.keras.layers.BatchNormalization(
-			#	axis=-1,
-			#	momentum=0.99,
-			#	epsilon=0.001,
-			#	center=True,
-			#	scale=True,
-			#	beta_initializer="zeros",
-			#	gamma_initializer="ones",
-			#	moving_mean_initializer="zeros",
-			#	moving_variance_initializer="ones",
-			#	beta_regularizer=regularizer,
-			#	gamma_regularizer=regularizer,
-			#	beta_constraint=constraint,
-			#	gamma_constraint=constraint,
-				name=f"normalization_{name}",
-			**kwargs)
-
 	#	dropout:
 		assert dropout >= 0. and dropout <= 1.
 		self.dropout = tensorflow.keras.layers.Dropout(dropout,
@@ -95,7 +76,7 @@ class Dense(tensorflow.keras.layers.Dense):
 			name=f"dropout_{name}",  # None
 		**kwargs)
 
-	def build(self, input_shape):
+	def build(self, input_shape: tensorflow.TensorShape):
 		"""Create the variables of the layer (optional, for subclass implementers).
 
 		This is a method that implementers of subclasses of `Layer` or `Model` can override
@@ -110,19 +91,12 @@ class Dense(tensorflow.keras.layers.Dense):
 		"""
 		super(Dense, self).build(input_shape)
 
-	#	batch-normalization:
-		try:
-			self.normalization.build(input_shape)
-
-		except AttributeError:
-			pass
-
 	#	dropout:
 		self.dropout.build(input_shape)
 
 	def call(self, inputs: tensorflow.Tensor,
 		training: bool | None = None,
-	):
+	) -> tensorflow.Tensor:
 		"""Call the model on new inputs.
 
 		In this case call just reapplies all ops in the graph to the new inputs.
@@ -138,21 +112,34 @@ class Dense(tensorflow.keras.layers.Dense):
 		"""
 		x = inputs
 
-	#	batch-normalization:
-		try:
-			x = self.normalization(x,
-				training=training,
-			)
-
-		except AttributeError:
-			pass
-
 	#	dropout:
 		x = self.dropout(x,
 			training=training,
 		)
 
 		return super(Dense, self).call(x)
+
+	def get_config(self) -> dict:
+		"""Return the config of the layer.
+
+		A layer config is a Python dictionary (serializable) containing the configuration of a layer.
+		The same layer can be reinstantiated later (without its trained weights) from this configuration.
+
+		The config of a layer does not include connectivity information, nor the layer class name.
+		These are handled by `Network` (one layer of abstraction above).
+
+		Note that `get_config()` does not guarantee to return a fresh copy of dict every time it is called.
+		The callers should make a copy of the returned dict if they want to modify it.
+
+		Returns:
+			Python dictionary.
+		"""
+		config = super(Dense, self).get_config().copy()
+
+	#	Add the dropout configuration as separate.
+		config["dropout"] = self.dropout.get_config()
+
+		return config
 
 
 """What follows are special types of dense layers."""
