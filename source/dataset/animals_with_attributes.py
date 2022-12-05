@@ -2,13 +2,13 @@
 
 
 from math import ceil, sqrt
-from os import path
 from sys import float_info
 from typing import Callable
 
 import matplotlib.pyplot
 import matplotlib.ticker
 import numpy
+import os
 import pandas
 import scipy.special
 import sklearn.model_selection
@@ -61,7 +61,7 @@ class Dataset:
 		self._labels_path: str = labels_path
 
 		self._labels: pandas.Series[int] = pandas.read_csv(
-			path.join(self._images_path, "classes.txt"),
+			os.path.join(self._images_path, "classes.txt"),
 			sep=r"\s+",
 			names=[
 				"index"
@@ -73,7 +73,7 @@ class Dataset:
 			},
 		).squeeze() - 1
 		self._alphas: pandas.Series[int] = pandas.read_csv(
-			path.join(self._images_path, "predicates.txt"),
+			os.path.join(self._images_path, "predicates.txt"),
 			sep=r"\s+",
 			names=[
 				"index"
@@ -90,7 +90,7 @@ class Dataset:
 
 	#	Use TensorFlows's image look-up.
 		image_paths, labels, _ = keras.utils.dataset_utils.index_directory(
-			directory=path.join(self._images_path, "JPEGImages"),
+			directory=os.path.join(self._images_path, "JPEGImages"),
 			labels="inferred",
 			formats=(
 				".jpg",
@@ -121,7 +121,7 @@ class Dataset:
 			list with items in selection
 		"""
 		if isinstance(selection, str):
-			with open(path.join(self._images_path, self._labels_path, selection)) as labels_file:
+			with open(os.path.join(self._images_path, self._labels_path, selection)) as labels_file:
 				return [label.strip() for label in labels_file]
 
 		if isinstance(selection, pandas.Series):
@@ -160,8 +160,8 @@ class Dataset:
 			predicate `pandas.DataFrame` indexed with labels and named with predicates
 		"""
 		alpha_matrix = pandas.read_csv(
-			path.join(self._images_path, "predicate-matrix-binary.txt") if binary else
-			path.join(self._images_path, "predicate-matrix-continuous.txt"),
+			os.path.join(self._images_path, "predicate-matrix-binary.txt") if binary else
+			os.path.join(self._images_path, "predicate-matrix-continuous.txt"),
 			sep=r"\s+",
 			names=self._alphas.index.tolist(),
 			dtype=float,
@@ -340,7 +340,7 @@ class Dataset:
 			labelcolor="#AAAAAA",
 		)
 
-		matplotlib.pyplot.savefig(path.join(self._images_path, "classes.pdf"))
+		matplotlib.pyplot.savefig(os.path.join(self._images_path, "classes.pdf"))
 
 	def plot_alphas(self,
 		binary: bool = False,
@@ -383,7 +383,7 @@ class Dataset:
 		ax.set_xlabel("predicates")
 		ax.set_ylabel("class label")
 
-		matplotlib.pyplot.savefig(path.join(self._images_path, f"predicate-matrix{alpha_range}.pdf"))
+		matplotlib.pyplot.savefig(os.path.join(self._images_path, f"predicate-matrix{alpha_range}.pdf"))
 
 	def plot_label_correlation(self, alter_dot: Callable = numpy.dot,
 		binary: bool | None = None,
@@ -467,7 +467,7 @@ class Dataset:
 		altered_dot = f".{alter_dot.__name__}" if alter_dot != numpy.dot else ""
 
 		matplotlib.pyplot.savefig(
-			path.join(self._images_path,
+			os.path.join(self._images_path,
 				f"class-correlation{alpha_range}{alpha_field}{alpha_normalization}{altered_dot}.pdf"
 			)
 		)
