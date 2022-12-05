@@ -20,7 +20,7 @@ def Model(
 	encoder: tensorflow.keras.Model | tensorflow.keras.layers.Layer,
 	semantic: tensorflow.keras.Model | tensorflow.keras.layers.Layer,
 	*,
-	freeze: bool = True,
+	trainable: bool = False,
 	name: str = "generalized_zeroshot_embedding_model"
 ) -> tensorflow.keras.Model:
 	"""Build a generic latent embedding model.
@@ -31,12 +31,12 @@ def Model(
 		semantic: a semantic (frozen) classifier that encodes semantic features into classes having known semantic features
 
 	Keyword Arguments:
-		freeze: whether to freeze the visual and semantic compoments
+		trainable: whether to freeze the visual and semantic compoments
 			Freezing the visual component prevents information loss if it is prettrained.
 			Freezing the semantic component prevents overfitting in favor of seen class labels.
 	"""
-	visual.trainable = not freeze
-	semantic.trainable = not freeze
+	visual.trainable = trainable
+	semantic.trainable = trainable
 
 	return tensorflow.keras.models.Sequential(
 		layers=[
