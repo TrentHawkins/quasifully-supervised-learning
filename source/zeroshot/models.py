@@ -48,7 +48,7 @@ def Model(
 	)
 
 
-def EfficientNetDense(
+def GeneralizedZeroshotModel(
 	visual: tensorflow.keras.Model,
 	semantic_matrix: tensorflow.Tensor | Iterable[Iterable[float]],
 	semantic_class: type = MetricDense,
