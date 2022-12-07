@@ -137,6 +137,7 @@ dmypy.json
 *.pb
 *.data*
 *.index
+checkpoint
 
 # Animals with Attributes
 JPEGImages/
