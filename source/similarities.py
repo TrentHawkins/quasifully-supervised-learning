@@ -23,7 +23,7 @@ def cosine(
 		return numpy.inner(a, b) / numpy.sqrt(numpy.inner(a, a) * numpy.inner(b, b))
 
 	if len(a.shape) == len(b.shape) >= 2:
-		return numpy.array([[cosine(i, j) for i in a] for j in b.transpose()])
+		return numpy.array([[cosine(i, j) for i in a] for j in b.transpose()])  # type: ignore  # NOTE: After PyLance update.
 
 
 def jaccard(
@@ -47,7 +47,7 @@ def jaccard(
 		return numpy.inner(a, b) / (numpy.inner(a, a) + numpy.inner(b, b) - numpy.inner(a, b))
 
 	if len(a.shape) == len(b.shape) >= 2:
-		return numpy.array([[jaccard(i, j) for i in a] for j in b.transpose()])
+		return numpy.array([[jaccard(i, j) for i in a] for j in b.transpose()])  # type: ignore  # NOTE: After PyLance update.
 
 
 def dice(
@@ -71,7 +71,7 @@ def dice(
 		return 2 * numpy.inner(a, b) / (numpy.inner(a, a) + numpy.inner(b, b))
 
 	if len(a.shape) == len(b.shape) >= 2:
-		return numpy.array([[dice(i, j) for i in a] for j in b.transpose()])
+		return numpy.array([[dice(i, j) for i in a] for j in b.transpose()])  # type: ignore  # NOTE: After PyLance update.
 
 
 def rand(
@@ -96,7 +96,7 @@ def rand(
 			(numpy.inner(a, a) + numpy.inner(b, b) - numpy.inner(a, b) + numpy.inner(1 - a, 1 - b))
 
 	if len(a.shape) == len(b.shape) >= 2:
-		return numpy.array([[rand(i, j) for i in a] for j in b.transpose()])
+		return numpy.array([[rand(i, j) for i in a] for j in b.transpose()])  # type: ignore  # NOTE: After PyLance update.
 
 
 def dotDataFrame(

@@ -6,6 +6,7 @@ from typing import Iterable
 import tensorflow
 
 
+@tensorflow.keras.utils.register_keras_serializable("source>zeroshot>losses")
 class ZeroshotCategoricalCrossentropy(tensorflow.keras.losses.CategoricalCrossentropy):
 	"""Computes the crossentropy loss between the labels and predictions.
 
@@ -60,7 +61,7 @@ class ZeroshotCategoricalCrossentropy(tensorflow.keras.losses.CategoricalCrossen
 	def __init__(self, source: tensorflow.Tensor | Iterable[int],
 		axis: int = -1,
 		name: str = "zeroshot_categorical_crossentropy",
-	):
+	**kwargs):
 		"""Initialize `ZeroshotCategoricalCrossentropy` instance.
 
 		Arguments:
@@ -98,9 +99,9 @@ class ZeroshotCategoricalCrossentropy(tensorflow.keras.losses.CategoricalCrossen
 				Defaults to "zeroshot_categorical_crossentropy".
 		"""
 		super(ZeroshotCategoricalCrossentropy, self).__init__(
-			axis=axis,
-			name=name,
-		)
+			axis=kwargs.pop("axis", None) or axis,
+			name=kwargs.pop("name", None) or name,
+		**kwargs)
 
 	#	save axis:
 		self.axis = axis
@@ -138,6 +139,7 @@ class ZeroshotCategoricalCrossentropy(tensorflow.keras.losses.CategoricalCrossen
 		)
 
 
+@tensorflow.keras.utils.register_keras_serializable("source>zeroshot>losses")
 class QuasifullyZeroshotCategoricalCrossentropy(ZeroshotCategoricalCrossentropy):
 	"""Computes the crossentropy loss between the labels and predictions.
 
@@ -195,7 +197,7 @@ class QuasifullyZeroshotCategoricalCrossentropy(ZeroshotCategoricalCrossentropy)
 		bias: float = 0.,
 		axis: int = -1,
 		name: str = "quasifully_categorical_crossentropy",
-	):
+	**kwargs):
 		"""Initialize `QuasifullyCategoricalCrossentropy` instance.
 
 		Arguments:
@@ -239,9 +241,9 @@ class QuasifullyZeroshotCategoricalCrossentropy(ZeroshotCategoricalCrossentropy)
 				Defaults to "quasifully_categorical_crossentropy".
 		"""
 		super(QuasifullyZeroshotCategoricalCrossentropy, self).__init__(source,
-			axis=axis,
-			name=name,
-		)
+			axis=kwargs.pop("axis", None) or axis,
+			name=kwargs.pop("name", None) or name,
+		**kwargs)
 
 	#	labels not seen during training
 		self.target = tensorflow.convert_to_tensor(target, dtype=tensorflow.int32)
@@ -281,3 +283,39 @@ class QuasifullyZeroshotCategoricalCrossentropy(ZeroshotCategoricalCrossentropy)
 				axis=self.axis,
 			)
 		) * self.bias  # type: ignore  # Pylance miss-identifies the return type of `tensorflow.math.log` for some reason
+
+	@classmethod
+	def from_config(cls, config: dict):
+		"""Instantiate a `Loss` from its config (output of `get_config()`).
+
+		Arguments:
+			config: Output of `get_config()`.
+
+		Returns:
+			A `Loss` instance.
+		"""
+		loss = super(QuasifullyZeroshotCategoricalCrossentropy, cls).from_config(config)
+
+	#	Deserialize label sets from `get_config` for usage by loss:
+		loss.source = tensorflow.io.parse_tensor(loss.source, tensorflow.int64)
+		loss.target = tensorflow.io.parse_tensor(loss.target, tensorflow.int64)
+
+		return loss
+
+	def get_config(self) -> dict:
+		"""Return the config dictionary for a `Loss` instance.
+
+		Returns:
+			The config dictionary for a `Loss` instance.
+		"""
+		config = super(ZeroshotCategoricalCrossentropy, self).get_config()
+
+	#	Serialize label sets for retrival by `from_config` when loading the model:
+		config.update(
+			{
+				"source": tensorflow.io.serialize_tensor(self.source),
+				"target": tensorflow.io.serialize_tensor(self.target), "bias": self.bias,
+			}
+		)
+
+		return config

@@ -22,13 +22,13 @@ class Classifier:
 		loss: Custom function to use in training.
 	"""
 
+#	Model to operate:
+	model: tensorflow.keras.Model = field()
+
 #	Dataset splits:
 	train: tensorflow.data.Dataset = field()
 	devel: tensorflow.data.Dataset = field()
 	valid: tensorflow.data.Dataset = field()
-
-#	Model to operate:
-	model: tensorflow.keras.Model = field()
 
 #	Global verbosity:
 	seed: int = field(default=0, kw_only=True)
@@ -212,22 +212,22 @@ class Classifier:
 
 			ValueError:	If mismatch between the provided input data and what the model expects or when the input data is empty.
 		"""
-		print_separator(2, f"{self.model.name}: fitting")
+		print_separator(3, f"{self.model.name}: fitting")
 
 		patience_early_stopping = ceil(sqrt(epochs))
 		patience_reduce_learning_rate_on_plateau = ceil(sqrt(patience_early_stopping))
 
 	#	Callbacks:
-		checkpoint = tensorflow.keras.callbacks.ModelCheckpoint(f"./models/{self.model.name}",
-			monitor="val_loss",
-		#	verbose=0,
-			save_best_only=True,
-			save_weights_only=True,
-			mode="auto",
-			save_freq="epoch",
-		#	options=None,
-		#	initial_value_threshold=None,
-		)
+	#	checkpoint = tensorflow.keras.callbacks.ModelCheckpoint(f"./models/{self.model.name}",
+	#		monitor="val_loss",
+	#	#	verbose=0,
+	#		save_best_only=True,
+	#		save_weights_only=True,
+	#		mode="auto",
+	#		save_freq="epoch",
+	#	#	options=None,
+	#	#	initial_value_threshold=None,
+	#	)
 		reduce_learning_rate_on_plateau = tensorflow.keras.callbacks.ReduceLROnPlateau(
 		#	monitor="val_loss",
 		#	factor=1e-1,
@@ -251,9 +251,9 @@ class Classifier:
 		history = self.model.fit(train or self.train,
 		#	batch_size=None,  # batches generated from dataset
 			epochs=epochs,
-			verbose=self.verbose,  # type: ignore  # incorrectly type-hinted in Tensorflow
+			verbose=1,  # type: ignore  # incorrectly type-hinted in Tensorflow
 			callbacks=[
-				checkpoint,
+			#	checkpoint,
 				reduce_learning_rate_on_plateau,
 				early_stopping,
 			],
@@ -301,11 +301,11 @@ class Classifier:
 			ValueError: In case of mismatch between the provided input data and the model's expectations,
 				or in case a stateful model receives a number of samples that is not a multiple of the batch size.
 		"""
-		print_separator(2, f"{self.model.name}: predicting")
+		print_separator(3, f"{self.model.name}: predicting")
 
 		predictions = self.model.predict(valid or self.valid,
 		#	batch_size=None,  # batches generated from dataset
-			verbose=self.verbose,  # type: ignore  # incorrectly type-hinted in Tensorflow
+			verbose=1,  # type: ignore  # incorrectly type-hinted in Tensorflow
 		#	steps=None,
 		#	callbacks=None,
 		#	max_queue_size=10,
@@ -336,11 +336,11 @@ class Classifier:
 		Raises:
 			RuntimeError: If `model.predict` is wrapped in a `tensorflow.function`.
 		"""
-		print_separator(2, f"{self.model.name}: evaluating")
+		print_separator(3, f"{self.model.name}: evaluating")
 
 		metrics = self.model.evaluate(valid or self.valid,
 		#	batch_size=None,  # batches generated from dataset0
-			verbose=self.verbose,  # type: ignore  # incorrectly type-hinted in Tensorflow
+			verbose=1,  # type: ignore  # incorrectly type-hinted in Tensorflow
 		#	sample_weight=None,
 		#	steps=None,
 		#	callbacks=None,
@@ -403,7 +403,7 @@ class Classifier:
 		)
 
 	@classmethod
-	def load(cls, filepath: str | PathLike):
+	def load(cls, filepath: str | PathLike, *args, **kwargs):
 		"""Load a model to the classifier saved via `Classifier.save()`.
 
 		Usage:
@@ -425,12 +425,16 @@ class Classifier:
 		Argumentss:
 			filepath: Path to the saved model.
 
+			*args: Positional arguments passed to classifier initializer, apart from `model`.
+
 		Keyword Arguments (fixed):
 			custom_objects: Optional dictionary mapping names to custom classes or functions to be considered in deserialization.
 
 			compile: Whether to compile the model after loading.
 
 			options: Optional `tensorflow.saved_model.LoadOptions` object that specifies options for loading from `SavedModel`.
+
+			**kwargs: Keyword arguments passed to classifier initializer.
 
 		Returns:
 			A Keras model instance.
@@ -442,11 +446,13 @@ class Classifier:
 		Raises:
 			IOError: In case of an invalid savefile.
 		"""
-		return tensorflow.keras.models.load_model(filepath,
+		model = tensorflow.keras.models.load_model(filepath,
 		#	custom_objects=None,
 			compile=True,
 		#	options=None,
 		)
+
+		return cls(model, *args, **kwargs)  # type: ignore  # type hinting in`load_model` is messed up
 
 	def summary(self, **kwargs):
 		"""Print a string summary of the network, with an added separator.
@@ -484,14 +490,10 @@ class Classifier:
 		Raises:
 			ValueError: if `summary()` is called before the model is built.
 		"""
-		print_separator()
-
-	#	Force non-expanded mode with trainability column.
 		kwargs.update(
 			{
 				"expand_nested": False,
 				"show_trainable": True,
 			}
 		)
-
 		self.model.summary(**kwargs)

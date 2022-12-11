@@ -14,7 +14,7 @@ class TestModels:
 
 	input_shape = (batch_size, *image_size)
 
-	def test_efficientnet_dense(self):
+	def test_metric_dense(self):
 		"""Test proper model instantiation and output."""
 		import numpy
 		import tensorflow
@@ -22,7 +22,7 @@ class TestModels:
 		from source.dataset.animals_with_attributes import Dataset
 		from source.keras.applications.efficientnet import EfficientNet
 		from source.keras.layers import JaccardDense
-		from source.zeroshot.models import EfficientNetDense
+		from source.zeroshot.models import GeneralizedZeroshotModel
 
 		images = tensorflow.random.uniform(self.input_shape,
 			minval=0,
@@ -31,11 +31,11 @@ class TestModels:
 		)
 		predicates = Dataset().alphas().transpose().to_numpy()
 
-		softmaxModel = EfficientNetDense(
+		softmaxModel = GeneralizedZeroshotModel(
 			visual=EfficientNet.B0(),
 			semantic_matrix=tensorflow.constant(predicates, dtype=tensorflow.float32),
 		)
-		jaccardModel = EfficientNetDense(
+		jaccardModel = GeneralizedZeroshotModel(
 			visual=EfficientNet.B0(),
 			semantic_matrix=tensorflow.constant(predicates, dtype=tensorflow.float32),
 			semantic_class=JaccardDense,
@@ -60,32 +60,43 @@ class TestClassifiers:
 		"""Test plain categorical classifier."""
 		import os; os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 		import numpy
-		import tensorflow
+		import tensorflow  # ; tensorflow.keras.backend.set_image_data_format("channels_first")
 
 		import source.keras.utils.generic_utils
 		import source.keras.utils.layer_utils
 
-		from source.dataset.animals_with_attributes import Dataset
+		from source.dataset.animals_with_attributes import TransductiveZeroshotDataset
+		from source.keras.applications.convnext import ConvNeXt
 		from source.keras.applications.efficientnet import EfficientNet
 		from source.zeroshot.classifiers import QuasifullyZeroshotCategoricalClassifier
-		from source.zeroshot.models import EfficientNetDense
+		from source.zeroshot.models import GeneralizedZeroshotModel
 
 	#	Setup data:
-		dataset = Dataset()
+		dataset = TransductiveZeroshotDataset()
 
 	#	Setup model components:
-		visual = EfficientNet.B0()
+		visual = ConvNeXt.Tiny()
+	#	visual = EfficientNet.B0()
 		semantic_matrix = tensorflow.convert_to_tensor(dataset.alphas().transpose(),
 			dtype=tensorflow.float32,
 		)
 
 	#	Set up model:
-		model = EfficientNetDense(visual, semantic_matrix,
+		model = GeneralizedZeroshotModel(visual, semantic_matrix,
 			name="quasifully_zeroshot_categorical",
 		)
 
 	#	Setup model pipeline (classifier):
-		classifier = QuasifullyZeroshotCategoricalClassifier(*dataset.split(), model,
+		classifier = QuasifullyZeroshotCategoricalClassifier(model, *dataset.split(),
+			dataset.labels("trainvalclasses.txt"),
+			dataset.labels("testclasses.txt"),
+		#	bias=1,
+			verbose=2,
+			name="quasifully_zeroshot_categorical",
+		)
+
+	#	Setup model pipeline (classifier):
+		classifier = QuasifullyZeroshotCategoricalClassifier(model, *dataset.split(),
 			dataset.labels("trainvalclasses.txt"),
 			dataset.labels("testclasses.txt"),
 		#	bias=1,
@@ -98,22 +109,21 @@ class TestClassifiers:
 		classifier.summary()
 
 	#	Learning cycle:
-		history = classifier.fit()
+		history = classifier.fit(epochs=1)
 		predict = classifier.predict()
 		metrics = classifier.evaluate()
 
 	#	Save compiled and trained model:
-		classifier.save(f"./models/{classifier.name}")
+	#	classifier.save(f"./models/{classifier.name}")
 
 	#	Load compiled pre-trained model:
-		reloaded_model = QuasifullyZeroshotCategoricalClassifier.load(f"./models/{classifier.name}")
-		reloaded_classifier = QuasifullyZeroshotCategoricalClassifier(*dataset.split(), reloaded_model,  # type: ignore
-			dataset.labels("trainvalclasses.txt"),
-			dataset.labels("testclasses.txt"),
-		#	bias=1,
-			verbose=2,
-			name="quasifully_zeroshot_categorical",
-		)
+	#	reloaded_classifier = QuasifullyZeroshotCategoricalClassifier.load(f"./models/{classifier.name}", *dataset.split(),
+	#		dataset.labels("trainvalclasses.txt"),
+	#		dataset.labels("testclasses.txt"),
+	#	#	bias=1,
+	#		verbose=1,
+	#		name="quasifully_zeroshot_categorical",
+	#	)
 
 	#	Assert models are the same:
-		assert numpy.allclose(reloaded_classifier.predict(), predict)
+	#	assert numpy.allclose(reloaded_classifier.predict(), predict)

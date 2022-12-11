@@ -79,12 +79,10 @@ class TestMetricDense:
 
 		testDense = CosineDense(
 			self.input.shape[-1],
-			kernel_initializer=tensorflow.keras.initializers.Constant(
-				tensorflow.random.uniform(
-					(
-						5,
-						5,
-					)
+			kernel=tensorflow.random.uniform(
+				(
+					5,
+					5,
 				)
 			)
 		)
@@ -129,12 +127,10 @@ class TestMetricDense:
 
 		testDense = DiceDense(
 			self.input.shape[-1],
-			kernel_initializer=tensorflow.keras.initializers.Constant(
-				tensorflow.random.uniform(
-					(
-						5,
-						5,
-					)
+			kernel=tensorflow.random.uniform(
+				(
+					5,
+					5,
 				)
 			)
 		)
@@ -154,12 +150,10 @@ class TestMetricDense:
 
 		testDense = RandDense(
 			self.input.shape[-1],
-			kernel_initializer=tensorflow.keras.initializers.Constant(
-				tensorflow.random.uniform(
-					(
-						5,
-						5,
-					)
+			kernel=tensorflow.random.uniform(
+				(
+					5,
+					5,
 				)
 			)
 		)
@@ -190,11 +184,10 @@ class TestBaseDense:
 		"""Test if operations are carried out successfully over a batch of inputs."""
 		import tensorflow
 
-		from source.keras.layers import Dense
+		from source.keras.layers import DropoutDense
 
-		testDense = Dense(self.input.shape[-1],
+		testDense = DropoutDense(self.input.shape[-1],
 			activation="sigmoid",
-			normalization=True,
 		)
 
 	#	Assert `JaccardDense` forwards successfully and with the same shapes as a normal `Dense`.

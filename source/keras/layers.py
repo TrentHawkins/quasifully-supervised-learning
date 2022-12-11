@@ -1,7 +1,6 @@
 """Custom keras layers for model building.
 
 Compound dense layer containing:
--	batch normalization
 -	dropout
 -	dense sublayer
 
@@ -20,7 +19,8 @@ import tensorflow
 from .utils.layer_utils import print_summary
 
 
-class Dense(tensorflow.keras.layers.Dense):
+@tensorflow.keras.utils.register_keras_serializable("source>keras>layers")
+class DropoutDense(tensorflow.keras.layers.Dense):
 	"""Custom compound dense layer.
 
 	Attribures:
@@ -31,8 +31,7 @@ class Dense(tensorflow.keras.layers.Dense):
 		activation: Callable | str | None = None,
 	#	regularizer: tensorflow.keras.regularizers.Regularizer | str | None = None,
 	#	constraint: tensorflow.keras.constraints.Constraint | str | None = None,
-		normalization: bool = False,
-		dropout: float = .5,
+		dropout_rate: float = .5,
 		seed: int = 0,
 		name: str = "base_dense",
 	**kwargs):
@@ -48,33 +47,31 @@ class Dense(tensorflow.keras.layers.Dense):
 				default: Glorot uniform
 			constraint: on the weights of the layer
 				default: none
-			normalization: whether to batch-nosmalize or not
-				default: no batch-normalization
 			dropout: dropout factor applied on input of the layer
 				default: half
 			seed: dropout seed
 				default: 0
 		"""
-		super(Dense, self).__init__(units,
-				activation=activation,
-			#	use_bias=True,
-			#	kernel_initializer="glorot_uniform",
-			#	bias_initializer="zeros",
-			#	kernel_regularizer=regularizer,
-			#	bias_regularizer=regularizer,
-			#	activity_regularizer=regularizer,
-			#	kernel_constraint=constraint,
-			#	bias_constraint=constraint,
-				name=name,  # None
+		super(DropoutDense, self).__init__(kwargs.pop("units", None) or units,
+			activation=kwargs.pop("activation", None) or activation,
+		#	use_bias=True,
+		#	kernel_initializer="glorot_uniform",
+		#	bias_initializer="zeros",
+		#	kernel_regularizer=regularizer,
+		#	bias_regularizer=regularizer,
+		#	activity_regularizer=regularizer,
+		#	kernel_constraint=constraint,
+		#	bias_constraint=constraint,
+			name=kwargs.pop("name", None) or name,
 		**kwargs)
 
 	#	dropout:
-		assert dropout >= 0. and dropout <= 1.
-		self.dropout = tensorflow.keras.layers.Dropout(dropout,
+		assert dropout_rate >= 0. and dropout_rate <= 1.
+		self.dropout = tensorflow.keras.layers.Dropout(dropout_rate,
 			noise_shape=None,
 			seed=seed,  # None,
 			name=f"dropout_{name}",  # None
-		**kwargs)
+		)
 
 	def build(self, input_shape: tensorflow.TensorShape):
 		"""Create the variables of the layer (optional, for subclass implementers).
@@ -89,7 +86,7 @@ class Dense(tensorflow.keras.layers.Dense):
 		Arguments:
 			input_shape: instance of `TensorShape` or list of instances of `TensorShape` if the layer expects a list of inputs
 		"""
-		super(Dense, self).build(input_shape)
+		super(DropoutDense, self).build(input_shape)
 
 	#	dropout:
 		self.dropout.build(input_shape)
@@ -117,34 +114,13 @@ class Dense(tensorflow.keras.layers.Dense):
 			training=training,
 		)
 
-		return super(Dense, self).call(x)
-
-	def get_config(self) -> dict:
-		"""Return the config of the layer.
-
-		A layer config is a Python dictionary (serializable) containing the configuration of a layer.
-		The same layer can be reinstantiated later (without its trained weights) from this configuration.
-
-		The config of a layer does not include connectivity information, nor the layer class name.
-		These are handled by `Network` (one layer of abstraction above).
-
-		Note that `get_config()` does not guarantee to return a fresh copy of dict every time it is called.
-		The callers should make a copy of the returned dict if they want to modify it.
-
-		Returns:
-			Python dictionary.
-		"""
-		config = super(Dense, self).get_config().copy()
-
-	#	Add the dropout configuration as separate.
-		config["dropout"] = self.dropout.get_config()
-
-		return config
+		return super(DropoutDense, self).call(x)
 
 
 """What follows are special types of dense layers."""
 
 
+@tensorflow.keras.utils.register_keras_serializable("source>keras>layers")
 class AttentionDense(tensorflow.keras.layers.Dense):
 	"""Wrapper for dense layer operating on a stacks of input to recombine them with attention.
 
@@ -166,17 +142,17 @@ class AttentionDense(tensorflow.keras.layers.Dense):
 		Keyword arguments:
 			activation: to apply on output of decision
 		"""
-		super(AttentionDense, self).__init__(1,
-			activation=activation,
-			use_bias=False,
-		#	kernel_initializer="glorot_uniform",
-		#	bias_initializer="zeros",
+		super(AttentionDense, self).__init__(kwargs.pop("units", None) or 1,
+			activation=kwargs.pop("activation", None) or activation,
+			use_bias=kwargs.pop("use_bias", None) or False,
+			kernel_initializer=kwargs.pop("kernel_initializer", None) or "zeros",
+			bias_initializer=kwargs.pop("bias_initializer", None) or "zeros",
 		#	kernel_regularizer=regularizer,
 		#	bias_regularizer=regularizer,
 		#	activity_regularizer=regularizer,
 		#	kernel_constraint=constraint,
 		#	bias_constraint=constraint,
-			name=name,
+			name=kwargs.pop("name", None) or name,
 		**kwargs)
 
 	def call(self, inputs):
@@ -195,6 +171,7 @@ class AttentionDense(tensorflow.keras.layers.Dense):
 		)
 
 
+@tensorflow.keras.utils.register_keras_serializable("source>keras>layers")
 class MetricDense(tensorflow.keras.layers.Dense):
 	"""A non-linear dense layer emulating the action of a metric and outputing in sigmoid range.
 
@@ -203,7 +180,7 @@ class MetricDense(tensorflow.keras.layers.Dense):
 
 	def __init__(self, units,
 		activation: Callable | str | None = None,
-		kernel_initializer: tensorflow.keras.initializers.Initializer | str = "glorot_uniform",
+		kernel: tensorflow.Tensor | None = None,
 		name: str = "metric",
 	**kwargs):
 		"""Hyperparametrize recombination layer.
@@ -213,22 +190,34 @@ class MetricDense(tensorflow.keras.layers.Dense):
 
 		Keyword arguments:
 			activation: to apply on output of decision
-			kernel_initializer: weight values to begin with
+			kernel: weight values to begin with
 		"""
-		super(MetricDense, self).__init__(units,
-			activation=activation,
-			use_bias=False,
-			kernel_initializer=kernel_initializer,  # type: ignore
-			bias_initializer="zeros",
+		super(MetricDense, self).__init__(kwargs.pop("units", None) or units,
+			activation=kwargs.pop("activation", None) or activation,
+			use_bias=kwargs.pop("use_bias", None) or False,
+		#	kernel_initializer=tensorflow.keras.initializers.Constant(kernel),  # type: ignore
+		#	bias_initializer="zeros",
 		#	kernel_regularizer=regularizer,
 		#	bias_regularizer=regularizer,
 		#	activity_regularizer=regularizer,
 		#	kernel_constraint=constraint,
 		#	bias_constraint=constraint,
-			name=name,
+			name=kwargs.pop("name", None) or name,
 		**kwargs)
 
+		self.initial_kernel = kernel
 
+	def build(self, input_shape: tensorflow.TensorShape):
+		"""Custtomize kernel."""
+		super(MetricDense, self).build(input_shape)
+
+		kernel, *weights = self.get_weights()
+
+		if self.initial_kernel is not None and kernel.shape == self.initial_kernel.shape:
+			self.set_weights([self.initial_kernel, *weights])
+
+
+@tensorflow.keras.utils.register_keras_serializable("source>keras>layers")
 class CosineDense(MetricDense):
 	"""A dense layer that perform the cosine operation per input and kernel vector instead of a dot product.
 
@@ -273,6 +262,7 @@ class CosineDense(MetricDense):
 		return inputs_kernel / denominator
 
 
+@tensorflow.keras.utils.register_keras_serializable("source>keras>layers")
 class JaccardDense(MetricDense):
 	"""A dense layer that perform the Jaccard operation per input and kernel vector instead of a dot product.
 
@@ -318,6 +308,7 @@ class JaccardDense(MetricDense):
 		return inputs_kernel / denominator
 
 
+@tensorflow.keras.utils.register_keras_serializable("source>keras>layers")
 class DiceDense(MetricDense):
 	"""A dense layer that perform the Dice operation per input and kernel vector instead of a dot product.
 
@@ -362,6 +353,7 @@ class DiceDense(MetricDense):
 		return inputs_kernel / denominator
 
 
+@tensorflow.keras.utils.register_keras_serializable("source>keras>layers")
 class RandDense(MetricDense):
 	"""A dense layer that perform the Rand operation per input and kernel vector instead of a dot product.
 

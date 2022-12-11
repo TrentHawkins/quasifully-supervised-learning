@@ -53,7 +53,7 @@ def GeneralizedZeroshotModel(
 	semantic_matrix: tensorflow.Tensor | Iterable[Iterable[float]],
 	semantic_class: type = MetricDense,
 	*,
-	name: str = "efficientnet_zeroshot_embedding_model"
+	name: str = "efficientnet_zeroshot_embedding_model",
 ):
 	"""Build a specific latent embedding model based on EfficientNet for visual featuress and Dense encoding.
 
@@ -79,8 +79,8 @@ def GeneralizedZeroshotModel(
 		),
 		semantic=semantic_class(
 			kernel.shape[1],
-			activation="softmax",
-			kernel_initializer=tensorflow.keras.initializers.Constant(kernel),  # type: ignore  # hinted as int for some reason
+			activation="softmax" if semantic_class == MetricDense else None,
+			kernel=semantic_matrix,
 			name="semantic"
 		),
 		name=name,

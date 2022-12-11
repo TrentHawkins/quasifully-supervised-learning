@@ -87,7 +87,7 @@ class ZeroshotCategoricalClassifier(CategoricalClassifier):
 		"""
 		super(CategoricalClassifier, self).compile(
 			optimizer=tensorflow.keras.optimizers.Adam(
-				learning_rate=learning_rate or 1 / len(self.train),
+				learning_rate=learning_rate or 10 / len(self.train),
 			#	beta_1=.9,
 			#	beta_2=.999,
 			#	epsilon=1e-7,
@@ -143,7 +143,7 @@ class QuasifullyZeroshotCategoricalClassifier(ZeroshotCategoricalClassifier):
 		"""
 		super(CategoricalClassifier, self).compile(
 			optimizer=tensorflow.keras.optimizers.Adam(
-				learning_rate=learning_rate or 1 / len(self.train),
+				learning_rate=learning_rate or 10 / len(self.train),
 			#	beta_1=.9,
 			#	beta_2=.999,
 			#	epsilon=1e-7,
