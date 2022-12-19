@@ -259,13 +259,13 @@ class Dataset:
 		#	Shuffle elements by fixed seed, but set subset for reshuffling after each epoch.
 			images = images.shuffle(ceil(sqrt(len(images))),
 				seed=self.seed,
-				reshuffle_each_iteration=True,
+				reshuffle_each_iteration=training,
 			)
 
 		#	If batch size is set, batch subset.
 			images = images.batch(batch_size,
 				num_parallel_calls=tensorflow.data.AUTOTUNE,
-				deterministic=False,
+				deterministic=True,
 			)
 
 		#	Prefetch the first examples of subset.
