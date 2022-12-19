@@ -236,7 +236,9 @@ class Dataset:
 		)
 
 	#	Return dataset from paths and labels with preferred settings.
-		def paths_and_labels_to_dataset(_images: pandas.Series) -> tensorflow.data.Dataset:
+		def paths_and_labels_to_dataset(_images: pandas.Series,
+			training: bool = False,
+		) -> tensorflow.data.Dataset:
 			images: tensorflow.data.Dataset = keras.utils.image_dataset.paths_and_labels_to_dataset(
 				image_paths=_images.index,
 				image_size=(
@@ -272,9 +274,15 @@ class Dataset:
 			return images
 
 	#	Build datasets.
-		train_images: tensorflow.data.Dataset = paths_and_labels_to_dataset(_train_images)  # type: ignore
-		devel_images: tensorflow.data.Dataset = paths_and_labels_to_dataset(_devel_images)  # type: ignore
-		valid_images: tensorflow.data.Dataset = paths_and_labels_to_dataset(_valid_images)  # type: ignore
+		train_images: tensorflow.data.Dataset = paths_and_labels_to_dataset(_train_images,  # type: ignore
+			training=True,
+		)
+		devel_images: tensorflow.data.Dataset = paths_and_labels_to_dataset(_devel_images,  # type: ignore
+			training=False,
+		)
+		valid_images: tensorflow.data.Dataset = paths_and_labels_to_dataset(_valid_images,  # type: ignore
+			training=False,
+		)
 
 		return (
 			train_images,
