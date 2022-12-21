@@ -4,6 +4,9 @@
 from typing import Iterable
 
 import tensorflow
+import pandas
+
+from ..chartools import from_string, to_string
 
 
 @tensorflow.keras.utils.register_keras_serializable("source>zeroshot>losses")
@@ -288,33 +291,35 @@ class QuasifullyZeroshotCategoricalCrossentropy(ZeroshotCategoricalCrossentropy)
 	def from_config(cls, config: dict):
 		"""Instantiate a `Loss` from its config (output of `get_config()`).
 
+		Decode label subset from string storage format before loading loss.
+
 		Arguments:
 			config: Output of `get_config()`.
 
 		Returns:
 			A `Loss` instance.
 		"""
-		loss = super(QuasifullyZeroshotCategoricalCrossentropy, cls).from_config(config)
+		config["source"] = pandas.Series(from_string(config["source"]))
+		config["target"] = pandas.Series(from_string(config["target"]))
 
-	#	Deserialize label sets from `get_config` for usage by loss:
-		loss.source = tensorflow.io.parse_tensor(loss.source, tensorflow.int64)
-		loss.target = tensorflow.io.parse_tensor(loss.target, tensorflow.int64)
+		loss = super(QuasifullyZeroshotCategoricalCrossentropy, cls).from_config(config)
 
 		return loss
 
 	def get_config(self) -> dict:
 		"""Return the config dictionary for a `Loss` instance.
 
+		Encode label subset to string storage format after saving loss.
+
 		Returns:
 			The config dictionary for a `Loss` instance.
 		"""
 		config = super(ZeroshotCategoricalCrossentropy, self).get_config()
 
-	#	Serialize label sets for retrival by `from_config` when loading the model:
 		config.update(
 			{
-				"source": tensorflow.io.serialize_tensor(self.source),
-				"target": tensorflow.io.serialize_tensor(self.target), "bias": self.bias,
+				"source": to_string(self.source),
+				"target": to_string(self.target), "bias": self.bias,
 			}
 		)
 

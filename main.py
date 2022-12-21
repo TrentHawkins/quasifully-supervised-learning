@@ -46,9 +46,9 @@ if __name__ == "__main__":
 	classifier.summary()
 
 #	Learning cycle:
-#	history = classifier.fit(epochs=1)
-#	predict = classifier.predict()
-#	metrics = classifier.evaluate()
+	history = classifier.fit(epochs=1)
+	predict = classifier.predict()
+	metrics = classifier.evaluate()
 
 #	Save compiled and trained model:
 	classifier.save(f"./models/{classifier.name}")
@@ -62,5 +62,14 @@ if __name__ == "__main__":
 		name="quasifully_zeroshot_categorical",
 	)
 
-#	Assert models are the same:
-#	assert numpy.allclose(reloaded_classifier.predict(), predict)
+#	Assert compiled elements are the same:
+	assert reloaded_classifier.model.get_config() == classifier.model.get_config()
+
+	predict_reloaded = classifier.predict()
+	predict_relolution = reloaded_classifier.predict()
+
+#	Assert seed is trully fixed:
+	assert numpy.allclose(predict_reloaded, predict)
+
+#	Assert seed is trully fixed:
+	assert numpy.allclose(predict_relolution, predict)
