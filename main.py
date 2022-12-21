@@ -37,7 +37,7 @@ if __name__ == "__main__":
 		dataset.labels("trainvalclasses.txt"),
 		dataset.labels("testclasses.txt"),
 	#	bias=1,
-		verbose=2,
+		verbose=1,
 		name="quasifully_zeroshot_categorical",
 	)
 

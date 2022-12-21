@@ -251,7 +251,7 @@ class Classifier:
 		history = self.model.fit(train or self.train,
 		#	batch_size=None,  # batches generated from dataset
 			epochs=epochs,
-			verbose=1,  # type: ignore  # incorrectly type-hinted in Tensorflow
+			verbose=self.verbose,  # type: ignore  # incorrectly type-hinted in Tensorflow
 			callbacks=[
 			#	checkpoint,
 				reduce_learning_rate_on_plateau,
@@ -305,7 +305,7 @@ class Classifier:
 
 		predictions = self.model.predict(valid or self.valid,
 		#	batch_size=None,  # batches generated from dataset
-			verbose=1,  # type: ignore  # incorrectly type-hinted in Tensorflow
+			verbose=self.verbose,  # type: ignore  # incorrectly type-hinted in Tensorflow
 		#	steps=None,
 		#	callbacks=None,
 		#	max_queue_size=10,
@@ -340,7 +340,7 @@ class Classifier:
 
 		metrics = self.model.evaluate(valid or self.valid,
 		#	batch_size=None,  # batches generated from dataset0
-			verbose=1,  # type: ignore  # incorrectly type-hinted in Tensorflow
+			verbose=self.verbose,  # type: ignore  # incorrectly type-hinted in Tensorflow
 		#	sample_weight=None,
 		#	steps=None,
 		#	callbacks=None,
