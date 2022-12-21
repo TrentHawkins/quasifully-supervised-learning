@@ -39,15 +39,13 @@ class ZeroshotCategoricalCrossentropy(tensorflow.keras.losses.CategoricalCrossen
 	```
 	```
 	>>> # Using 'sum' reduction type.
-	>>> cce = tf.keras.losses.CategoricalCrossentropy(
-	...     reduction=tf.keras.losses.Reduction.SUM)
+	>>> cce = tf.keras.losses.CategoricalCrossentropy(reduction=tf.keras.losses.Reduction.SUM)
 	>>> cce(y_true, y_pred).numpy()
 	2.354
 	```
 	```
 	>>> # Using 'none' reduction type.
-	>>> cce = tf.keras.losses.CategoricalCrossentropy(
-	...     reduction=tf.keras.losses.Reduction.NONE)
+	>>> cce = tf.keras.losses.CategoricalCrossentropy(reduction=tf.keras.losses.Reduction.NONE)
 	>>> cce(y_true, y_pred).numpy()
 	array([0.0513, 2.303], dtype=float32)
 	```
@@ -55,7 +53,7 @@ class ZeroshotCategoricalCrossentropy(tensorflow.keras.losses.CategoricalCrossen
 	Usage with the `compile()` API:
 	```python
 	model.compile(
-		optimizer='sgd',
+		optimizer="sgd",
 		loss=tf.keras.losses.CategoricalCrossentropy()
 	)
 	```
