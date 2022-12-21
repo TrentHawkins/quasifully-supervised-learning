@@ -49,7 +49,7 @@ class CategoricalClassifier(Classifier):
 			#	from_logits=False,
 			#	label_smoothing=0.,
 			#	axis=-1,
-			#	name='categorical_crossentropy'
+			#	name="categorical_crossentropy"
 			),
 			metrics=[
 				tensorflow.keras.metrics.CategoricalAccuracy(),
@@ -99,7 +99,7 @@ class ZeroshotCategoricalClassifier(CategoricalClassifier):
 			#	from_logits=False,
 			#	label_smoothing=0.,
 			#	axis=-1,
-			#	name='categorical_crossentropy'
+			#	name="categorical_crossentropy"
 			),
 			metrics=[
 				tensorflow.keras.metrics.CategoricalAccuracy(),
