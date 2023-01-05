@@ -1,4 +1,7 @@
-"""Zeroshot loss functions."""
+"""Zeroshot loss functions.
+
+NOTE: There is a lot of repeating code. Consider abstracting the interface to apply label trimiing on any loss function given.
+"""
 
 
 from typing import Iterable
@@ -25,28 +28,22 @@ class ZeroshotCategoricalCrossentropy(tensorflow.keras.losses.CategoricalCrossen
 
 	Standalone usage:
 	```
-	>>> y_true = [[0, 1, 0], [0, 0, 1]]
-	>>> y_pred = [[0.05, 0.95, 0], [0.1, 0.8, 0.1]]
-	>>> # Using 'auto'/'sum_over_batch_size' reduction type.
-	>>> cce = tf.keras.losses.CategoricalCrossentropy()
-	>>> cce(y_true, y_pred).numpy()
+	>>>	y_true = [[0, 1, 0], [0, 0, 1]]
+	>>>	y_pred = [[0.05, 0.95, 0], [0.1, 0.8, 0.1]]
+	>>>	# Using 'auto'/'sum_over_batch_size' reduction type.
+	>>>	cce = tf.keras.losses.CategoricalCrossentropy()
+	>>>	cce(y_true, y_pred).numpy()
 	1.177
-	```
-	```
-	>>> # Calling with 'sample_weight'.
-	>>> cce(y_true, y_pred, sample_weight=tf.constant([0.3, 0.7])).numpy()
+	>>>	# Calling with 'sample_weight'.
+	>>>	cce(y_true, y_pred, sample_weight=tf.constant([0.3, 0.7])).numpy()
 	0.814
-	```
-	```
-	>>> # Using 'sum' reduction type.
-	>>> cce = tf.keras.losses.CategoricalCrossentropy(reduction=tf.keras.losses.Reduction.SUM)
-	>>> cce(y_true, y_pred).numpy()
+	>>>	# Using 'sum' reduction type.
+	>>>	cce = tf.keras.losses.CategoricalCrossentropy(reduction=tf.keras.losses.Reduction.SUM)
+	>>>	cce(y_true, y_pred).numpy()
 	2.354
-	```
-	```
-	>>> # Using 'none' reduction type.
-	>>> cce = tf.keras.losses.CategoricalCrossentropy(reduction=tf.keras.losses.Reduction.NONE)
-	>>> cce(y_true, y_pred).numpy()
+	>>>	# Using 'none' reduction type.
+	>>>	cce = tf.keras.losses.CategoricalCrossentropy(reduction=tf.keras.losses.Reduction.NONE)
+	>>>	cce(y_true, y_pred).numpy()
 	array([0.0513, 2.303], dtype=float32)
 	```
 
@@ -111,12 +108,14 @@ class ZeroshotCategoricalCrossentropy(tensorflow.keras.losses.CategoricalCrossen
 		self.source = tensorflow.convert_to_tensor(source, dtype=tensorflow.int32)
 
 	def call(self,
-		y_true,
-		y_pred,
-	):
+		y_true: tensorflow.Tensor,
+		y_pred: tensorflow.Tensor,
+	) -> tensorflow.Tensor:
 		"""Invoke the `Loss` instance.
 
-		Argumentss:
+		NOTE: Trims reruction dimension down to source labels only.
+
+		Arguments:
 			y_true: Ground truth values.
 				shape = `[batch_size, d0, ..., dN]`, except sparse loss functions such as sparse categorical crossentropy where
 				shape = `[batch_size, d0, ..., dN-1]`
@@ -141,7 +140,7 @@ class ZeroshotCategoricalCrossentropy(tensorflow.keras.losses.CategoricalCrossen
 
 
 @tensorflow.keras.utils.register_keras_serializable("source>zeroshot>losses")
-class QuasifullyZeroshotCategoricalCrossentropy(ZeroshotCategoricalCrossentropy):
+class QuasifullyGeneralizedZeroshotCategoricalCrossentropy(ZeroshotCategoricalCrossentropy):
 	"""Computes the crossentropy loss between the labels and predictions.
 
 	Use this crossentropy loss function when there are two or more label classes.
@@ -156,30 +155,22 @@ class QuasifullyZeroshotCategoricalCrossentropy(ZeroshotCategoricalCrossentropy)
 
 	Standalone usage:
 	```
-	>>> y_true = [[0, 1, 0], [0, 0, 1]]
-	>>> y_pred = [[0.05, 0.95, 0], [0.1, 0.8, 0.1]]
-	>>> # Using 'auto'/'sum_over_batch_size' reduction type.
-	>>> cce = tf.keras.losses.CategoricalCrossentropy()
-	>>> cce(y_true, y_pred).numpy()
+	>>>	y_true = [[0, 1, 0], [0, 0, 1]]
+	>>>	y_pred = [[0.05, 0.95, 0], [0.1, 0.8, 0.1]]
+	>>>	# Using 'auto'/'sum_over_batch_size' reduction type.
+	>>>	cce = tf.keras.losses.CategoricalCrossentropy()
+	>>>	cce(y_true, y_pred).numpy()
 	1.177
-	```
-	```
-	>>> # Calling with 'sample_weight'.
-	>>> cce(y_true, y_pred, sample_weight=tf.constant([0.3, 0.7])).numpy()
+	>>>	# Calling with 'sample_weight'.
+	>>>	cce(y_true, y_pred, sample_weight=tf.constant([0.3, 0.7])).numpy()
 	0.814
-	```
-	```
-	>>> # Using 'sum' reduction type.
-	>>> cce = tf.keras.losses.CategoricalCrossentropy(
-	...     reduction=tf.keras.losses.Reduction.SUM)
-	>>> cce(y_true, y_pred).numpy()
+	>>>	# Using 'sum' reduction type.
+	>>>	cce = tf.keras.losses.CategoricalCrossentropy(reduction=tf.keras.losses.Reduction.SUM)
+	>>>	cce(y_true, y_pred).numpy()
 	2.354
-	```
-	```
-	>>> # Using 'none' reduction type.
-	>>> cce = tf.keras.losses.CategoricalCrossentropy(
-	...     reduction=tf.keras.losses.Reduction.NONE)
-	>>> cce(y_true, y_pred).numpy()
+	>>>	# Using 'none' reduction type.
+	>>>	cce = tf.keras.losses.CategoricalCrossentropy(reduction=tf.keras.losses.Reduction.NONE)
+	>>>	cce(y_true, y_pred).numpy()
 	array([0.0513, 2.303], dtype=float32)
 	```
 
@@ -241,7 +232,7 @@ class QuasifullyZeroshotCategoricalCrossentropy(ZeroshotCategoricalCrossentropy)
 			name: Optional name for the instance.
 				Defaults to "quasifully_categorical_crossentropy".
 		"""
-		super(QuasifullyZeroshotCategoricalCrossentropy, self).__init__(source,
+		super(QuasifullyGeneralizedZeroshotCategoricalCrossentropy, self).__init__(source,
 			axis=kwargs.pop("axis", None) or axis,
 			name=kwargs.pop("name", None) or name,
 		**kwargs)
@@ -253,9 +244,9 @@ class QuasifullyZeroshotCategoricalCrossentropy(ZeroshotCategoricalCrossentropy)
 		self.bias = bias
 
 	def call(self,
-		y_true,
-		y_pred,
-	):
+		y_true: tensorflow.Tensor,
+		y_pred: tensorflow.Tensor,
+	) -> tensorflow.Tensor:
 		"""Invoke the `Loss` instance.
 
 		Argumentss:
@@ -276,7 +267,7 @@ class QuasifullyZeroshotCategoricalCrossentropy(ZeroshotCategoricalCrossentropy)
 	#		axis=self.axis,
 	#	)
 
-		return super(QuasifullyZeroshotCategoricalCrossentropy, self).call(
+		return super(QuasifullyGeneralizedZeroshotCategoricalCrossentropy, self).call(
 			y_true,
 			y_pred,
 		) - tensorflow.math.log(
@@ -300,7 +291,7 @@ class QuasifullyZeroshotCategoricalCrossentropy(ZeroshotCategoricalCrossentropy)
 		config["source"] = pandas.Series(from_string(config["source"]))
 		config["target"] = pandas.Series(from_string(config["target"]))
 
-		loss = super(QuasifullyZeroshotCategoricalCrossentropy, cls).from_config(config)
+		loss = super(QuasifullyGeneralizedZeroshotCategoricalCrossentropy, cls).from_config(config)
 
 		return loss
 
@@ -313,11 +304,11 @@ class QuasifullyZeroshotCategoricalCrossentropy(ZeroshotCategoricalCrossentropy)
 			The config dictionary for a `Loss` instance.
 		"""
 		config = super(ZeroshotCategoricalCrossentropy, self).get_config()
-
 		config.update(
 			{
-				"source": to_string(self.source),
-				"target": to_string(self.target), "bias": self.bias,
+				"source": to_string(self.source.numpy()),  # type: ignore https://github.com/microsoft/pylance-release/issues/2871
+				"target": to_string(self.target.numpy()),  # type: ignore https://github.com/microsoft/pylance-release/issues/2871
+				"bias": self.bias,
 			}
 		)
 

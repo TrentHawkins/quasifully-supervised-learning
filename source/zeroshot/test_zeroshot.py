@@ -58,7 +58,6 @@ class TestClassifiers:
 
 	def test_quasifully_zeroshot_categorical_classifier(self):
 		"""Test plain categorical classifier."""
-		import os; os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 		import numpy
 		import tensorflow  # ; tensorflow.keras.backend.set_image_data_format("channels_first")
 
@@ -68,8 +67,11 @@ class TestClassifiers:
 		from source.dataset.animals_with_attributes import TransductiveZeroshotDataset
 		from source.keras.applications.convnext import ConvNeXt
 		from source.keras.applications.efficientnet import EfficientNet
-		from source.zeroshot.classifiers import QuasifullyZeroshotCategoricalClassifier
+		from source.zeroshot.classifiers import QuasifullyGeneralizedZeroshotCategoricalClassifier
 		from source.zeroshot.models import GeneralizedZeroshotModel
+
+	#	Set all seeds:
+		tensorflow.keras.utils.set_random_seed(0)
 
 	#	Setup data:
 		dataset = TransductiveZeroshotDataset()
@@ -87,20 +89,12 @@ class TestClassifiers:
 		)
 
 	#	Setup model pipeline (classifier):
-		classifier = QuasifullyZeroshotCategoricalClassifier(model, *dataset.split(),
+		classifier = QuasifullyGeneralizedZeroshotCategoricalClassifier(model, *dataset.split(),
 			dataset.labels("trainvalclasses.txt"),
 			dataset.labels("testclasses.txt"),
-		#	bias=1,
-			verbose=2,
-			name="quasifully_zeroshot_categorical",
-		)
-
-	#	Setup model pipeline (classifier):
-		classifier = QuasifullyZeroshotCategoricalClassifier(model, *dataset.split(),
-			dataset.labels("trainvalclasses.txt"),
-			dataset.labels("testclasses.txt"),
-		#	bias=1,
-			verbose=2,
+			bias=1,
+			seed=0,
+			verbose=1,
 			name="quasifully_zeroshot_categorical",
 		)
 
@@ -114,16 +108,24 @@ class TestClassifiers:
 		metrics = classifier.evaluate()
 
 	#	Save compiled and trained model:
-	#	classifier.save(f"./models/{classifier.name}")
+		classifier.save(f"./models/{classifier.name}")
 
 	#	Load compiled pre-trained model:
-	#	reloaded_classifier = QuasifullyZeroshotCategoricalClassifier.load(f"./models/{classifier.name}", *dataset.split(),
-	#		dataset.labels("trainvalclasses.txt"),
-	#		dataset.labels("testclasses.txt"),
-	#	#	bias=1,
-	#		verbose=1,
-	#		name="quasifully_zeroshot_categorical",
-	#	)
+		reloaded_classifier = QuasifullyGeneralizedZeroshotCategoricalClassifier.load(
+			f"./models/{classifier.name}", *dataset.split(),
+			dataset.labels("trainvalclasses.txt"),
+			dataset.labels("testclasses.txt"),
+			bias=2,
+			seed=0,
+			verbose=1,
+			name="quasifully_zeroshot_categorical",
+		)
 
-	#	Assert models are the same:
-	#	assert numpy.allclose(reloaded_classifier.predict(), predict)
+	#	Assert compiled elements are the same:
+		assert reloaded_classifier.model.get_config() == classifier.model.get_config()
+
+	#	Assert predictions are the same with the original model:
+		assert numpy.allclose(reloaded_classifier.predict(), predict)
+
+	#	Assert metrics are the same with the original model:
+		assert numpy.allclose(list(reloaded_classifier.evaluate().values()), list(metrics.values()))

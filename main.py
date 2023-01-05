@@ -11,11 +11,14 @@ import source.keras.utils.layer_utils
 from source.dataset.animals_with_attributes import TransductiveZeroshotDataset
 from source.keras.applications.convnext import ConvNeXt
 from source.keras.applications.efficientnet import EfficientNet
-from source.zeroshot.classifiers import QuasifullyZeroshotCategoricalClassifier
+from source.zeroshot.classifiers import QuasifullyGeneralizedZeroshotCategoricalClassifier
 from source.zeroshot.models import GeneralizedZeroshotModel
 
 if __name__ == "__main__":
 	"""Test."""
+
+#	Set all seeds:
+	tensorflow.keras.utils.set_random_seed(0)
 
 #	Setup data:
 	dataset = TransductiveZeroshotDataset()
@@ -33,10 +36,11 @@ if __name__ == "__main__":
 	)
 
 #	Setup model pipeline (classifier):
-	classifier = QuasifullyZeroshotCategoricalClassifier(model, *dataset.split(),
+	classifier = QuasifullyGeneralizedZeroshotCategoricalClassifier(model, *dataset.split(),
 		dataset.labels("trainvalclasses.txt"),
 		dataset.labels("testclasses.txt"),
-	#	bias=1,
+		bias=1,
+		seed=0,
 		verbose=1,
 		name="quasifully_zeroshot_categorical",
 	)
@@ -54,10 +58,11 @@ if __name__ == "__main__":
 	classifier.save(f"./models/{classifier.name}")
 
 #	Load compiled pre-trained model:
-	reloaded_classifier = QuasifullyZeroshotCategoricalClassifier.load(f"./models/{classifier.name}", *dataset.split(),
+	reloaded_classifier = QuasifullyGeneralizedZeroshotCategoricalClassifier.load(f"./models/{classifier.name}", *dataset.split(),
 		dataset.labels("trainvalclasses.txt"),
 		dataset.labels("testclasses.txt"),
-	#	bias=1,
+		bias=2,
+		seed=0,
 		verbose=1,
 		name="quasifully_zeroshot_categorical",
 	)
@@ -65,11 +70,8 @@ if __name__ == "__main__":
 #	Assert compiled elements are the same:
 	assert reloaded_classifier.model.get_config() == classifier.model.get_config()
 
-	predict_reloaded = classifier.predict()
-	predict_relolution = reloaded_classifier.predict()
+#	Assert predictions are the same with the original model:
+	assert numpy.allclose(reloaded_classifier.predict(), predict)
 
-#	Assert seed is trully fixed:
-	assert numpy.allclose(predict_reloaded, predict)
-
-#	Assert seed is trully fixed:
-	assert numpy.allclose(predict_relolution, predict)
+#	Assert metrics are the same with the original model:
+	assert numpy.allclose(list(reloaded_classifier.evaluate().values()), list(metrics.values()))

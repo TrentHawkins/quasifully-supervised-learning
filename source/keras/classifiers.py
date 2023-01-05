@@ -149,7 +149,7 @@ class Classifier:
 		devel: tensorflow.data.Dataset | None = None,
 		*,
 		epochs: int = 1,
-	):
+	) -> dict:
 		"""Train the model for a fixed number of epochs (iterations on a dataset).
 
 		Unpacking behavior for iterator-like inputs:
@@ -278,7 +278,7 @@ class Classifier:
 
 	def predict(self,
 		valid: tensorflow.data.Dataset | None = None,
-	):
+	) -> tensorflow.Tensor:
 		"""Generate output predictions for the input samples.
 
 		Computation is done in batches.
@@ -319,7 +319,7 @@ class Classifier:
 
 	def evaluate(self,
 		valid: tensorflow.data.Dataset | None = None,
-	):
+	) -> dict:
 		"""Return the loss value & metrics values for the model in test mode.
 
 		Computation is done in batches if provided by the input data.
@@ -352,7 +352,7 @@ class Classifier:
 
 		print_separator(3)
 
-		return metrics
+		return metrics  # type: ignore
 
 	def save(self, filepath: str | PathLike):
 		"""Save the model weights in classifier to Tensorflow `SavedModel`.

@@ -68,7 +68,7 @@ class DropoutDense(tensorflow.keras.layers.Dense):
 	#	dropout:
 		assert dropout_rate >= 0. and dropout_rate <= 1.
 		self.dropout = tensorflow.keras.layers.Dropout(dropout_rate,
-			noise_shape=None,
+		#	noise_shape=None,
 			seed=seed,  # None,
 			name=f"dropout_{name}",  # None
 		)

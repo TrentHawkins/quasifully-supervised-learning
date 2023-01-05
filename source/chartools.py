@@ -3,6 +3,8 @@
 
 from typing import Iterable, Type
 
+import tensorflow
+
 
 def to_string(objects: Iterable | map,
 	type: Type = int,
