@@ -67,65 +67,71 @@ class TestClassifiers:
 		from source.dataset.animals_with_attributes import TransductiveZeroshotDataset
 		from source.keras.applications.convnext import ConvNeXt
 		from source.keras.applications.efficientnet import EfficientNet
-		from source.zeroshot.classifiers import QuasifullyGeneralizedZeroshotCategoricalClassifier
+		from source.zeroshot.classifiers import QuasifullyGeneralizedZeroshotClassifier
 		from source.zeroshot.models import GeneralizedZeroshotModel
 
-	#	Set all seeds:
-		tensorflow.keras.utils.set_random_seed(0)
+		if __name__ == "__main__":
+			"""Test."""
 
-	#	Setup data:
-		dataset = TransductiveZeroshotDataset()
+		#	Set all seeds:
+			tensorflow.keras.utils.set_random_seed(0)
 
-	#	Setup model components:
-		visual = ConvNeXt.Tiny()
-	#	visual = EfficientNet.B0()
-		semantic_matrix = tensorflow.convert_to_tensor(dataset.alphas().transpose(),
-			dtype=tensorflow.float32,
-		)
+		#	Setup data:
+			dataset = TransductiveZeroshotDataset()
 
-	#	Set up model:
-		model = GeneralizedZeroshotModel(visual, semantic_matrix,
-			name="quasifully_zeroshot_categorical",
-		)
+		#	Setup model components:
+			visual = ConvNeXt.Tiny()
+		#	visual = EfficientNet.B0()
+			semantic_matrix = tensorflow.convert_to_tensor(dataset.alphas().transpose(),
+				dtype=tensorflow.float32,
+			)
 
-	#	Setup model pipeline (classifier):
-		classifier = QuasifullyGeneralizedZeroshotCategoricalClassifier(model, *dataset.split(),
-			dataset.labels("trainvalclasses.txt"),
-			dataset.labels("testclasses.txt"),
-			bias=1,
-			seed=0,
-			verbose=1,
-			name="quasifully_zeroshot_categorical",
-		)
+		#	Set up model:
+			model = GeneralizedZeroshotModel(visual, semantic_matrix,
+				name="quasifully_zeroshot_categorical",
+			)
 
-	#	Compile classifier:
-		classifier.compile()
-		classifier.summary()
+		#	Setup model pipeline (classifier):
+			classifier = QuasifullyGeneralizedZeroshotClassifier(model, *dataset.split(),
+				dataset.labels("trainvalclasses.txt"),
+				dataset.labels("testclasses.txt"),
+				seed=0,
+				verbose=1,
+				name="quasifully_supervised_categorical_classifier",
+			)
 
-	#	Learning cycle:
-		history = classifier.fit(epochs=1)
-		predict = classifier.predict()
-		metrics = classifier.evaluate()
+		#	Compile classifier:
+			classifier.compile(
+				tensorflow.keras.losses.CategoricalCrossentropy(),
+				tensorflow.keras.metrics.CategoricalAccuracy(),
+			#	learning_rate=None,
+				log2_bias=1,
+				weight=1,
+			)
+			classifier.summary()
 
-	#	Save compiled and trained model:
-		classifier.save(f"./models/{classifier.name}")
+		#	Learning cycle:
+			history = classifier.fit(epochs=1)
+			predict = classifier.predict()
+			metrics = classifier.evaluate()
 
-	#	Load compiled pre-trained model:
-		reloaded_classifier = QuasifullyGeneralizedZeroshotCategoricalClassifier.load(
-			f"./models/{classifier.name}", *dataset.split(),
-			dataset.labels("trainvalclasses.txt"),
-			dataset.labels("testclasses.txt"),
-			bias=2,
-			seed=0,
-			verbose=1,
-			name="quasifully_zeroshot_categorical",
-		)
+		#	Save compiled and trained model:
+			classifier.save(f"./models/{classifier.name}")
 
-	#	Assert compiled elements are the same:
-		assert reloaded_classifier.model.get_config() == classifier.model.get_config()
+		#	Load compiled pre-trained model:
+			reloaded_classifier = QuasifullyGeneralizedZeroshotClassifier.load(f"./models/{classifier.name}", *dataset.split(),
+				dataset.labels("trainvalclasses.txt"),
+				dataset.labels("testclasses.txt"),
+				seed=0,
+				verbose=1,
+				name="quasifully_supervised_categorical_classifier",
+			)
 
-	#	Assert predictions are the same with the original model:
-		assert numpy.allclose(reloaded_classifier.predict(), predict)
+		#	Assert compiled elements are the same:
+			assert reloaded_classifier.model.get_config() == classifier.model.get_config()
 
-	#	Assert metrics are the same with the original model:
-		assert numpy.allclose(list(reloaded_classifier.evaluate().values()), list(metrics.values()))
+		#	Assert predictions are the same with the original model:
+			assert numpy.allclose(reloaded_classifier.predict(), predict)
+
+		#	Assert metrics are the same with the original model:
+			assert numpy.allclose(list(reloaded_classifier.evaluate().values()), list(metrics.values()))

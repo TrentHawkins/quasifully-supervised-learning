@@ -11,7 +11,7 @@ import source.keras.utils.layer_utils
 from source.dataset.animals_with_attributes import TransductiveZeroshotDataset
 from source.keras.applications.convnext import ConvNeXt
 from source.keras.applications.efficientnet import EfficientNet
-from source.zeroshot.classifiers import QuasifullyGeneralizedZeroshotCategoricalClassifier
+from source.zeroshot.classifiers import GeneralizedZeroshotClassifier, QuasifullyGeneralizedZeroshotClassifier
 from source.zeroshot.models import GeneralizedZeroshotModel
 
 if __name__ == "__main__":
@@ -36,17 +36,22 @@ if __name__ == "__main__":
 	)
 
 #	Setup model pipeline (classifier):
-	classifier = QuasifullyGeneralizedZeroshotCategoricalClassifier(model, *dataset.split(),
+	classifier = QuasifullyGeneralizedZeroshotClassifier(model, *dataset.split(),
 		dataset.labels("trainvalclasses.txt"),
 		dataset.labels("testclasses.txt"),
-		bias=1,
 		seed=0,
 		verbose=1,
-		name="quasifully_zeroshot_categorical",
+		name="quasifully_supervised_categorical_classifier",
 	)
 
 #	Compile classifier:
-	classifier.compile()
+	classifier.compile(
+		tensorflow.keras.losses.CategoricalCrossentropy(),
+		tensorflow.keras.metrics.CategoricalAccuracy(),
+	#	learning_rate=None,
+		log2_bias=0,
+		weight=.5,
+	)
 	classifier.summary()
 
 #	Learning cycle:
@@ -58,13 +63,12 @@ if __name__ == "__main__":
 	classifier.save(f"./models/{classifier.name}")
 
 #	Load compiled pre-trained model:
-	reloaded_classifier = QuasifullyGeneralizedZeroshotCategoricalClassifier.load(f"./models/{classifier.name}", *dataset.split(),
+	reloaded_classifier = QuasifullyGeneralizedZeroshotClassifier.load(f"./models/{classifier.name}", *dataset.split(),
 		dataset.labels("trainvalclasses.txt"),
 		dataset.labels("testclasses.txt"),
-		bias=2,
 		seed=0,
 		verbose=1,
-		name="quasifully_zeroshot_categorical",
+		name="quasifully_supervised_categorical_classifier",
 	)
 
 #	Assert compiled elements are the same:

@@ -1,9 +1,9 @@
 """Zeroshot metrics."""
 
 
+from copy import deepcopy
 from typing import Iterable
 
-import numpy
 import pandas
 import tensorflow
 
@@ -11,42 +11,44 @@ from ..chartools import from_string, to_string
 
 
 @tensorflow.keras.utils.register_keras_serializable("source>zeroshot>metrics")
-class ZeroshotCategoricalAccuracy(tensorflow.keras.metrics.CategoricalAccuracy):
-	"""Calculate how often predictions match one-hot labels.
+class ZeroshotMetric(tensorflow.keras.metrics.Mean):
+	"""Wrapper class for a zeroshot metric.
 
-	You can provide logits of classes as `y_pred`, since argmax of logits and probabilities are same.
-
-	This metric creates two local variables, `total` and `count`,
-	that are used to compute the frequency with which `y_pred` matches `y_true`.
-
-	This frequency is ultimately returned as `categorical accuracy`:
-		an idempotent operation that simply divides `total` by `count`.
-
-	`y_pred` and `y_true` should be passed in as vectors of probabilities, rather than as labels.
-	If necessary, use `tf.one_hot` to expand `y_true` as a vector.
-
-	If `sample_weight` is `None`, weights default to 1.
-	Use `sample_weight` of 0 to mask values.
-
-	This modification trims some labels off to account for missing labels during training.
-
-	For example if 40 out of 50 labels in a clasification task are picked,
-	all 50-one-hot representations will be trimmed to a 40-one-hot representation corresponding to the picked labels.
+	NOTE: This means that `y_true`, `y_pred` are trimmed to a subset of `filter` of the full label set, known during training.
+	The zeroshot filter is applied to any `tensorflow.keras.metrics.Metric` instance provided.
 	"""
 
-	def __init__(self, filter: Iterable, **kwargs):
-		"""Store label selection for trimming output.
+	def __init__(self, metric: tensorflow.keras.metrics.Metric, filter: Iterable[int],
+		name: str = "zeroshot_metric",
+	**kwargs):
+		"""Initialize a `tensorflow.keras.metrics.Metric` instance with a zeroshot label filter.
 
 		Arguments:
-			filter: A selection to account for when evaluating accuracy.
-		"""
-		super(ZeroshotCategoricalAccuracy, self).__init__(**kwargs)
+			metric: A `tensorflow.keras.metrics.Metric` instance to apply zeroshot label filter to.
+			filter: An Iterable[int] of labels in sparce format to trim `y_true` and `y_pred` to.
 
-		self.filter: tensorflow.Tensor = tensorflow.convert_to_tensor(filter, dtype=tensorflow.int32)
+		Keyword Argumdents:
+			axis: Dimension of reduction of `y_true` and `y_pred`.
+				Ignored when given `tensorflow.keras.metrics.Metric` provides a reduction axis.
+
+			name: Optional name for the instance, prepended by 'zeroshot_'.
+				Defaults to 'zeroshot_loss'.
+		"""
+		super(ZeroshotMetric, self).__init__(
+			name=name,
+		**kwargs)
+
+	#	deepcopy the metric to avoid sharing the same metric with other wrapped zeroshot metrics
+		self.metric = deepcopy(metric)
+
+	#	reduction filter
+		self.filter = tensorflow.constant(filter,
+			dtype=tensorflow.int32,
+		)
 
 	def update_state(self,
 		y_true: tensorflow.Tensor,
-		y_pred: tensorflow.Tensor, sample_weight: tensorflow.Tensor | None = None
+		y_pred: tensorflow.Tensor, sample_weight: tensorflow.Tensor | None = None,
 	):
 		"""Accumulate metric statistics.
 
@@ -54,7 +56,11 @@ class ZeroshotCategoricalAccuracy(tensorflow.keras.metrics.CategoricalAccuracy):
 
 		Arguments:
 			y_true: Ground truth values. shape = `[batch_size, d0, .. dN]`.
+				Trimmed by zeroshot label filter.
+
 			y_pred: The predicted values. shape = `[batch_size, d0, .. dN]`.
+				Trimmed by zeroshot label filter.
+
 			sample_weight: Optional `sample_weight` acts as a coefficient for the metric.
 				If a scalar is provided, then the metric is simply scaled by the given value.
 				If `sample_weight` is a tensor of size `[batch_size]`,
@@ -71,10 +77,20 @@ class ZeroshotCategoricalAccuracy(tensorflow.keras.metrics.CategoricalAccuracy):
 			axis=-1,
 		)
 
-		super(ZeroshotCategoricalAccuracy, self).update_state(
+		return self.metric.update_state(
 			y_true_filter,
-			y_pred_filter, sample_weight
+			y_pred_filter, sample_weight,
 		)
+
+	def result(self):
+		"""Compute and return the scalar metric value tensor or a dict of scalars.
+
+		Result computation is an idempotent operation that simply calculates the metric value using the state variables.
+
+		Returns:
+			A scalar tensor, or a dictionary of scalar tensors.
+		"""
+		return self.metric.result()
 
 	@classmethod
 	def from_config(cls, config: dict):
@@ -88,10 +104,10 @@ class ZeroshotCategoricalAccuracy(tensorflow.keras.metrics.CategoricalAccuracy):
 		Returns:
 			A `Metric` instance.
 		"""
+		config["metric"] = tensorflow.keras.metrics.deserialize(config["metric"])
 		config["filter"] = pandas.Series(from_string(config["filter"]))
-		accuracy = super(ZeroshotCategoricalAccuracy, cls).from_config(config)
 
-		return accuracy
+		return super(ZeroshotMetric, cls).from_config(config)
 
 	def get_config(self) -> dict:
 		"""Return the config dictionary for a `Metric` instance.
@@ -101,10 +117,11 @@ class ZeroshotCategoricalAccuracy(tensorflow.keras.metrics.CategoricalAccuracy):
 		Returns:
 			The config dictionary for a `Metric` instance.
 		"""
-		config = super(ZeroshotCategoricalAccuracy, self).get_config()
+		config = super(ZeroshotMetric, self).get_config()
 		config.update(
 			{
-				"filter": to_string(self.filter.numpy()),  # type: ignore https://github.com/microsoft/pylance-release/issues/2871
+				"metric": tensorflow.keras.metrics.serialize(self.metric),
+				"filter": to_string(self.filter.numpy()),
 			}
 		)
 

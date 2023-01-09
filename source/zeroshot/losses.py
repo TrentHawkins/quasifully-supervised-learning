@@ -4,283 +4,91 @@ NOTE: There is a lot of repeating code. Consider abstracting the interface to ap
 """
 
 
-from typing import Iterable
+from copy import deepcopy
+from math import log2
+from typing import Any, Iterable
 
-import tensorflow
 import pandas
+import tensorflow
 
 from ..chartools import from_string, to_string
 
 
 @tensorflow.keras.utils.register_keras_serializable("source>zeroshot>losses")
-class ZeroshotCategoricalCrossentropy(tensorflow.keras.losses.CategoricalCrossentropy):
-	"""Computes the crossentropy loss between the labels and predictions.
+class ZeroshotLoss(tensorflow.keras.losses.Loss):
+	"""Wrapper class for a zeroshot loss.
 
-	Use this crossentropy loss function when there are two or more label classes.
-	We expect labels to be provided in a `one_hot` representation.
-	If you want to provide labels as integers, please use `SparseCategoricalCrossentropy` loss.
-	There should be `# classes` floating point values per feature.
-
-	In the snippet below, there is `# classes` floating pointing values per example.
-	The shape of both `y_pred` and `y_true` are `[batch_size, num_classes]`.
-
-	NOTE: This modified version only sums over a subset of the (seen) labels, ignoring other (unseen) labels.
-
-	Standalone usage:
-	```
-	>>>	y_true = [[0, 1, 0], [0, 0, 1]]
-	>>>	y_pred = [[0.05, 0.95, 0], [0.1, 0.8, 0.1]]
-	>>>	# Using 'auto'/'sum_over_batch_size' reduction type.
-	>>>	cce = tf.keras.losses.CategoricalCrossentropy()
-	>>>	cce(y_true, y_pred).numpy()
-	1.177
-	>>>	# Calling with 'sample_weight'.
-	>>>	cce(y_true, y_pred, sample_weight=tf.constant([0.3, 0.7])).numpy()
-	0.814
-	>>>	# Using 'sum' reduction type.
-	>>>	cce = tf.keras.losses.CategoricalCrossentropy(reduction=tf.keras.losses.Reduction.SUM)
-	>>>	cce(y_true, y_pred).numpy()
-	2.354
-	>>>	# Using 'none' reduction type.
-	>>>	cce = tf.keras.losses.CategoricalCrossentropy(reduction=tf.keras.losses.Reduction.NONE)
-	>>>	cce(y_true, y_pred).numpy()
-	array([0.0513, 2.303], dtype=float32)
-	```
-
-	Usage with the `compile()` API:
-	```python
-	model.compile(
-		optimizer="sgd",
-		loss=tf.keras.losses.CategoricalCrossentropy()
-	)
-	```
+	NOTE: This means that `y_true`, `y_pred` are trimmed to a subset of `filter` of the full label set, known during training.
+	The zeroshot filter is applied to any `tensorflow.keras.losses.Loss` instance provided.
 	"""
 
-	def __init__(self, source: tensorflow.Tensor | Iterable[int],
-		axis: int = -1,
-		name: str = "zeroshot_categorical_crossentropy",
+	def __init__(self, loss: tensorflow.keras.losses.Loss, filter: Iterable[int],
+		name: str = "zeroshot_loss",
 	**kwargs):
-		"""Initialize `ZeroshotCategoricalCrossentropy` instance.
+		"""Initialize a `tensorflow.keras.losses.Loss` instance with a zeroshot label filter.
 
 		Arguments:
-			source: The labels seen during zeroshot training.
-				Must be a subset of the labels used in the respective problem.
+			loss: A `tensorflow.keras.losses.Loss` instance to apply zeroshot label filter to.
+			filter: An Iterable[int] of labels in sparce format to trim `y_true` and `y_pred` to.
 
-				Unlike the usage in the dataset and this loss functions, they must be in sparse categorical form.
-				Used to trim categorical `one_hot` vectors to only the source labels.
+		Keyword Argumdents:
+			axis: Dimension of reduction of `y_true` and `y_pred`.
+				Ignored when given `tensorflow.keras.losses.Loss` provides a reduction axis.
 
-		Keyword Arguments:
-			from_logits: Whether `y_pred` is expected to be a logits tensor.
-				We assume that `y_pred` encodes a probability distribution.
-
-			label_smoothing: Float in [0, 1].
-				When > 0, label values are smoothed, meaning the confidence on label values are relaxed.
-				We do not smoothen labels.
-
-				For example, if `0.1`,
-				-	use `0.1 / num_classes` for non-target labels and
-				-	`0.9 + 0.1 / num_classes` for target labels.
-
-			axis: The axis along which to compute crossentropy (the features axis).
-				Defaults to -1.
-
-			reduction: Type of `tf.keras.losses.Reduction` to apply to loss.
-				Set value is `AUTO`.
-
-				`AUTO` indicates that the reduction option will be determined by the usage context.
-				For almost all cases this defaults to `SUM_OVER_BATCH_SIZE`.
-				When used with `tf.distribute.Strategy`,
-				outside of built-in training loops such as `tf.keras` `compile` and `fit`,
-				using `AUTO` or `SUM_OVER_BATCH_SIZE` will raise an error.
-
-			name: Optional name for the instance.
-				Defaults to "zeroshot_categorical_crossentropy".
+			name: Optional name for the instance, prepended by 'zeroshot_'.
+				Defaults to 'zeroshot_loss'.
 		"""
-		super(ZeroshotCategoricalCrossentropy, self).__init__(
-			axis=kwargs.pop("axis", None) or axis,
-			name=kwargs.pop("name", None) or name,
+		super(ZeroshotLoss, self).__init__(
+			name=name,
 		**kwargs)
 
-	#	save axis:
-		self.axis = axis
+	#	deepcopy the losses to avoid sharing the same losses with other wrapped zeroshot losses
+		self.loss = deepcopy(loss)
 
-	#	labels seen during training:
-		self.source = tensorflow.convert_to_tensor(source, dtype=tensorflow.int32)
+	#	reduction filter
+		self.filter = tensorflow.constant(filter,
+			dtype=tensorflow.int32,
+		)
 
 	def call(self,
 		y_true: tensorflow.Tensor,
 		y_pred: tensorflow.Tensor,
-	) -> tensorflow.Tensor:
-		"""Invoke the `Loss` instance.
-
-		NOTE: Trims reruction dimension down to source labels only.
+	):
+		"""Invoke the given `Loss` instance modified with the zeroshot label filter.
 
 		Arguments:
 			y_true: Ground truth values.
-				shape = `[batch_size, d0, ..., dN]`, except sparse loss functions such as sparse categorical crossentropy where
-				shape = `[batch_size, d0, ..., dN-1]`
+				shape = `[batch_size, d0, .. dN]`, except sparse loss functions such as sparse categorical crossentropy where
+				shape = `[batch_size, d0, .. dN-1]`
 
 			y_pred: The predicted values.
-				shape = `[batch_size, d0, ..., dN]`
+				shape = `[batch_size, d0, .. dN]`
 
 		Returns:
-			Loss values with the shape `[batch_size, d0, ..., dN-1]`.
+			Loss float `Tensor`.
+				If `reduction` is `NONE`, this has shape `[batch_size, d0, .. dN-1]`; otherwise, it is scalar.
+				(`dN-1` because all loss functions reduce by 1 dimension, usually axis=-1.)
+
+		Raises:
+			ValueError: If the shape of `sample_weight` is invalid.
 		"""
-		y_pred_source = tensorflow.gather(y_pred, self.source,
-			axis=self.axis,
+		y_true_filter = tensorflow.gather(y_true, self.filter,
+			axis=-1,
 		)
-		y_true_source = tensorflow.gather(y_true, self.source,
-			axis=self.axis,
-		)
-
-		return super(ZeroshotCategoricalCrossentropy, self).call(
-			y_true_source,
-			y_pred_source,
+		y_pred_filter = tensorflow.gather(y_pred, self.filter,
+			axis=-1,
 		)
 
-
-@tensorflow.keras.utils.register_keras_serializable("source>zeroshot>losses")
-class QuasifullyGeneralizedZeroshotCategoricalCrossentropy(ZeroshotCategoricalCrossentropy):
-	"""Computes the crossentropy loss between the labels and predictions.
-
-	Use this crossentropy loss function when there are two or more label classes.
-	We expect labels to be provided in a `one_hot` representation.
-	If you want to provide labels as integers, please use `SparseCategoricalCrossentropy` loss.
-	There should be `# classes` floating point values per feature.
-
-	In the snippet below, there is `# classes` floating pointing values per example.
-	The shape of both `y_pred` and `y_true` are `[batch_size, num_classes]`.
-
-	NOTE: This modified version adds an entropic sum corresponding to unlabelled examples.
-
-	Standalone usage:
-	```
-	>>>	y_true = [[0, 1, 0], [0, 0, 1]]
-	>>>	y_pred = [[0.05, 0.95, 0], [0.1, 0.8, 0.1]]
-	>>>	# Using 'auto'/'sum_over_batch_size' reduction type.
-	>>>	cce = tf.keras.losses.CategoricalCrossentropy()
-	>>>	cce(y_true, y_pred).numpy()
-	1.177
-	>>>	# Calling with 'sample_weight'.
-	>>>	cce(y_true, y_pred, sample_weight=tf.constant([0.3, 0.7])).numpy()
-	0.814
-	>>>	# Using 'sum' reduction type.
-	>>>	cce = tf.keras.losses.CategoricalCrossentropy(reduction=tf.keras.losses.Reduction.SUM)
-	>>>	cce(y_true, y_pred).numpy()
-	2.354
-	>>>	# Using 'none' reduction type.
-	>>>	cce = tf.keras.losses.CategoricalCrossentropy(reduction=tf.keras.losses.Reduction.NONE)
-	>>>	cce(y_true, y_pred).numpy()
-	array([0.0513, 2.303], dtype=float32)
-	```
-
-	Usage with the `compile()` API:
-	```python
-	model.compile(
-		optimizer='sgd',
-		loss=tf.keras.losses.CategoricalCrossentropy()
-	)
-	```
-	"""
-
-	def __init__(self,
-		source: tensorflow.Tensor | Iterable[int],
-		target: tensorflow.Tensor | Iterable[int],
-		bias: float = 0.,
-		axis: int = -1,
-		name: str = "quasifully_categorical_crossentropy",
-	**kwargs):
-		"""Initialize `QuasifullyCategoricalCrossentropy` instance.
-
-		Arguments:
-			source: The labels seen during zeroshot training.
-				Must be a subset of the labels used in the respective problem.
-
-				Unlike the usage in the dataset and this loss functions, they must be in sparse categorical form.
-				Used to trim categorical `one_hot` vectors to only the source labels.
-
-			target: The labels not seen during zeroshot training.
-				Must be a subset of the labels used in the respective problem.
-
-				Unlike the usage in the dataset and this loss functions, they must be in sparse categorical form.
-				Used to trim categorical `one_hot` vectors to only the source labels.
-
-			bias: The influence of the quasifully bias term to the overall loss.
-				Defaults to no bias at all.
-
-		Keyword Arguments:
-			from_logits: Whether `y_pred` is expected to be a logits tensor.
-				By default, we assume that `y_pred` encodes a probability distribution.
-
-			label_smoothing: Float in [0, 1].
-				When > 0, label values are smoothed, meaning the confidence on label values are relaxed.
-
-			For example, if `.1`, use `.1 / num_classes` for non-target labels and `.9 + .1 / num_classes` for target labels.
-
-			axis: The axis along which to compute crossentropy (the features axis).
-				Defaults to -1.
-
-			reduction: Type of `tf.keras.losses.Reduction` to apply to loss.
-				Default value is `AUTO`.
-
-				`AUTO` indicates that the reduction option will be determined by the usage context.
-				For almost all cases this defaults to `SUM_OVER_BATCH_SIZE`.
-				When used with `tf.distribute.Strategy`,
-				outside of built-in training loops such as `tf.keras` `compile` and `fit`,
-				using `AUTO` or `SUM_OVER_BATCH_SIZE` will raise an error.
-
-			name: Optional name for the instance.
-				Defaults to "quasifully_categorical_crossentropy".
-		"""
-		super(QuasifullyGeneralizedZeroshotCategoricalCrossentropy, self).__init__(source,
-			axis=kwargs.pop("axis", None) or axis,
-			name=kwargs.pop("name", None) or name,
-		**kwargs)
-
-	#	labels not seen during training
-		self.target = tensorflow.convert_to_tensor(target, dtype=tensorflow.int32)
-
-	#	bias coefficient of quasifully supervised loss influence
-		self.bias = bias
-
-	def call(self,
-		y_true: tensorflow.Tensor,
-		y_pred: tensorflow.Tensor,
-	) -> tensorflow.Tensor:
-		"""Invoke the `Loss` instance.
-
-		Argumentss:
-			y_true: Ground truth values.
-				shape = `[batch_size, d0, ..., dN]`, except sparse loss functions such as sparse categorical crossentropy where
-				shape = `[batch_size, d0, ..., dN-1]`
-
-			y_pred: The predicted values.
-				shape = `[batch_size, d0, ..., dN]`
-
-		Returns:
-			Loss values with the shape `[batch_size, d0, ..., dN-1]`.
-		"""
-		y_pred_target = tensorflow.gather(y_pred, self.source,
-			axis=self.axis,
+		return self.loss.call(
+			y_true_filter,
+			y_pred_filter,
 		)
-	#	y_true_target = tensorflow.gather(y_true, self.source,
-	#		axis=self.axis,
-	#	)
-
-		return super(QuasifullyGeneralizedZeroshotCategoricalCrossentropy, self).call(
-			y_true,
-			y_pred,
-		) - tensorflow.math.log(
-			tensorflow.reduce_sum(y_pred_target,
-				axis=self.axis,
-			)
-		) * self.bias  # type: ignore  # Pylance miss-identifies the return type of `tensorflow.math.log` for some reason
 
 	@classmethod
-	def from_config(cls, config: dict):
+	def from_config(cls, config):
 		"""Instantiate a `Loss` from its config (output of `get_config()`).
 
-		Decode label subset from string storage format before loading loss.
+		NOTE: Deserializing the given `Loss` instance is necessary for the saving and loading of the model equipping wrapped loss.
 
 		Arguments:
 			config: Output of `get_config()`.
@@ -288,27 +96,194 @@ class QuasifullyGeneralizedZeroshotCategoricalCrossentropy(ZeroshotCategoricalCr
 		Returns:
 			A `Loss` instance.
 		"""
-		config["source"] = pandas.Series(from_string(config["source"]))
-		config["target"] = pandas.Series(from_string(config["target"]))
+		config["loss"] = tensorflow.keras.losses.deserialize(config["loss"])
+		config["filter"] = pandas.Series(from_string(config["filter"]))
 
-		loss = super(QuasifullyGeneralizedZeroshotCategoricalCrossentropy, cls).from_config(config)
+		return super(ZeroshotLoss, cls).from_config(config)
 
-		return loss
+	def get_config(self):
+		"""Return the config dictionary of the given a `Loss` instance.
 
-	def get_config(self) -> dict:
-		"""Return the config dictionary for a `Loss` instance.
-
-		Encode label subset to string storage format after saving loss.
-
-		Returns:
-			The config dictionary for a `Loss` instance.
+		NOTE: Serializing the given `Loss` instance will allow the saving and loading of the model equipping the wrapped loss.
 		"""
-		config = super(ZeroshotCategoricalCrossentropy, self).get_config()
+		config = super(ZeroshotLoss, self).get_config()
 		config.update(
 			{
-				"source": to_string(self.source.numpy()),  # type: ignore https://github.com/microsoft/pylance-release/issues/2871
-				"target": to_string(self.target.numpy()),  # type: ignore https://github.com/microsoft/pylance-release/issues/2871
-				"bias": self.bias,
+				"loss": tensorflow.keras.losses.serialize(self.loss),
+				"filter": to_string(self.filter.numpy()),
+			}
+		)
+
+		return config
+
+
+@tensorflow.keras.utils.register_keras_serializable("source>zeroshot>losses")
+class TransductiveGeneralizedZeroshotLoss(tensorflow.keras.losses.Loss):
+	"""Wrapper class for a generalized zeroshot loss in the transductive setting.
+
+	NOTE: This supposedly uses the target labels provided.
+	"""
+
+	def __init__(self,
+		loss: ZeroshotLoss,
+		bias: ZeroshotLoss, name: str = "transductive_generalized_zeroshot_loss",
+	**kwargs):
+		"""Initialize a `tensorflow.keras.losses.Loss` instance with a complementary zeroshot label filter.
+
+		Arguments:
+			loss: A `tensorflow.keras.losses.Loss` instance to apply zeroshot label filter to.
+			bias: A `tensorflow.keras.losses.Loss` instance to augment original loss with.
+		"""
+		super(TransductiveGeneralizedZeroshotLoss, self).__init__(
+			name=name,
+		**kwargs)
+
+	#	deepcopy the losses to avoid sharing the same losses with other wrapped zeroshot losses
+		self.loss = deepcopy(loss)
+		self.bias = deepcopy(bias)
+
+	def call(self,
+		y_true: tensorflow.Tensor,
+		y_pred: tensorflow.Tensor,
+	):
+		"""Invoke the given `Loss` instance filtered by source labels and quasifully biased by target labels.
+
+		Arguments:
+			y_true: Ground truth values.
+				shape = `[batch_size, d0, .. dN]`, except sparse loss functions such as sparse categorical crossentropy where
+				shape = `[batch_size, d0, .. dN-1]`
+
+			y_pred: The predicted values.
+				shape = `[batch_size, d0, .. dN]`
+
+		Returns:
+			Loss float `Tensor`.
+				If `reduction` is `NONE`, this has shape `[batch_size, d0, .. dN-1]`; otherwise, it is scalar.
+				(`dN-1` because all loss functions reduce by 1 dimension, usually axis=-1.)
+		"""
+		return \
+			self.loss.call(y_true, y_pred) + \
+			self.bias.call(y_true, y_pred)
+
+	@classmethod
+	def from_config(cls, config):
+		"""Instantiate a `Loss` from its config (output of `get_config()`).
+
+		NOTE: Deserializing the given `Loss` instance is necessary for the saving and loading of the model equipping wrapped loss.
+
+		Arguments:
+			config: Output of `get_config()`.
+
+		Returns:
+			A `Loss` instance.
+		"""
+		config["loss"] = tensorflow.keras.losses.deserialize(config["loss"])
+		config["bias"] = tensorflow.keras.losses.deserialize(config["bias"])
+
+		return super(TransductiveGeneralizedZeroshotLoss, cls).from_config(config)
+
+	def get_config(self) -> dict:
+		"""Return the config dictionary of the given a `Loss` instance.
+
+		NOTE: Serializing the given `Loss` instance will allow the saving and loading of the model equipping the wrapped loss.
+		"""
+		config = super(TransductiveGeneralizedZeroshotLoss, self).get_config()
+		config.update(
+			{
+				"loss": tensorflow.keras.losses.serialize(self.loss),
+				"bias": tensorflow.keras.losses.serialize(self.bias),
+			}
+		)
+
+		return config
+
+
+@tensorflow.keras.utils.register_keras_serializable("source>zeroshot>losses")
+class QuasifullyBiasLoss(tensorflow.keras.losses.Loss):
+	"""Quasifully supervised loss bias based on unlabelled examples, assuming given labels are unknown during training.
+
+	Jie Song, Chengchao Shen, Yezhou Yang, Yang Liu, Mingli Song
+	Transductive Unbiased Embedding for Zero-Shot Learning
+	CVPR2018
+	[arXiv:1803.11320](https://arxiv.org/abs/1803.11320)
+	"""
+
+	def __init__(self,
+		log2_bias: int = 0,
+		weight: float = 1,
+		name: str = "quasifully_bias_loss",
+	**kwargs):
+		"""Initialize a quasifully bias loss `tensorflow.keras.losses.Loss` instance.
+
+		This loss is compatible in a transductive generalized zeroshot learning setting only with (subclasses of):
+		-	`tensorflow.keras.losses.CategoricalCrossentropy`
+		-	`tensorflow.keras.losses.BinaryCrossentropy`
+
+		Arguments:
+			log2_bias: A hyper-coeffient adjusting the strength of the bias as a power of 2.
+				Defaults to 0 for a coefficient of 1.
+
+			weight: A probability balancing the quasifully cross-entropic bias with its binary cross-entropic complement.
+				Defaults to 1 masking the complementary probabilities.
+
+		Keyword Argumdents:
+			name: Optional name for the instance, prepended by 'quasifully_bias_'.
+				Defaults to 'quasifully_bias_loss'.
+		"""
+		super(QuasifullyBiasLoss, self).__init__(
+			name=name,
+		**kwargs)
+
+	#	bias coefficient as a power of 2
+		self.bias: float = 2 ** log2_bias
+
+	#	probabilistic balancer
+		self.weight = weight
+
+	def call(self,
+		y_true: tensorflow.Tensor,
+		y_pred: tensorflow.Tensor,
+	):
+		"""Invoke the given `Loss` instance modified with the zeroshot filter.
+
+		NOTE: The formula is modified to include a complementary binary cross-entropic term.
+		Takes into account all labels given.
+
+		Arguments:
+			y_true: Ground truth values.
+				shape = `[batch_size, d0, .. dN]`, except sparse loss functions such as sparse categorical crossentropy where
+				shape = `[batch_size, d0, .. dN-1]`
+
+			y_pred: The predicted values.
+				shape = `[batch_size, d0, .. dN]`
+
+		Returns:
+			Loss float `Tensor`.
+				If `reduction` is `NONE`, this has shape `[batch_size, d0, .. dN-1]`; otherwise, it is scalar.
+				(`dN-1` because all loss functions reduce by 1 dimension, usually axis=-1.)
+		"""
+		return -self.bias * (
+			self.weight * tensorflow.math.log(
+				tensorflow.reduce_sum(y_pred,
+					axis=-1,
+				)  # type: ignore  # `*` not supported with `tensorflow.math.log` return type but in fact is
+			) + (1 - self.weight) * tensorflow.math.log(
+				1 - tensorflow.reduce_sum(y_pred,
+					axis=-1,
+				)  # type: ignore  # `*` not supported with `tensorflow.math.log` return type but in fact is
+			)
+		)
+
+	def get_config(self) -> dict:
+		"""Return the config dictionary of the given a `Loss` instance.
+
+		NOTE: Serializing the given `Loss` instance will allow the saving and loading of the model equipping the wrapped loss.
+		"""
+		config = super(QuasifullyBiasLoss, self).get_config()
+		config.update(
+			{
+				"log2_bias": int(log2(self.bias)),
+				"weight": self.weight,
 			}
 		)
 
