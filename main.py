@@ -41,9 +41,9 @@ if __name__ == "__main__":
 	classifier = QuasifullyGeneralizedZeroshotClassifier(model, *dataset.split(),
 		dataset.labels("trainvalclasses.txt"),
 		dataset.labels("testclasses.txt"),
-		seed=0,
-		verbose=1,
-		name="quasifully_supervised_categorical_classifier",
+	#	seed=0,
+	#	verbose=1,
+	#	name="quasifully_supervised_categorical_classifier",
 	)
 
 #	Compile classifier:

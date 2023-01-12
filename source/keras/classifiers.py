@@ -33,17 +33,20 @@ class Classifier:
 	valid: tensorflow.data.Dataset = field()
 
 #	Global verbosity:
-	seed: int = field(default=0, kw_only=True)
+#	seed: int = field(default=0, kw_only=True)
 
 #	Global verbosity:
-	verbose: str | int = field(default="auto", kw_only=True)
+#	verbose: str | int = field(default="auto", kw_only=True)
 
 #	Classifier name overriding model name:
-	name: str | None = field(default=None, kw_only=True)
+#	name: str | None = field(default=None, kw_only=True)
 
 	def __post_init__(self):
 		"""Set classifier name to model name unless any."""
-		self.name = self.name or self.model.name
+		self.seed = 0
+		self.verbose = 1
+		self.name = self.model.name
+	#	self.name = self.name or self.model.name
 
 	def compile(self,
 		optimizer: tensorflow.keras.optimizers.Optimizer | str,
