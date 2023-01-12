@@ -3,8 +3,14 @@
 
 from __future__ import annotations
 
-import math
+from math import gcd
+
 import numpy
+
+
+def lcm(a, b):
+	"""Python<3.9 compatibility `lcm` function."""
+	return (a * b) // gcd(a, b)
 
 
 def divisors(dividee: int, reverse: bool = False) -> list[int]:
@@ -61,8 +67,8 @@ def hidden_dims(
 	Returns:
 		reversed list of divisors as proposed layer sizes
 	"""
-	_lcm = math.lcm(inputs_dim, output_dim) if less else inputs_dim * output_dim
-	_gcd = math.gcd(inputs_dim, output_dim) if less else 1
+	_lcm = lcm(inputs_dim, output_dim) if less else inputs_dim * output_dim
+	_gcd = gcd(inputs_dim, output_dim) if less else 1
 
 #	shrinking model
 	if inputs_dim > output_dim:
