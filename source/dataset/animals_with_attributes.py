@@ -1,6 +1,8 @@
 """Create image data loading pipeline for the Animals with Attributes 2 dataset using TensorFlow."""
 
 
+from __future__ import annotations
+
 from math import ceil, sqrt
 from sys import float_info
 from typing import Callable

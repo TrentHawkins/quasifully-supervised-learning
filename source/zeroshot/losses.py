@@ -4,6 +4,8 @@ NOTE: There is a lot of repeating code. Consider abstracting the interface to ap
 """
 
 
+from __future__ import annotations
+
 from copy import deepcopy
 from math import log2
 from typing import Any, Iterable

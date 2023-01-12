@@ -12,6 +12,8 @@ Metric sigmoid-like non-linear dense layers using similarity metrics in their de
 """
 
 
+from __future__ import annotations
+
 from typing import Callable
 
 import tensorflow

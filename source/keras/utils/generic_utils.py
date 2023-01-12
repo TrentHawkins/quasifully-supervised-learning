@@ -26,6 +26,8 @@ See the License for the specific language governing permissions and limitations 
 """
 
 
+from __future__ import annotations
+
 import sys
 import time
 

@@ -1,9 +1,9 @@
 """Basic string encoding/decoding utilities."""
 
 
-from typing import Iterable, Type
+from __future__ import annotations
 
-import tensorflow
+from typing import Iterable, Type
 
 
 def to_string(objects: Iterable | map,

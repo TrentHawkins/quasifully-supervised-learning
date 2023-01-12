@@ -7,6 +7,8 @@ The model consists of 3 main component:
 """
 
 
+from __future__ import annotations
+
 from typing import Iterable
 
 import tensorflow

@@ -1,6 +1,8 @@
 """Classifier specialized to transductive generalized zeroshot learning with the quasifully supervised learning loss."""
 
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Iterable
 

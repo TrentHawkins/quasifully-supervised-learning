@@ -1,8 +1,9 @@
 """Basic integer numeric utilities."""
 
 
-import math
+from __future__ import annotations
 
+import math
 import numpy
 
 

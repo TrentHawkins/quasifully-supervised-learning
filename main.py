@@ -1,6 +1,8 @@
 """Main."""
 
 
+from __future__ import annotations
+
 import os; os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 import numpy
 import tensorflow  # ; tensorflow.keras.backend.set_image_data_format("channels_first")
