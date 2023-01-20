@@ -1,46 +1,65 @@
 """Classifier specialized to transductive generalized zeroshot learning with the quasifully supervised learning loss."""
 
-
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import Iterable
 
 import tensorflow
 
 from ..keras.classifiers import Classifier
-from .losses import QuasifullyBiasLoss, TransductiveGeneralizedZeroshotLoss, ZeroshotLoss
-from .metrics import ZeroshotMetric
+from .losses import ZeroshotCategoricalCrossentropy, QuasifullyGeneralizedZeroshotCategoricalCrossentropy
+from .metrics import ZeroshotCategoricalAccuracy
 
 
 @dataclass
-class GeneralizedZeroshotClassifier(Classifier):
+class CategoricalClassifier(Classifier):
 	"""Specialize generic `source.keras.classifiers.Classifier` instance.
 
-	Requires:
-		source: A selection of labels known during testing and training.
-		target: A selection of labels known during testing.
-
 	Includes:
 	-	adam optimizer with adjustable learning rate,
-	-	zeroshot loss filtered by source labels,
-	-	zeroshot metric,
-		-	one filtered by source labels
-		-	one filtered by target labels
-		-	the harmonic mean of the two
+	-	categorical cross-entory loss,
+	-	accuracy metric on top of loss for evaluation
+	-	callbacks:
+		-	early stopping for regularization with patience a small fraction of the number of epochs,
+		-	reduce learning rate on plateau with patience a fraction of the early stopping patience,
 	"""
 
-	source: Iterable[int]
-	target: Iterable[int]
+	def __post_init__(self):
+		"""Set meaningful default compiling parameters for model underlying classifier.
 
-	def compile(self, loss: tensorflow.keras.losses.Loss, metric: tensorflow.keras.metrics.Metric,
-		learning_rate: float | None = None,
-	):
+		Includes:
+		-	adam optimizer with adjustable learning rate,
+		-	categorical cross-entory loss,
+		-	accuracy metric on top of loss for evaluation
+		"""
+		super(CategoricalClassifier, self).__post_init__()
+
+	#	optimizer
+		self.optimizer: tensorflow.keras.optimizers.Optimizer = tensorflow.keras.optimizers.Adam(
+		#	learning_rate=1e-3,
+		#	beta_1=.9,
+		#	beta_2=.999,
+		#	epsilon=1e-7,
+			amsgrad=True,
+		#	name="Adam",
+		)
+
+	#	loss
+		self.loss: tensorflow.keras.losses.Loss = tensorflow.keras.losses.CategoricalCrossentropy(
+		#	from_logits=False,
+		#	label_smoothing=0.,
+		#	axis=-1,
+		#	name="categorical_crossentropy"
+		)
+
+	#	metrics (basic)
+		self.metrics: list[tensorflow.keras.metrics.Metric | str] = [
+			tensorflow.keras.metrics.CategoricalAccuracy(
+				name="n",
+			),
+		]
+
+	def compile(self, learning_rate: float | None = None):
 		"""Configure the model for training.
-
-		Arguments:
-			loss: A `tensorflow.keras.losses.Loss` instance used as base for a `ZeroshotLoss` instance.
-			metric: A `tensorflow.keras.metric.Metric` instance usedused as base for `ZeroshotMetric` instances.
 
 		Keyword Arguments:
 			learning_rate: The learning rate.
@@ -52,95 +71,121 @@ class GeneralizedZeroshotClassifier(Classifier):
 
 				Defaults to the inverse of the training data size.
 		"""
-		optimizer = tensorflow.keras.optimizers.Adam(
-			learning_rate=learning_rate or 10 / len(self.train),
-		#	beta_1=.9,
-		#	beta_2=.999,
-		#	epsilon=1e-7,
-			amsgrad=True,
-		#	name="Adam",
-		)
+		self.optimizer.learning_rate = learning_rate or 10 / len(self.train)
 
-	#	Filter loss by source labels:
-		loss = ZeroshotLoss(loss, self.source)
-
-	#	Filter metric by source and target labels:
-		metrics = [
-			ZeroshotMetric(metric, self.source, name="s"),
-			ZeroshotMetric(metric, self.target, name="t"),
-		]
-
-		super(GeneralizedZeroshotClassifier, self).compile(optimizer, loss, metrics)  # type: ignore
+		super(CategoricalClassifier, self).compile(self.optimizer, self.loss, self.metrics)
 
 
 @dataclass
-class QuasifullyGeneralizedZeroshotClassifier(GeneralizedZeroshotClassifier):
-	"""Expand `GeneralizedZeroshotClassifier` to include a quasifully loss bias.
+class ZeroshotCategoricalClassifier(CategoricalClassifier):
+	"""Specialize generic `CategoricalClassifier` instance with zeroshot loss.
 
 	Includes:
 	-	adam optimizer with adjustable learning rate,
-	-	zeroshot loss filtered by source labels including a loss bias filtered by target labels,
-	-	zeroshot metric,
-		-	one filtered by source labels
-		-	one filtered by target labels
-		-	the harmonic mean of the two
+	-	trimmed categorical cross-entroy loss on definable source labels
+	-	accuracy metric on top of loss for evaluation
+	-	callbacks:
+		-	early stopping for regularization with patience a small fraction of the number of epochs,
+		-	reduce learning rate on plateau with patience a fraction of the early stopping patience,
 	"""
 
-	def compile(self, loss: tensorflow.keras.losses.Loss, metric: tensorflow.keras.metrics.Metric,
-		learning_rate: float | None = None,
-		log2_bias: int = 0,
-		weight: float = 1.,
-	):
-		"""Configure the model for training.
+#	labels seen during training and testing
+	source: tensorflow.Tensor | Iterable[int]
+
+	def __post_init__(self):
+		"""Set label zeroshot filter and update metrics.
 
 		Arguments:
-			loss: A `tensorflow.keras.losses.Loss` instance used as base for a `ZeroshotLoss` instance.
-			metric: A `tensorflow.keras.metric.Metric` instance usedused as base for `ZeroshotMetric` instances.
-
-		Keyword Arguments:
-			learning_rate: The learning rate.
-				Is:
-				-	a `tensorflow.Tensor`,
-				-	floating point value, or
-				-	a schedule that is a `tf.keras.optimizers.schedules.LearningRateSchedule`, or
-				-	a callable that takes no arguments and returns the actual value to use.
-
-				Defaults to the inverse of the training data size.
-
-			log2_bias: A hyper-coeffient adjusting the strength of the bias as a power of 2.
-				Defaults to 0 for a coefficient of 1.
-
-			weight: A probability balancing the quasifully cross-entropic bias with its binary cross-entropic complement.
-				Defaults to 1 masking the complementary probabilities.
+			source: A selection of labels known during training.
 		"""
-		optimizer = tensorflow.keras.optimizers.Adam(
-			learning_rate=learning_rate or 10 / len(self.train),
-		#	beta_1=.9,
-		#	beta_2=.999,
-		#	epsilon=1e-7,
-			amsgrad=True,
-		#	name="Adam",
+		super(ZeroshotCategoricalClassifier, self).__post_init__()
+
+	#	labels seen during training and testing
+		self.source = tensorflow.convert_to_tensor(self.source, dtype=tensorflow.int32)
+
+	#	zeroshot loss (trimming to source labels)
+		self.loss: tensorflow.keras.losses.Loss = ZeroshotCategoricalCrossentropy(
+			self.source,
+		#	from_logits=False,
+		#	label_smoothing=0.,
+		#	axis=-1,
+		#	name="categorical_crossentropy"
 		)
 
-	#	Check for loss compatibility with quasifully bias:
-		if not isinstance(loss,
-			(
-				tensorflow.keras.losses.CategoricalCrossentropy,
-				tensorflow.keras.losses.BinaryCrossentropy,
+	#	zeroshot accuracy (trimmed to source labels)
+		self.metrics.append(
+			ZeroshotCategoricalAccuracy(self.source,
+				name="s",
 			)
-		):
-			raise TypeError("The loss provided is incompatible with the quasifully loss bias.")
-
-		bias = QuasifullyBiasLoss(log2_bias, weight)
-		loss = TransductiveGeneralizedZeroshotLoss(
-			ZeroshotLoss(loss, self.source),
-			ZeroshotLoss(bias, self.target),
 		)
 
-	#	Filter metric by source and target labels:
-		metrics = [
-			ZeroshotMetric(metric, self.source, name="s"),
-			ZeroshotMetric(metric, self.target, name="t"),
-		]
 
-		super(GeneralizedZeroshotClassifier, self).compile(optimizer, loss, metrics)  # type: ignore
+@dataclass
+class GeneralizedZeroshotCategoricalClassifier(ZeroshotCategoricalClassifier):
+	"""Augment generic `ZeroshotCategoricalClassifier` instance with target label evaluators.
+
+	Includes:
+	-	adam optimizer with adjustable learning rate,
+	-	trimmed categorical cross-entroy loss on definable source labels quasifully biased on target labels
+	-	accuracy metric on top of loss for evaluation
+	-	callbacks:
+		-	early stopping for regularization with patience a small fraction of the number of epochs,
+		-	reduce learning rate on plateau with patience a fraction of the early stopping patience,
+	"""
+
+#	labels seen during testing
+	target: tensorflow.Tensor | Iterable[int]
+
+	def __post_init__(self):
+		"""Set label zeroshot filter and update metrics.
+
+		Arguments:
+			source: A selection of labels known during testing and training.
+			target: A selection of labels known during testing.
+		"""
+		super(GeneralizedZeroshotCategoricalClassifier, self).__post_init__()
+
+	#	labels seen during testing
+		self.target = tensorflow.convert_to_tensor(self.target, dtype=tensorflow.int32)
+
+	#	generalized zeroshot accuracy (adding one trimmed to target labels)
+		self.metrics.append(
+			ZeroshotCategoricalAccuracy(self.target,
+				name="t",
+			),
+		)
+
+
+@dataclass
+class QuasifullyGeneralizedZeroshotCategoricalClassifier(GeneralizedZeroshotCategoricalClassifier):
+	"""Augment generic `GeneralizedZeroshotCategoricalClassifier` instance with quasifully supervised learning bias.
+
+	Includes:
+	-	adam optimizer with adjustable learning rate,
+	-	trimmed categorical cross-entroy loss on definable source labels quasifully biased on target labels
+	-	accuracy metric on top of loss for evaluation
+	-	callbacks:
+		-	early stopping for regularization with patience a small fraction of the number of epochs,
+		-	reduce learning rate on plateau with patience a fraction of the early stopping patience,
+	"""
+
+#	bias towards unlabelled examples
+	bias: float = 0.
+
+	def __post_init__(self):
+		"""Set label zeroshot filter and update metrics.
+
+		Arguments:
+			source: A selection of labels known during training.
+		"""
+		super(QuasifullyGeneralizedZeroshotCategoricalClassifier, self).__post_init__()
+
+	#	zeroshot loss (trimming to source labels)
+		self.loss: tensorflow.keras.losses.Loss = QuasifullyGeneralizedZeroshotCategoricalCrossentropy(
+			self.source,
+			self.target,
+		#	from_logits=False,
+		#	label_smoothing=0.,
+		#	axis=-1,
+		#	name="categorical_crossentropy"
+		)
