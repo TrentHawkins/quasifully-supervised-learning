@@ -276,13 +276,13 @@ class Dataset:
 			return images
 
 	#	Build datasets.
-		train_images: tensorflow.data.Dataset = paths_and_labels_to_dataset(_train_images,  # type: ignore
+		train_images: tensorflow.data.Dataset = paths_and_labels_to_dataset(_train_images,
 			training=True,
 		)
-		devel_images: tensorflow.data.Dataset = paths_and_labels_to_dataset(_devel_images,  # type: ignore
+		devel_images: tensorflow.data.Dataset = paths_and_labels_to_dataset(_devel_images,
 			training=False,
 		)
-		valid_images: tensorflow.data.Dataset = paths_and_labels_to_dataset(_valid_images,  # type: ignore
+		valid_images: tensorflow.data.Dataset = paths_and_labels_to_dataset(_valid_images,
 			training=False,
 		)
 
@@ -452,7 +452,7 @@ class Dataset:
 
 	#	Optinally dress correlation with a softmax.
 		if softmx:
-			label_correlation = label_correlation.apply(tensorflow.nn.softmax,  # type: ignore
+			label_correlation = label_correlation.apply(tensorflow.nn.softmax,
 				axis="index",
 			)
 
