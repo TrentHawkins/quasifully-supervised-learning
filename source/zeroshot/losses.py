@@ -107,7 +107,7 @@ class ZeroshotCategoricalCrossentropy(tensorflow.keras.losses.CategoricalCrossen
 		self.axis = axis
 
 	#	labels seen during training:
-		self.source = tensorflow.convert_to_tensor(source, dtype=tensorflow.int32)
+		self.source = tensorflow.constant(source, dtype=tensorflow.int32)
 
 	def call(self,
 		y_true: tensorflow.Tensor,
@@ -240,7 +240,7 @@ class QuasifullyGeneralizedZeroshotCategoricalCrossentropy(ZeroshotCategoricalCr
 		**kwargs)
 
 	#	labels not seen during training
-		self.target = tensorflow.convert_to_tensor(target, dtype=tensorflow.int32)
+		self.target = tensorflow.constant(target, dtype=tensorflow.int32)
 
 	#	bias coefficient of quasifully supervised loss influence
 		self.bias = bias
@@ -308,9 +308,8 @@ class QuasifullyGeneralizedZeroshotCategoricalCrossentropy(ZeroshotCategoricalCr
 		config = super(ZeroshotCategoricalCrossentropy, self).get_config()
 		config.update(
 			{
-				"source": to_string(self.source.numpy()),  # type: ignore https://github.com/microsoft/pylance-release/issues/2871
-				"target": to_string(self.target.numpy()),  # type: ignore https://github.com/microsoft/pylance-release/issues/2871
-				"bias": self.bias,
+				"source": to_string(self.source.numpy()),
+				"target": to_string(self.target.numpy()), "bias": self.bias,
 			}
 		)
 

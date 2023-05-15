@@ -44,7 +44,7 @@ class ZeroshotCategoricalAccuracy(tensorflow.keras.metrics.CategoricalAccuracy):
 		"""
 		super(ZeroshotCategoricalAccuracy, self).__init__(**kwargs)
 
-		self.filter: tensorflow.Tensor = tensorflow.convert_to_tensor(filter, dtype=tensorflow.int32)
+		self.filter: tensorflow.Tensor = tensorflow.constant(filter, dtype=tensorflow.int32)
 
 	def update_state(self,
 		y_true: tensorflow.Tensor,

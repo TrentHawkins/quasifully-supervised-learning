@@ -101,7 +101,7 @@ class ZeroshotCategoricalClassifier(CategoricalClassifier):
 		super(ZeroshotCategoricalClassifier, self).__post_init__()
 
 	#	labels seen during training and testing
-		self.source = tensorflow.convert_to_tensor(self.source, dtype=tensorflow.int32)
+		self.source = tensorflow.constant(self.source, dtype=tensorflow.int32)
 
 	#	zeroshot loss (trimming to source labels)
 		self.loss: tensorflow.keras.losses.Loss = ZeroshotCategoricalCrossentropy(
@@ -146,7 +146,7 @@ class GeneralizedZeroshotCategoricalClassifier(ZeroshotCategoricalClassifier):
 		super(GeneralizedZeroshotCategoricalClassifier, self).__post_init__()
 
 	#	labels seen during testing
-		self.target = tensorflow.convert_to_tensor(self.target, dtype=tensorflow.int32)
+		self.target = tensorflow.constant(self.target, dtype=tensorflow.int32)
 
 	#	generalized zeroshot accuracy (adding one trimmed to target labels)
 		self.metrics.append(

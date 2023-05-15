@@ -79,7 +79,7 @@ class TestClassifiers:
 	#	Setup model components:
 		visual = ConvNeXt.Tiny()
 	#	visual = EfficientNet.B0()
-		semantic_matrix = tensorflow.convert_to_tensor(dataset.alphas().transpose(),
+		semantic_matrix = tensorflow.constant(dataset.alphas().transpose(),
 			dtype=tensorflow.float32,
 		)
 
