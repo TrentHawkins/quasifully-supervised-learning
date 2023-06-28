@@ -26,10 +26,14 @@ See the License for the specific language governing permissions and limitations 
 """
 
 
+from __future__ import annotations
+
 import sys
 import time
 
-import numpy as numpy
+from typing import Optional, Union
+
+import numpy
 
 from tensorflow.keras.utils import Progbar  # type: ignore
 
@@ -37,8 +41,8 @@ from tensorflow.keras.utils import Progbar  # type: ignore
 def update(
 	self: Progbar,
 	current: int,
-	values: list[tuple] | None = None,
-	finalize: bool | None = None
+	values: Optional[list[tuple]] = None,
+	finalize: Optional[bool] = None
 ):
 	"""Update the progress bar.
 
@@ -84,8 +88,12 @@ def update(
 
 	self._seen_so_far = current
 
+#	Custom time formatter:
+	def _format_time(time):
+		return f"{int(time) // 3600:02d}:{(int(time) % 3600) // 60:02d}:{int(time) % 60:02d}"
+
 	now = time.time()
-	info = " - %.0fs" % (now - self._start)
+	info = f"  {_format_time(now - self._start):s}"
 
 	if current == self.target:
 		self._time_at_epoch_end = now
@@ -105,7 +113,7 @@ def update(
 
 		if self.target is not None:
 			numdigits = 7  # int(numpy.log10(self.target)) + 1
-			bar = ("%" + str(numdigits) + "d/%d |") % (current, self.target)
+			bar = (f"%{str(numdigits)}d/%{str(numdigits)}d |") % (current, self.target)
 			prog = float(current) / self.target
 			prog_width = int(self.width * prog * 8)
 
@@ -136,7 +144,7 @@ def update(
 				if prog_width % 8 == 7:
 					bar += '▉'
 
-			bar += (" " * (self.width - prog_width) // 8 - 1)
+			bar += " " * (self.width - prog_width // 8 - 1)
 			bar += "|"
 
 		else:
@@ -146,16 +154,22 @@ def update(
 		sys.stdout.write(bar)
 
 		time_per_unit = self._estimate_step_duration(current, now)
-		info = "  %s" % self._format_time(time_per_unit * (self.target - current))
+
+		if self.target is None or finalize:
+			pass
+		#	info += f"  {_format_time(time_per_unit):s}"
+
+		else:
+			info = f"  {_format_time(time_per_unit * (self.target - current)):s}"
 
 		for k in self._values_order:
-			info += "  %s:" % k
+			info += f"  {k:s}:"
 
 			if isinstance(self._values[k], list):
-				info += " %6.4f" % numpy.mean(self._values[k][0] / max(1, self._values[k][1]))
+				info += f" {numpy.mean(self._values[k][0] / max(1, self._values[k][1])):6.4f}"
 
 			else:
-				info += " %6s" % self._values[k]
+				info += f" {self._values[k]:6s}"
 
 		self._total_width += len(info)
 
@@ -170,21 +184,21 @@ def update(
 
 	elif self.verbose == 2:
 		if finalize:
-			numdigits = 5  # int(numpy.log10(self.target)) + 1
-			count = ("%" + str(numdigits) + "d/%d") % (current, self.target)
+			numdigits = 7  # int(numpy.log10(self.target)) + 1
+			count = (f"%{str(numdigits)}d/%{str(numdigits)}d |") % (current, self.target)
 			info = count + info
 
 			for k in self._values_order:
-				info += "  %s:" % k
-				info += " %6.4f" % numpy.mean(self._values[k][0] / max(1, self._values[k][1]))
+				info += f"  {k:s}:"
+				info += f" {numpy.mean(self._values[k][0] / max(1, self._values[k][1])):6.4f}"
 
 			if self._time_at_epoch_end:
 				time_per_epoch = self._time_at_epoch_end - self._time_at_epoch_start
 				avg_time_per_step = time_per_epoch / self.target
 				self._time_at_epoch_start = now
 				self._time_at_epoch_end = None
-				info += "  " + self._format_time(time_per_epoch, "epoch")
-				info += "  " + self._format_time(avg_time_per_step, self.unit_name)
+				info += f"  {_format_time(time_per_epoch)}"
+				info += f"  {_format_time(avg_time_per_step)}"
 				info += "\n"
 
 			sys.stdout.write(info)

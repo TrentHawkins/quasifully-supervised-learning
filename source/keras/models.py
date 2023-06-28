@@ -8,11 +8,13 @@ Dense layer stack array.
 """
 
 
-from typing import Callable
+from __future__ import annotations
+
+from typing import Callable, Optional, Union
 
 import tensorflow
 
-from .layers import Dense, Attention
+from .layers import DropoutDense, AttentionDense
 from ..numtools import divisors, hidden_dims
 
 
@@ -20,14 +22,13 @@ def DenseStack(
 	inputs_dim: int,
 	output_dim: int,
 	skip: int = 1,
-	activation: Callable | str | None = None,
-#	regularizer: tensorflow.keras.regularizers.Regularizer | str | None = None,
-#	constraint: tensorflow.keras.constraints.Constraint | str | None = None,
-	normalization: bool = False,
+	activation: Optional[Union[Callable, str]] = None,
+#	regularizer: Optional[Union[tensorflow.keras.regularizers.Regularizer, str]] = None,
+#	constraint: Optional[Union[tensorflow.keras.constraints.Constraint, str]] = None,
 	dropout: float = .5,
 	name: str = "dense_stack",
 ) -> tensorflow.keras.Model:
-	"""Sequence dense layers equiped with dropout and (optional) batch normalization and uniform activation throughout.
+	"""Sequence dense layers equiped with dropout and uniform activation throughout.
 
 	The network complexity is defined in a specific way which based on inputs and output dimensionality:
 	-	the hidden layers gradually change from one to the other with complexities defined by an integer divisor logic
@@ -46,8 +47,6 @@ def DenseStack(
 			default: Glorot uniform
 		constraint: on the weights of dense layers in dense layer stack
 			default: none
-		normalization: whether to batch-nosmalize or not
-			default: no batch-normalization
 		dropout: dropout factor applied on input of dense layers in dense layer stack
 			default: half
 
@@ -80,12 +79,11 @@ def DenseStack(
 		)[1:]
 	):
 		model.add(
-			Dense(hidden_dim,
+			DropoutDense(hidden_dim,
 				activation=activation,
 			#	regularizer=regularizer,
 			#	constraint=constraint,
-				normalization=normalization,
-				dropout=dropout,
+				dropout_rate=dropout,
 				name=f"{name}_{index+1}",
 			)
 		)
@@ -96,16 +94,15 @@ def DenseStack(
 def DenseStackArray(
 	inputs_dim,
 	output_dim,
-	threads: int | None = None,
-	attention_activation: Callable | str | None = None,
-	activation: Callable | str | None = None,
-#	regularizer: tensorflow.keras.regularizers.Regularizer | str | None = None,
-#	constraint: tensorflow.keras.constraints.Constraint | str | None = None,
-	normalization: bool = False,
+	threads: Optional[int] = None,
+	attention_activation: Optional[Union[Callable, str]] = None,
+	activation: Optional[Union[Callable, str]] = None,
+#	regularizer: Optional[Union[tensorflow.keras.regularizers.Regularizer, str]] = None,
+#	constraint: Optional[Union[tensorflow.keras.constraints.Constraint, str]] = None,
 	dropout: float = .5,
 	name: str = "dense_stack_array",
 ) -> tensorflow.keras.Model:
-	"""Sequence dense layer stacks equiped with dropout and (optional) batch normalization and uniform activation throughout.
+	"""Sequence dense layer stacks equiped with dropout and uniform activation throughout.
 
 	The number of dense layer stacks (threads) is defined by the inputs and output dimensionality.
 
@@ -156,14 +153,13 @@ def DenseStackArray(
 				activation=activation,
 			#	regularizer=regularizer,
 			#	constraint=constraint,
-				normalization=normalization,
 				dropout=dropout,
 				name=f"{name}_{thread}",
 			)
 		)
 
 #	Attention dense to collate outputs from each dense layer stack.
-	attention = Attention(
+	attention = AttentionDense(
 		activation=attention_activation,
 		name=f"{name}_attention",
 	)
