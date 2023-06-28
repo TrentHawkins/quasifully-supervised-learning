@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from math import ceil, sqrt
 from sys import float_info
-from typing import Callable
+from typing import Callable, Optional, Union
 
 import matplotlib.pyplot
 import matplotlib.ticker
@@ -113,7 +113,7 @@ class Dataset:
 	#	Set global seed for dataset:
 		self.seed = seed
 
-	def _read(self, selection: pandas.Series | str) -> list:
+	def _read(self, selection: Union[pandas.Series, str]) -> list:
 		"""Read items either from a file or a series into a list.
 
 		Arguments:
@@ -130,7 +130,7 @@ class Dataset:
 			return selection.tolist()
 
 	def labels(self,
-		selection: pandas.Series | str = "allclasses.txt",
+		selection: Union[pandas.Series, str] = "allclasses.txt",
 	) -> pandas.Series:
 		"""Get a label set from dataset.
 
@@ -144,7 +144,7 @@ class Dataset:
 		return self._labels.filter(self._read(selection), axis="index")
 
 	def alphas(self,
-		selection: pandas.Series | str = "allclasses.txt",
+		selection: Union[pandas.Series, str] = "allclasses.txt",
 		binary: bool = False,
 		logits: bool = False,
 	) -> pandas.DataFrame:
@@ -183,7 +183,7 @@ class Dataset:
 		return alpha_matrix.filter(self._read(selection), axis="index")
 
 	def images(self,
-		selection: pandas.Series | str = "allclasses.txt",
+		selection: Union[pandas.Series, str] = "allclasses.txt",
 	) -> pandas.Series:
 		"""Get images and a label set from dataset.
 
@@ -197,7 +197,7 @@ class Dataset:
 		return self._images[self._images.isin(self.labels(selection))]
 
 	def split(self,
-		labels: str | pandas.Series = "allclasses.txt",
+		labels: Union[pandas.Series, str] = "allclasses.txt",
 		*,
 		image_size: int = 224,
 		batch_size: int = 1,
@@ -396,7 +396,7 @@ class Dataset:
 		matplotlib.pyplot.savefig(os.path.join(self._images_path, f"predicate-matrix{alpha_range}.pdf"))
 
 	def plot_label_correlation(self, alter_dot: Callable = numpy.dot,
-		binary: bool | None = None,
+		binary: Optional[bool] = None,
 		logits: bool = False,
 		softmx: bool = False,
 	):
@@ -493,8 +493,8 @@ class ZeroshotDataset(Dataset):
 	"""
 
 	def split(self,
-		source: str | pandas.Series = "trainvalclasses.txt",
-		target: str | pandas.Series = "testclasses.txt",
+		source: Union[pandas.Series, str] = "trainvalclasses.txt",
+		target: Union[pandas.Series, str] = "testclasses.txt",
 		*,
 		image_size: int = 224,
 		batch_size: int = 1,
@@ -557,8 +557,8 @@ class TransductiveZeroshotDataset(Dataset):
 	"""
 
 	def split(self,
-		source: str | pandas.Series = "trainvalclasses.txt",
-		target: str | pandas.Series = "testclasses.txt",
+		source: Union[pandas.Series, str] = "trainvalclasses.txt",
+		target: Union[pandas.Series, str] = "testclasses.txt",
 		*,
 		image_size: int = 224,
 		batch_size: int = 1,

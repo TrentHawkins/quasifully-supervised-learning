@@ -14,7 +14,7 @@ Metric sigmoid-like non-linear dense layers using similarity metrics in their de
 
 from __future__ import annotations
 
-from typing import Callable
+from typing import Callable, Optional, Union
 
 import tensorflow
 
@@ -30,9 +30,9 @@ class DropoutDense(tensorflow.keras.layers.Dense):
 	"""
 
 	def __init__(self, units: int,
-		activation: Callable | str | None = None,
-	#	regularizer: tensorflow.keras.regularizers.Regularizer | str | None = None,
-	#	constraint: tensorflow.keras.constraints.Constraint | str | None = None,
+		activation: Optional[Union[Callable, str]] = None,
+	#	regularizer: Optional[Union[tensorflow.keras.regularizers.Regularizer, str]] = None,
+	#	constraint: Optional[Union[tensorflow.keras.constraints.Constraint, str]] = None,
 		dropout_rate: float = .5,
 		seed: int = 0,
 		name: str = "base_dense",
@@ -94,7 +94,7 @@ class DropoutDense(tensorflow.keras.layers.Dense):
 		self.dropout.build(input_shape)
 
 	def call(self, inputs: tensorflow.Tensor,
-		training: bool | None = None,
+		training: Optional[bool] = None,
 	) -> tensorflow.Tensor:
 		"""Call the model on new inputs.
 
@@ -136,7 +136,7 @@ class AttentionDense(tensorflow.keras.layers.Dense):
 	"""
 
 	def __init__(self,
-		activation: Callable | str | None = None,
+		activation: Optional[Union[Callable, str]] = None,
 		name: str = "attention",
 	**kwargs):
 		"""Hyperparametrize recombination layer.
@@ -181,8 +181,8 @@ class MetricDense(tensorflow.keras.layers.Dense):
 	"""
 
 	def __init__(self, units,
-		activation: Callable | str | None = None,
-		kernel: tensorflow.Tensor | None = None,
+		activation: Optional[Union[Callable, str]] = None,
+		kernel: Optional[tensorflow.Tensor] = None,
 		name: str = "metric",
 	**kwargs):
 		"""Hyperparametrize recombination layer.

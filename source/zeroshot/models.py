@@ -9,7 +9,7 @@ The model consists of 3 main component:
 
 from __future__ import annotations
 
-from typing import Iterable
+from typing import Iterable, Union
 
 import tensorflow
 
@@ -18,9 +18,9 @@ from ..keras.models import DenseStackArray
 
 
 def Model(
-	visual: tensorflow.keras.Model | tensorflow.keras.layers.Layer,
-	encoder: tensorflow.keras.Model | tensorflow.keras.layers.Layer,
-	semantic: tensorflow.keras.Model | tensorflow.keras.layers.Layer,
+	visual: Union[tensorflow.keras.Model, tensorflow.keras.layers.Layer],
+	encoder: Union[tensorflow.keras.Model, tensorflow.keras.layers.Layer],
+	semantic: Union[tensorflow.keras.Model, tensorflow.keras.layers.Layer],
 	*,
 	trainable: bool = False,
 	name: str = "generalized_zeroshot_embedding_model"
@@ -52,7 +52,7 @@ def Model(
 
 def GeneralizedZeroshotModel(
 	visual: tensorflow.keras.Model,
-	semantic_matrix: tensorflow.Tensor | Iterable[Iterable[float]],
+	semantic_matrix: Union[tensorflow.Tensor, Iterable[Iterable[float]]],
 	semantic_class: type = MetricDense,
 	*,
 	name: str = "efficientnet_zeroshot_embedding_model",

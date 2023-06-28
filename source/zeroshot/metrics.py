@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Iterable
+from typing import Iterable, Optional
 
 import numpy
 import pandas
@@ -48,7 +48,7 @@ class ZeroshotCategoricalAccuracy(tensorflow.keras.metrics.CategoricalAccuracy):
 
 	def update_state(self,
 		y_true: tensorflow.Tensor,
-		y_pred: tensorflow.Tensor, sample_weight: tensorflow.Tensor | None = None
+		y_pred: tensorflow.Tensor, sample_weight: Optional[tensorflow.Tensor] = None
 	):
 		"""Accumulate metric statistics.
 

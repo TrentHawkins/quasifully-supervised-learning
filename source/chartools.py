@@ -3,10 +3,10 @@
 
 from __future__ import annotations
 
-from typing import Iterable, Type
+from typing import Iterable, Union, Type
 
 
-def to_string(objects: Iterable | map,
+def to_string(objects: Union[Iterable, map],
 	type: Type = int,
 	separator: str = " ",
 ) -> str:

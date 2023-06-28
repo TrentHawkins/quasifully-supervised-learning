@@ -6,7 +6,7 @@ NOTE: There is a lot of repeating code. Consider abstracting the interface to ap
 
 from __future__ import annotations
 
-from typing import Iterable
+from typing import Iterable, Union
 
 import tensorflow
 import pandas
@@ -58,7 +58,7 @@ class ZeroshotCategoricalCrossentropy(tensorflow.keras.losses.CategoricalCrossen
 	```
 	"""
 
-	def __init__(self, source: tensorflow.Tensor | Iterable[int],
+	def __init__(self, source: Union[tensorflow.Tensor, Iterable[int]],
 		axis: int = -1,
 		name: str = "zeroshot_categorical_crossentropy",
 	**kwargs):
@@ -186,8 +186,8 @@ class QuasifullyGeneralizedZeroshotCategoricalCrossentropy(ZeroshotCategoricalCr
 	"""
 
 	def __init__(self,
-		source: tensorflow.Tensor | Iterable[int],
-		target: tensorflow.Tensor | Iterable[int],
+		source: Union[tensorflow.Tensor, Iterable[int]],
+		target: Union[tensorflow.Tensor, Iterable[int]],
 		bias: float = 0.,
 		axis: int = -1,
 		name: str = "quasifully_categorical_crossentropy",

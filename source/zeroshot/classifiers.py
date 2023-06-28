@@ -1,7 +1,7 @@
 """Classifier specialized to transductive generalized zeroshot learning with the quasifully supervised learning loss."""
 
 from dataclasses import dataclass
-from typing import Iterable
+from typing import Iterable, Optional, Union
 
 import tensorflow
 
@@ -52,13 +52,13 @@ class CategoricalClassifier(Classifier):
 		)
 
 	#	metrics (basic)
-		self.metrics: list[tensorflow.keras.metrics.Metric | str] = [
+		self.metrics: list[Union[tensorflow.keras.metrics.Metric, str]] = [
 			tensorflow.keras.metrics.CategoricalAccuracy(
 				name="n",
 			),
 		]
 
-	def compile(self, learning_rate: float | None = None):
+	def compile(self, learning_rate: Optional[float] = None):
 		"""Configure the model for training.
 
 		Keyword Arguments:
@@ -90,7 +90,7 @@ class ZeroshotCategoricalClassifier(CategoricalClassifier):
 	"""
 
 #	labels seen during training and testing
-	source: tensorflow.Tensor | Iterable[int]
+	source: Union[tensorflow.Tensor, Iterable[int]]
 
 	def __post_init__(self):
 		"""Set label zeroshot filter and update metrics.
@@ -134,7 +134,7 @@ class GeneralizedZeroshotCategoricalClassifier(ZeroshotCategoricalClassifier):
 	"""
 
 #	labels seen during testing
-	target: tensorflow.Tensor | Iterable[int]
+	target: Union[tensorflow.Tensor, Iterable[int]]
 
 	def __post_init__(self):
 		"""Set label zeroshot filter and update metrics.

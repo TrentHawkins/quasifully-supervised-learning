@@ -31,7 +31,9 @@ from __future__ import annotations
 import sys
 import time
 
-import numpy as numpy
+from typing import Optional, Union
+
+import numpy
 
 from tensorflow.keras.utils import Progbar  # type: ignore
 
@@ -39,8 +41,8 @@ from tensorflow.keras.utils import Progbar  # type: ignore
 def update(
 	self: Progbar,
 	current: int,
-	values: list[tuple] | None = None,
-	finalize: bool | None = None
+	values: Optional[list[tuple]] = None,
+	finalize: Optional[bool] = None
 ):
 	"""Update the progress bar.
 

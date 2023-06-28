@@ -10,7 +10,7 @@ Dense layer stack array.
 
 from __future__ import annotations
 
-from typing import Callable
+from typing import Callable, Optional, Union
 
 import tensorflow
 
@@ -22,9 +22,9 @@ def DenseStack(
 	inputs_dim: int,
 	output_dim: int,
 	skip: int = 1,
-	activation: Callable | str | None = None,
-#	regularizer: tensorflow.keras.regularizers.Regularizer | str | None = None,
-#	constraint: tensorflow.keras.constraints.Constraint | str | None = None,
+	activation: Optional[Union[Callable, str]] = None,
+#	regularizer: Optional[Union[tensorflow.keras.regularizers.Regularizer, str]] = None,
+#	constraint: Optional[Union[tensorflow.keras.constraints.Constraint, str]] = None,
 	dropout: float = .5,
 	name: str = "dense_stack",
 ) -> tensorflow.keras.Model:
@@ -94,11 +94,11 @@ def DenseStack(
 def DenseStackArray(
 	inputs_dim,
 	output_dim,
-	threads: int | None = None,
-	attention_activation: Callable | str | None = None,
-	activation: Callable | str | None = None,
-#	regularizer: tensorflow.keras.regularizers.Regularizer | str | None = None,
-#	constraint: tensorflow.keras.constraints.Constraint | str | None = None,
+	threads: Optional[int] = None,
+	attention_activation: Optional[Union[Callable, str]] = None,
+	activation: Optional[Union[Callable, str]] = None,
+#	regularizer: Optional[Union[tensorflow.keras.regularizers.Regularizer, str]] = None,
+#	constraint: Optional[Union[tensorflow.keras.constraints.Constraint, str]] = None,
 	dropout: float = .5,
 	name: str = "dense_stack_array",
 ) -> tensorflow.keras.Model:

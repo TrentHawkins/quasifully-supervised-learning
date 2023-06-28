@@ -6,6 +6,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from math import ceil, sqrt
 from os import PathLike
+from typing import Union
 
 import tensorflow
 
@@ -36,10 +37,10 @@ class Classifier:
 #	seed: int = field(default=0, kw_only=True)
 
 #	Global verbosity:
-#	verbose: str | int = field(default="auto", kw_only=True)
+#	verbose: Union[str, int] = field(default="auto", kw_only=True)
 
 #	Classifier name overriding model name:
-#	name: str | None = field(default=None, kw_only=True)
+#	name: Union[str, None] = field(default=None, kw_only=True)
 
 	def __post_init__(self):
 		"""Set classifier name to model name unless any."""
@@ -49,9 +50,9 @@ class Classifier:
 	#	self.name = self.name or self.model.name
 
 	def compile(self,
-		optimizer: tensorflow.keras.optimizers.Optimizer | str,
-		loss: tensorflow.keras.losses.Loss | str,
-		metrics: list[tensorflow.keras.metrics.Metric | str] | None = None,
+		optimizer: Union[tensorflow.keras.optimizers.Optimizer, str],
+		loss: Union[tensorflow.keras.losses.Loss, str],
+		metrics: Union[list[Union[tensorflow.keras.metrics.Metric, str]], None] = None,
 	):
 		"""Configure the model for training.
 
@@ -150,8 +151,8 @@ class Classifier:
 		)
 
 	def fit(self,
-		train: tensorflow.data.Dataset | None = None,
-		devel: tensorflow.data.Dataset | None = None,
+		train: Union[tensorflow.data.Dataset, None] = None,
+		devel: Union[tensorflow.data.Dataset, None] = None,
 		*,
 		epochs: int = 1,
 	) -> dict:
@@ -282,7 +283,7 @@ class Classifier:
 		return history
 
 	def predict(self,
-		valid: tensorflow.data.Dataset | None = None,
+		valid: Union[tensorflow.data.Dataset, None] = None,
 	) -> tensorflow.Tensor:
 		"""Generate output predictions for the input samples.
 
@@ -323,7 +324,7 @@ class Classifier:
 		return predictions
 
 	def evaluate(self,
-		valid: tensorflow.data.Dataset | None = None,
+		valid: Union[tensorflow.data.Dataset, None] = None,
 	) -> dict:
 		"""Return the loss value & metrics values for the model in test mode.
 
@@ -359,7 +360,7 @@ class Classifier:
 
 		return metrics  # type: ignore
 
-	def save(self, filepath: str | PathLike):
+	def save(self, filepath: Union[str, PathLike]):
 		"""Save the model weights in classifier to Tensorflow `SavedModel`.
 
 		Argumentss:
@@ -408,7 +409,7 @@ class Classifier:
 		)
 
 	@classmethod
-	def load(cls, filepath: str | PathLike, *args, **kwargs):
+	def load(cls, filepath: Union[str, PathLike], *args, **kwargs):
 		"""Load a model to the classifier saved via `Classifier.save()`.
 
 		Usage:

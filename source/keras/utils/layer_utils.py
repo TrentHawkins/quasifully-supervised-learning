@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from re import match
 from shutil import get_terminal_size
-from typing import Callable
+from typing import Callable, Optional, Union
 
 import numpy
 import tensorflow
@@ -36,8 +36,8 @@ from tensorflow import keras
 import keras.utils.layer_utils
 
 
-def print_separator(char: str | int = 0,
-	title: str | None = None,
+def print_separator(char: Union[str, int] = 0,
+	title: Optional[str] = None,
 ):
 	"""Repeat character across full terminal width.
 
@@ -84,7 +84,7 @@ def count_params(weights):
 
 
 def get_layer_index_bound_by_layer_name(model,
-	layer_range: list[str] | tuple[str, str] | None = None,
+	layer_range: Optional[Union[list[str], tuple[str, str]]] = None,
 ):
 	"""Get the layer indexes from the model based on layer names.
 
@@ -139,12 +139,12 @@ def get_layer_index_bound_by_layer_name(model,
 
 
 def print_summary(model,
-	line_length: int | None = None,
-	positions: list[int] | list[float] | None = None,  # type: ignore
-	print_fn: Callable[[str], None] | None = None,  # type: ignore
+	line_length: Optional[int] = None,
+	positions: Optional[Union[list[int], list[float]]] = None,  # type: ignore
+	print_fn: Optional[Callable[[str], None]] = None,  # type: ignore
 	expand_nested: bool = False,
 	show_trainable: bool = False,
-	layer_range: list[str] | tuple[str, str] | None = None,  # type: ignore
+	layer_range: Optional[Union[list[str], tuple[str, str]]] = None,  # type: ignore
 ):
 	"""Print a summary of a model.
 
