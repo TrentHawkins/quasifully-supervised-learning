@@ -178,7 +178,7 @@ class Dataset:
 		if logits:
 			alpha_matrix = alpha_matrix\
 				.replace(0., 0. + float_info.epsilon)\
-				.replace(1., 1. - float_info.epsilon).applymap(scipy.special.logit)
+				.replace(1., 1. - float_info.epsilon).applymap(scipy.special.logit)  # type: ignore
 
 		return alpha_matrix.filter(self._read(selection), axis="index")
 

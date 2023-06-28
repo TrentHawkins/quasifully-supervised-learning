@@ -93,9 +93,9 @@ class TestClassifiers:
 			dataset.labels("trainvalclasses.txt"),
 			dataset.labels("testclasses.txt"),
 			bias=1,
-			seed=0,
-			verbose=1,
-			name="quasifully_zeroshot_categorical",
+		#	seed=0,
+		#	verbose=1,
+		#	name="quasifully_zeroshot_categorical",
 		)
 
 	#	Compile classifier:
