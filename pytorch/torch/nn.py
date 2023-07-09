@@ -1,8 +1,8 @@
 """Custom modules.
 
-Compound dense layer containing:
+Compound linear module containing:
 -	dropout
--	dense sublayer
+-	linear submodule
 
 Basic attention layer assigning a trainable weight for each input in an array of inputs.
 
@@ -10,113 +10,112 @@ Metric sigmoid-like non-linear dense layers using similarity metrics in their de
 -	based on the jaccard similarity metric (sigmoid-like only on sigmoid-like features)
 -	based on the cosine similarity metric (sigmoid-like always)
 
-Linear layer stack.
--	Basically a sequential of dense layers with uniform settings across, apart for the top.
+Linear layer stack:
+-	Basically a sequential of linear layers with uniform settings across, apart for the top.
 
-Linear layer stack array.
--	An colelction of dense sequentials used in parallel.
+Linear layer stack array:
+-	An colelction of linear sequentials used in parallel.
 """
 
 from __future__ import annotations
 
+from typing import Callable, Optional, Union
+
 import scipy.special
+import tensorflow
 import torch
+
+from ..numtools import divisors, hidden_sizes
 
 
 class DropoutLinear(torch.nn.Linear):
-	"""Custom compound dense layer.
+	"""Custom compound linear module.
 
 	Attribures:
-		dense: the dense sublayer
+		dropout: a dropout module with non-zero default
+		activation: swish pre-activation for layer (hard-coded)
 	"""
 
 	def __init__(self,
-		inputs_shape: int,
-		output_shape: int, dropout_rate: float = .0,
+		inputs_size: int,
+		output_size: int, dropout: float = .0,
 	**kwargs):
-		"""Hyrparametrize base layer with dense topping.
+		"""Hyrparametrize dropout linear module.
 
 		Arguments:
-			units: number of neurons in layer
+			inputs_size: size of each inputs sample
+			output_size: size of each output sample
 
 		Keyword arguments:
-			dropout: logit of dropout factor applied on input of the layer
-				default: half
+			dropout: logit of probability of an element to be zeroed
+				default: half probability
 		"""
 		super(DropoutLinear, self).__init__(
-			inputs_shape,
-			output_shape, bias=True,
+			inputs_size,
+			output_size, bias=True,
 		**kwargs)
 
 	#	dropout:
-		self.dropout = torch.nn.Dropout(scipy.special.expit(dropout_rate))
+		self.dropout = torch.nn.Dropout(scipy.special.expit(dropout))
 
 	#	activation:
 		self.activation = torch.nn.SiLU()  # hardcoded best internal neuron activator
 
 	def forward(self, inputs: torch.Tensor) -> torch.Tensor:
-		"""Call the model on new inputs.
+		"""Define the computation performed at every call.
 
-		In this case call just reapplies all ops in the graph to the new inputs.
+		Should be overridden by all subclasses.
 
-		Arguments:
-			inputs: a tensor or list of tensors
-
-		Returns:
-			output of layer
+		NOTE: Although the recipe for forward pass needs to be defined within this function,
+		one should call the `Module` instance afterwards instead of this,
+		since the former takes care of running the registered hooks while the latter silently ignores them.
 		"""
-		return self.activation(super(DropoutLinear, self).forward(self.dropout(inputs)))
+		return super(DropoutLinear, self).forward(self.dropout(self.activation(inputs)))
 
 
 """What follows are special types of dense layers."""
 
 
 class AttentionLinear(torch.nn.Linear):
-	"""Wrapper for dense layer operating on a stacks of input to recombine them with attention.
+	"""Wrapper for a linear module operating on a stack of inputs to recombine them with attention.
 
-	Such a layer is expected to have no bias and be trainable with no dropout.
-	Other dense features include activation only.
 	Make sure the batch dimensions include the threads themselves:
 		`len(shape(batch)) > 1`
 
-	Call:
-		stack: stack inputs horizontally
-		dense: one weight for each input
-		squeeze: eliminate redudant dims on output
+	Attributes:
+		activation: sigmoid
 	"""
 
 	def __init__(self, threads: int, **kwargs):
-		"""Hyperparametrize recombination layer.
+		"""Hyperparametrize attention module.
 
-		Keyword arguments:
-			activation: to apply on output of decision
+		Arguments:
+			threads: number of inputs to process
 		"""
 		super(AttentionLinear, self).__init__(threads, 1, bias=False, **kwargs)
 
 		self.activation = torch.nn.Sigmoid()  # hardcoded semantic features renormalization
 
-	def call(self, inputs: torch.Tensor) -> torch.Tensor:
-		"""Call the model on new inputs.
+	def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+		"""Define the computation performed at every call.
 
-		In this case call just reapplies all ops in the graph to the new inputs.
+		Should be overridden by all subclasses.
 
-		Arguments:
-			inputs: a tensor or list of tensors
-
-		Returns:
-			output of layer
+		NOTE: Although the recipe for forward pass needs to be defined within this function,
+		one should call the `Module` instance afterwards instead of this,
+		since the former takes care of running the registered hooks while the latter silently ignores them.
 		"""
 		return self.activation(super(AttentionLinear, self).forward(inputs).squeeze(dim=-1))
 
 
 class MetricLinear(torch.nn.Linear):
-	"""A non-linear dense layer emulating the action of a metric and outputing in sigmoid range.
+	"""A non-linear module emulating the action of a metric and outputing in sigmoid range.
 
-	Such a modified layer has no bias explicitely.
+	Such a modified module has no explicit bias.
 	"""
 
 	def __init__(self, kernel: torch.Tensor, **kwargs):
-		"""Hyperparametrize recombination layer.
+		"""Hyperparametrize metric module.
 
 		No activation is needed as these metric layers are manifestly non-linear to begin with.
 		Option is left (and ignored) for compatibility with other dense-like layers.
@@ -131,26 +130,21 @@ class MetricLinear(torch.nn.Linear):
 		self.weight = kernel.transpose(0, 1)
 		self.weight.requires_grad = False
 
-	#	probabilistic activation:
-		self.activation = torch.nn.Softmax()
-
 
 class CosineLinear(MetricLinear):
-	"""A dense layer that perform the cosine operation per input and kernel vector instead of a dot product.
+	"""A non-linear module that performs the cosine operation per input and kernel vector instead of a dot product.
 
-	Such a modified layer has no bias explicitely.
+	Such a modified module has no bias explicitely.
 	"""
 
-	def forward(self, inputs):
-		"""Call the model on new inputs.
+	def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+		"""Define the computation performed at every call.
 
-		In this case call just reapplies all ops in the graph to the new inputs.
+		Should be overridden by all subclasses.
 
-		Arguments:
-			inputs: a tensor or list of tensors
-
-		Returns:
-			output of layer
+		NOTE: Although the recipe for forward pass needs to be defined within this function,
+		one should call the `Module` instance afterwards instead of this,
+		since the former takes care of running the registered hooks while the latter silently ignores them.
 		"""
 		inputs_kernel = super(CosineLinear, self).forward(inputs)
 
@@ -170,21 +164,19 @@ class CosineLinear(MetricLinear):
 
 
 class JaccardLinear(MetricLinear):
-	"""A dense layer that perform the Jaccard operation per input and kernel vector instead of a dot product.
+	"""A non-linear module that performs the Jaccard operation per input and kernel vector instead of a dot product.
 
-	Such a modified layer has no bias explicitely.
+	Such a modified module has no bias explicitely.
 	"""
 
-	def call(self, inputs):
-		"""Call the model on new inputs.
+	def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+		"""Define the computation performed at every call.
 
-		In this case call just reapplies all ops in the graph to the new inputs.
+		Should be overridden by all subclasses.
 
-		Arguments:
-			inputs: a tensor or list of tensors
-
-		Returns:
-			output of layer
+		NOTE: Although the recipe for forward pass needs to be defined within this function,
+		one should call the `Module` instance afterwards instead of this,
+		since the former takes care of running the registered hooks while the latter silently ignores them.
 		"""
 		inputs_kernel = super(JaccardLinear, self).forward(inputs)
 
@@ -204,21 +196,19 @@ class JaccardLinear(MetricLinear):
 
 
 class DiceLinear(MetricLinear):
-	"""A dense layer that perform the Dice operation per input and kernel vector instead of a dot product.
+	"""A non-linear module that performs the Dice operation per input and kernel vector instead of a dot product.
 
-	Such a modified layer has no bias explicitely.
+	Such a modified module has no bias explicitely.
 	"""
 
-	def call(self, inputs):
-		"""Call the model on new inputs.
+	def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+		"""Define the computation performed at every call.
 
-		In this case call just reapplies all ops in the graph to the new inputs.
+		Should be overridden by all subclasses.
 
-		Arguments:
-			inputs: a tensor or list of tensors
-
-		Returns:
-			output of layer
+		NOTE: Although the recipe for forward pass needs to be defined within this function,
+		one should call the `Module` instance afterwards instead of this,
+		since the former takes care of running the registered hooks while the latter silently ignores them.
 		"""
 		inputs_kernel = super(DiceLinear, self).forward(inputs)
 
@@ -235,3 +225,90 @@ class DiceLinear(MetricLinear):
 		).expand(inputs_kernel.size())
 
 		return inputs_kernel / ((inputs_inputs + kernel_kernel) / 2)
+
+
+def LinearStack(
+	inputs_size: int,
+	output_size: int, skip: int = 1, dropout: float = .0
+) -> torch.nn.Sequential:
+	"""Sequence of linear modules equipped with dropout and uniform activation throughout.
+
+	The network complexity is defined in a specific way which is based on inputs and output sizes:
+	-	the hidden layers gradually change from one to the other with complexities defined by an integer divisor logic
+	-	the depth of the change is adjustable
+
+	Arguments:
+		inputs_dim: size of last inputs dimension
+		output_dim: size of last output dimension
+
+	keyword arguments:
+		skip: the (inverse) depth of the dense layer stack
+			default: no skipping (full depth)
+		dropout: dropout factor applied on input of dense layers in dense layer stack
+			default: half
+
+	Returns:
+		Sequential module with predefined linear submodules
+	"""
+	sizes = hidden_sizes(
+		inputs_size,
+		output_size, skip=skip
+	)
+
+	return torch.nn.Sequential(
+		*[
+			DropoutLinear(
+				inputs_size,
+				output_size, dropout=dropout,
+			) for inputs_size, output_size in zip(sizes[:-1], sizes[1:])
+		]
+	)
+
+
+class LinearStackArray(torch.nn.Module):
+	"""Array of linear stacks equipped with dropout and uniform activation throughout.
+
+	The number of linear stacks (threads) is defined by the inputs and output sizes.
+
+	The network complexity is defined in a specific way which based on inputs and output dimensionality:
+	-	the hidden layers gradually change from one to the other with complexities defined by an integer divisor logic
+	-	the depth of the change is adjustable
+
+	The linear stack array recombines the linear stacks (threads) with attention.
+	"""
+
+	def __init__(self,
+		inputs_size: int,
+		output_size: int, threads: int, dropout: float = .0,
+	):
+		"""Hyperparametrize the linear stack array.
+
+		Arguments:
+			inputs_dim: size of last inputs dimension
+			output_dim: size of last output dimension
+
+		keyword arguments:
+			threads: the number of (parallel) dense layer stacks to build
+				default: base
+			dropout: dropout factor applied on input of dense layers in dense layer stack
+				default: half
+		"""
+		self.array = [
+			LinearStack(
+				inputs_size,
+				output_size, skip=skip, dropout=dropout,
+			) for skip in divisors(len(hidden_sizes(inputs_size, output_size)) - 1, reverse=True)[0:threads]
+		]
+
+		self.attention = AttentionLinear(threads + 1)
+
+	def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+		"""Define the computation performed at every call.
+
+		Should be overridden by all subclasses.
+
+		NOTE: Although the recipe for forward pass needs to be defined within this function,
+		one should call the `Module` instance afterwards instead of this,
+		since the former takes care of running the registered hooks while the latter silently ignores them.
+		"""
+		return self.attention(torch.stack([stack(inputs) for stack in self.array], dim=-1))
