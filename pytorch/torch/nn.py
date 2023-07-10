@@ -1,20 +1,25 @@
-"""Custom modules.
+"""Custom `torch.nn` modules.
 
-Compound linear module containing:
--	dropout
--	linear submodule
+Layers:
+	Customized `torch.nn.Linear` modules for prototyping simple Deep Neural Networks.
 
-Basic attention layer assigning a trainable weight for each input in an array of inputs.
+	`DropoutLinear`: a `torch.nn.Linear` module augmented with
+		a `torch.nn.Dropout` input dropout module
+		a `torch.nn.SiLU` pre-activation module
 
-Metric sigmoid-like non-linear dense layers using similarity metrics in their definition:
--	based on the jaccard similarity metric (sigmoid-like only on sigmoid-like features)
--	based on the cosine similarity metric (sigmoid-like always)
+	`AttentionLinear`: a `torch.nn.Linear` module linearly combining multiple outputs (stacked in a higher dimension tensor) with:
+		a `torch.nn.Sigmoid` hard-coded activation
 
-Linear layer stack:
--	Basically a sequential of linear layers with uniform settings across, apart for the top.
+	`MetricLinear`: a `torch.nn.Linear` module with a non-linear modification based on a similarity metric
+	`CosineLinear`: a `MetricLinear` based on the cosine similarity
+	`JaccardLinear`: a `MetricLinear` based on the Jaccard similarity
+	`DiceLinear`: a `MetricLinear` based on the Dice index
 
-Linear layer stack array:
--	An colelction of linear sequentials used in parallel.
+Models:
+	Custom combinations of aforementioned custom layers.
+
+	`LinearStack`: a pyramid-like `torch.nn.Sequential` module made of `DropoutLinear` submodules in a stack
+	`LinearStackArray`: several `LinearStack` submodules in parallel combining output with an `AttentionLinear` submodule
 """
 
 from __future__ import annotations
@@ -29,26 +34,25 @@ from ..numtools import divisors, hidden_sizes
 
 
 class DropoutLinear(torch.nn.Linear):
-	"""Custom compound linear module.
+	"""A `torch.nn.Linear` module augmented with input dropout and pre-activation.
 
-	Attribures:
-		dropout: a dropout module with non-zero default
-		activation: swish pre-activation for layer (hard-coded)
+	Submodules:
+		`dropout`: a `torch.nn.Dropout` input dropout module
+		`activation`: a `torch.nn.SiLU` pre-activation module
 	"""
 
 	def __init__(self,
 		inputs_size: int,
 		output_size: int, dropout: float = .0,
 	**kwargs):
-		"""Hyrparametrize dropout linear module.
+		"""Hyrparametrize `DropoutLinear` module.
 
 		Arguments:
-			inputs_size: size of each inputs sample
-			output_size: size of each output sample
+			`inputs_size`: size of each inputs sample
+			`output_size`: size of each output sample
 
 		Keyword arguments:
-			dropout: logit of probability of an element to be zeroed
-				default: half probability
+			`dropout`: logit of probability of an element to be zeroed (default half probability)
 		"""
 		super(DropoutLinear, self).__init__(
 			inputs_size,
@@ -59,74 +63,62 @@ class DropoutLinear(torch.nn.Linear):
 		self.dropout = torch.nn.Dropout(scipy.special.expit(dropout))
 
 	#	activation:
-		self.activation = torch.nn.SiLU()  # hardcoded best internal neuron activator
+		self.activation = torch.nn.SiLU()  # hardcoded
 
 	def forward(self, inputs: torch.Tensor) -> torch.Tensor:
 		"""Define the computation performed at every call.
 
-		Should be overridden by all subclasses.
-
-		NOTE: Although the recipe for forward pass needs to be defined within this function,
-		one should call the `Module` instance afterwards instead of this,
-		since the former takes care of running the registered hooks while the latter silently ignores them.
+		Call stack:
+			`torch.nn.SiLU`
+			`torch.nn.Dropout`
+			`torch.nn.Linear`
 		"""
 		return super(DropoutLinear, self).forward(self.dropout(self.activation(inputs)))
 
 
-"""What follows are special types of dense layers."""
-
-
 class AttentionLinear(torch.nn.Linear):
-	"""Wrapper for a linear module operating on a stack of inputs to recombine them with attention.
-
-	Make sure the batch dimensions include the threads themselves:
-		`len(shape(batch)) > 1`
+	"""A `torch.nn.Linear` module linearly combining multiple outputs (stacked in a higher dimension tensor).
 
 	Attributes:
-		activation: sigmoid
+		activation: a `torch.nn.Sigmoid` hard-coded activation
 	"""
 
 	def __init__(self, threads: int, **kwargs):
-		"""Hyperparametrize attention module.
+		"""Hyperparametrize `AttentionLinear` module.
 
 		Arguments:
-			threads: number of inputs to process
+			`threads`: number of submodule outputs to linearly combine
 		"""
 		super(AttentionLinear, self).__init__(threads, 1, bias=False, **kwargs)
 
-		self.activation = torch.nn.Sigmoid()  # hardcoded semantic features renormalization
+		self.activation = torch.nn.Sigmoid()  # hardcoded
 
 	def forward(self, inputs: torch.Tensor) -> torch.Tensor:
 		"""Define the computation performed at every call.
 
-		Should be overridden by all subclasses.
-
-		NOTE: Although the recipe for forward pass needs to be defined within this function,
-		one should call the `Module` instance afterwards instead of this,
-		since the former takes care of running the registered hooks while the latter silently ignores them.
+		Call stack:
+			`torch.nn.Linear` (on stacked output)
+			`torch.nn.Sigmoid`
 		"""
 		return self.activation(super(AttentionLinear, self).forward(inputs).squeeze(dim=-1))
 
 
 class MetricLinear(torch.nn.Linear):
-	"""A non-linear module emulating the action of a metric and outputing in sigmoid range.
+	"""A `torch.nn.Linear` module with a non-linear modification based on a similarity metric
 
-	Such a modified module has no explicit bias.
+	A `MetricLinear` has no bias, no activation (it is nonlinear anyway) and is frozen as an explicit comparator comparator.
 	"""
 
 	def __init__(self, kernel: torch.Tensor, **kwargs):
-		"""Hyperparametrize metric module.
-
-		No activation is needed as these metric layers are manifestly non-linear to begin with.
-		Option is left (and ignored) for compatibility with other dense-like layers.
+		"""Hyperparametrize `MetricLinear` module.
 
 		Arguments:
-			kernel: weight values to begin with
+			`kernel`: weight values
 		"""
 		super(MetricLinear, self).__init__(*kernel.size(), bias=False, **kwargs)
 
 	#	frozen semantic kernel:
-		assert self.weight.dim() == kernel.transpose(0, 1).dim()
+		assert self.weight.size() == kernel.transpose(0, 1).size()
 		self.weight = kernel.transpose(0, 1)
 		self.weight.requires_grad = False
 
@@ -140,11 +132,7 @@ class CosineLinear(MetricLinear):
 	def forward(self, inputs: torch.Tensor) -> torch.Tensor:
 		"""Define the computation performed at every call.
 
-		Should be overridden by all subclasses.
-
-		NOTE: Although the recipe for forward pass needs to be defined within this function,
-		one should call the `Module` instance afterwards instead of this,
-		since the former takes care of running the registered hooks while the latter silently ignores them.
+		Formula:
 		"""
 		inputs_kernel = super(CosineLinear, self).forward(inputs)
 
