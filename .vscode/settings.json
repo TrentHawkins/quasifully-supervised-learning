@@ -9,6 +9,16 @@
 	],
 	"python.linting.pycodestyleEnabled": true,
 
+//	Python code style linting:
+	"python.linting.pydocstyleArgs":
+	[
+	// 	Freeform line width:
+		"--max-line-length=132",
+	// 	Use tabs instead of spaces and allow arbitrary line breaking around operators:
+		"--ignore=D200",
+	],
+	"python.linting.pydocstyleEnabled": true,
+
 //	Make sure code user keeps using tabs instead of spaces:
 	"editor.detectIndentation": true,
 
