@@ -1,7 +1,7 @@
 """Unit tests for composite layers."""
 
 
-class TestLinearOperations:
+class TestTorchOperations:
 	"""Tests for torch bsic linear operations to be used inside call methods and functional models."""
 
 	from torch import Tensor
