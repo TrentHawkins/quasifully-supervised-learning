@@ -11,9 +11,9 @@ Layers:
 		a `torch.nn.Sigmoid` hard-coded activation
 
 	`MetricLinear`: a `torch.nn.Linear` module with a non-linear modification based on a similarity metric
-	`CosineLinear`: a `MetricLinear` based on the cosine similarity
-	`JaccardLinear`: a `MetricLinear` based on the Jaccard similarity
-	`DiceLinear`: a `MetricLinear` based on the Dice index
+	`CosineLinear`: a `MetricLinear` based on the cosine similarity index
+	`JaccardLinear`: a `MetricLinear` based on the Jaccard similarity index
+	`DiceLinear`: a `MetricLinear` based on the Dice similarity index
 
 Models:
 	Custom combinations of aforementioned custom layers.
@@ -27,7 +27,6 @@ from __future__ import annotations
 from typing import Callable, Optional, Union
 
 import scipy.special
-import tensorflow
 import torch
 
 from ..numtools import divisors, hidden_sizes
@@ -113,18 +112,48 @@ class MetricLinear(torch.nn.Linear):
 		"""Hyperparametrize `MetricLinear` module.
 
 		Arguments:
-			`kernel`: weight values
+			`kernel`: initial weight values (frozen)
 		"""
 		super(MetricLinear, self).__init__(*kernel.size(), bias=False, **kwargs)
 
-	#	frozen semantic kernel:
-		assert self.weight.size() == kernel.transpose(0, 1).size()
-		self.weight = kernel.transpose(0, 1)
+	#	frozen kernel:
+		assert self.weight.size() == kernel.size()
+		self.weight = kernel  # no need to transpose `kernel` as `self.weight` is already transposed
 		self.weight.requires_grad = False
+
+	#	the norms of kernel vectors (diagonal):
+		self.kernel_norms = torch.einsum("ij, ij -> i",
+			self.weight,
+			self.weight,
+		)
 
 
 class CosineLinear(MetricLinear):
-	"""A non-linear module that performs the cosine operation per input and kernel vector instead of a dot product.
+	"""A `MetricLinear` based on the cosine similarity index.
+
+	Such a modified module has no bias explicitely and is frozen.
+	"""
+
+	def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+		"""Define the computation performed at every call.
+
+		Formula:
+			`torch.nn.Linear`: $y_{i}=\\sum_{j}w_{ij}x_{j}$
+			$$y_{i}=\\dfrac{\\sum_{j}w_{ij}x_{j}}{\\sum_{j}w_{ij}w_{ij}\\sum_{j}x_{j}x_{j}}$$
+		"""
+		output = super(CosineLinear, self).forward(inputs)
+
+	#	the norms of inputs vectors:
+		inputs_norms = torch.einsum("...i, ...i -> ...",
+			inputs,
+			inputs,
+		)
+
+		return output / torch.sqrt(inputs_norms.unsqueeze(-1) * self.kernel_norms.expand(output.size()))
+
+
+class JaccardLinear(MetricLinear):
+	"""A `MetricLinear` based on the Jaccard similarity index.
 
 	Such a modified module has no bias explicitely.
 	"""
@@ -133,58 +162,22 @@ class CosineLinear(MetricLinear):
 		"""Define the computation performed at every call.
 
 		Formula:
+			`torch.nn.Linear`: $y_{i}=\\sum_{j}w_{ij}x_{j}$
+			$$y_{i}=\\dfrac{\\sum_{j}w_{ij}x_{j}}{\\sum_{j}w_{ij}w_{ij}+\\sum_{j}x_{j}x_{j}-\\sum_{j}w_{ij}x_{j}}$$
 		"""
-		inputs_kernel = super(CosineLinear, self).forward(inputs)
+		output = super(JaccardLinear, self).forward(inputs)
 
 	#	the norms of inputs vectors:
-		inputs_inputs = torch.einsum("...i, ...i -> ...",
+		inputs_norms = torch.einsum("...i, ...i -> ...",
 			inputs,
 			inputs,
-		).unsqueeze(-1)
+		)
 
-	#	the norms of kernel vectors (diagonal):
-		kernel_kernel = torch.einsum("...ji, ...ji -> ...i",
-			self.weight,
-			self.weight,
-		).expand(inputs_kernel.size())
-
-		return inputs_kernel / torch.sqrt(inputs_inputs * kernel_kernel)
-
-
-class JaccardLinear(MetricLinear):
-	"""A non-linear module that performs the Jaccard operation per input and kernel vector instead of a dot product.
-
-	Such a modified module has no bias explicitely.
-	"""
-
-	def forward(self, inputs: torch.Tensor) -> torch.Tensor:
-		"""Define the computation performed at every call.
-
-		Should be overridden by all subclasses.
-
-		NOTE: Although the recipe for forward pass needs to be defined within this function,
-		one should call the `Module` instance afterwards instead of this,
-		since the former takes care of running the registered hooks while the latter silently ignores them.
-		"""
-		inputs_kernel = super(JaccardLinear, self).forward(inputs)
-
-	#	the norms of inputs vectors:
-		inputs_inputs = torch.einsum("...i, ...i -> ...",
-			inputs,
-			inputs,
-		).unsqueeze(-1)
-
-	#	the norms of kernel vectors (diagonal):
-		kernel_kernel = torch.einsum("...ji, ...ji -> ...i",
-			self.weight,
-			self.weight,
-		).expand(inputs_kernel.size())
-
-		return inputs_kernel / (inputs_inputs + kernel_kernel - inputs_kernel)
+		return output / (inputs_norms.unsqueeze(-1) + self.kernel_norms.expand(output.size()) - output)
 
 
 class DiceLinear(MetricLinear):
-	"""A non-linear module that performs the Dice operation per input and kernel vector instead of a dot product.
+	"""A `MetricLinear` based on the Dice similarity index.
 
 	Such a modified module has no bias explicitely.
 	"""
@@ -192,58 +185,49 @@ class DiceLinear(MetricLinear):
 	def forward(self, inputs: torch.Tensor) -> torch.Tensor:
 		"""Define the computation performed at every call.
 
-		Should be overridden by all subclasses.
-
-		NOTE: Although the recipe for forward pass needs to be defined within this function,
-		one should call the `Module` instance afterwards instead of this,
-		since the former takes care of running the registered hooks while the latter silently ignores them.
+		Formula:
+			`torch.nn.Linear`: $y_{i}=\\sum_{j}w_{ij}x_{j}$
+			$$y_{i}=\\dfrac{\\sum_{j}w_{ij}x_{j}}{\\sum_{j}w_{ij}w_{ij}+\\sum_{j}x_{j}x_{j}-\\sum_{j}w_{ij}x_{j}}$$
 		"""
-		inputs_kernel = super(DiceLinear, self).forward(inputs)
+		output = super(DiceLinear, self).forward(inputs)
 
 	#	the norms of inputs vectors:
-		inputs_inputs = torch.einsum("...i, ...i -> ...",
+		inputs_norms = torch.einsum("...i, ...i -> ...",
 			inputs,
 			inputs,
-		).unsqueeze(-1)
+		)
 
-	#	the norms of kernel vectors (diagonal):
-		kernel_kernel = torch.einsum("...ji, ...ji -> ...i",
-			self.weight,
-			self.weight,
-		).expand(inputs_kernel.size())
-
-		return inputs_kernel / ((inputs_inputs + kernel_kernel) / 2)
+		return output / ((inputs_norms.unsqueeze(-1) + self.kernel_norms.expand(output.size())) / 2)
 
 
 def LinearStack(
 	inputs_size: int,
 	output_size: int, skip: int = 1, dropout: float = .0
 ) -> torch.nn.Sequential:
-	"""Sequence of linear modules equipped with dropout and uniform activation throughout.
+	"""A pyramid-like `torch.nn.Sequential` module made of `DropoutLinear` submodules in a stack.
 
 	The network complexity is defined in a specific way which is based on inputs and output sizes:
-	-	the hidden layers gradually change from one to the other with complexities defined by an integer divisor logic
+	-	the hidden sizes gradually change from one to the other with complexities defined by an integer divisor logic
 	-	the depth of the change is adjustable
 
 	Arguments:
-		inputs_dim: size of last inputs dimension
-		output_dim: size of last output dimension
+		`inputs_dim`: size of last inputs dimension
+		`output_dim`: size of last output dimension
 
 	keyword arguments:
-		skip: the (inverse) depth of the dense layer stack
-			default: no skipping (full depth)
-		dropout: dropout factor applied on input of dense layers in dense layer stack
-			default: half
+		`skip`: the (inverse) depth of the linear layer stack (default full depth)
+		`dropout`: logit of dropout factor applied on input of dense layers in dense layer stack (default half probability)
 
 	Returns:
-		Sequential module with predefined linear submodules
+		`torch.nn.Sequential` module with predefined linear submodules
 	"""
 	sizes = hidden_sizes(
 		inputs_size,
 		output_size, skip=skip
 	)
 
-	return torch.nn.Sequential(
+#	linear stack:
+	stack = torch.nn.Sequential(
 		*[
 			DropoutLinear(
 				inputs_size,
@@ -252,35 +236,38 @@ def LinearStack(
 		]
 	)
 
+	return stack
+
 
 class LinearStackArray(torch.nn.Module):
-	"""Array of linear stacks equipped with dropout and uniform activation throughout.
+	"""Several `LinearStack` submodules in parallel combining output with an `AttentionLinear` submodule
 
 	The number of linear stacks (threads) is defined by the inputs and output sizes.
-
-	The network complexity is defined in a specific way which based on inputs and output dimensionality:
-	-	the hidden layers gradually change from one to the other with complexities defined by an integer divisor logic
-	-	the depth of the change is adjustable
-
 	The linear stack array recombines the linear stacks (threads) with attention.
 	"""
 
 	def __init__(self,
 		inputs_size: int,
-		output_size: int, threads: int, dropout: float = .0,
-	):
-		"""Hyperparametrize the linear stack array.
+		output_size: int, threads: Optional[int] = None, dropout: float = .0,
+	**kwargs):
+		"""Hyperparametrize the `LinearStackArray` module.
 
 		Arguments:
-			inputs_dim: size of last inputs dimension
-			output_dim: size of last output dimension
+			`inputs_dim`: size of last inputs dimension
+			`output_dim`: size of last output dimension
 
 		keyword arguments:
-			threads: the number of (parallel) dense layer stacks to build
-				default: base
-			dropout: dropout factor applied on input of dense layers in dense layer stack
-				default: half
+			`threads`: the number of (parallel) dense layer stacks to build (default base thread only)
+			`dropout`: logit of dropout factor applied on input of dense layers in dense layer stack (default half probability)
 		"""
+		super(LinearStackArray, self).__init__(**kwargs)
+
+	#	architecture metadata:
+		skips = divisors(len(hidden_sizes(inputs_size, output_size)) - 1, reverse=True)
+		threads = len(skips) if threads is None else threads
+
+	#	linear stack array:
+		assert threads <= len(skips)
 		self.array = [
 			LinearStack(
 				inputs_size,
@@ -288,15 +275,16 @@ class LinearStackArray(torch.nn.Module):
 			) for skip in divisors(len(hidden_sizes(inputs_size, output_size)) - 1, reverse=True)[0:threads]
 		]
 
-		self.attention = AttentionLinear(threads + 1)
+	#	attention:
+		self.attention = AttentionLinear(threads)
 
 	def forward(self, inputs: torch.Tensor) -> torch.Tensor:
 		"""Define the computation performed at every call.
 
-		Should be overridden by all subclasses.
-
-		NOTE: Although the recipe for forward pass needs to be defined within this function,
-		one should call the `Module` instance afterwards instead of this,
-		since the former takes care of running the registered hooks while the latter silently ignores them.
+		Call stack:
+				`LinearStack` of base depth (parallel thread)
+				...
+				`LinearStack` of full depth (parallel thread)
+			`AttentionLinear` (on all threads stacked)
 		"""
 		return self.attention(torch.stack([stack(inputs) for stack in self.array], dim=-1))
