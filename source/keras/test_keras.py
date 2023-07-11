@@ -1,7 +1,7 @@
 """Unit tests for composite layers."""
 
 
-class TestLinearOperations:
+class TestTensorflowOperations:
 	"""Tests for TensorFlow bsic linear operations to be used inside call methods and functional models."""
 
 	from tensorflow import constant
