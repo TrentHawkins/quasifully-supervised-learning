@@ -3,21 +3,38 @@
 
 from __future__ import annotations
 
-import os; os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
-import numpy
-import tensorflow  # ; tensorflow.keras.backend.set_image_data_format("channels_first")
-
-import source.keras.utils.generic_utils
-import source.keras.utils.layer_utils
-
-from source.dataset.animals_with_attributes import TransductiveZeroshotDataset
-from source.keras.applications.convnext import ConvNeXt
-from source.keras.applications.efficientnet import EfficientNet
-from source.zeroshot.classifiers import QuasifullyGeneralizedZeroshotCategoricalClassifier
-from source.zeroshot.models import GeneralizedZeroshotModel
-
 if __name__ == "__main__":
+	"""Test `torch` framework.
+
+	Include tests on `numpy` utilities defined.
+	"""
+
+	import numpy
+	import torch
+
+	import pytorch.torch.nn
+
+	model = pytorch.torch.nn.LinearStackArray(1280, 50)
+	x = torch.ones((5, 1280))
+	y = model(x)
+
+	print(x.size(), y.size())
+
+if __name__ == "__main__" and False:
 	"""Test."""
+
+	import os; os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+	import numpy
+	import tensorflow  # ; tensorflow.keras.backend.set_image_data_format("channels_first")
+
+	import source.keras.utils.generic_utils
+	import source.keras.utils.layer_utils
+
+	from source.dataset.animals_with_attributes import TransductiveZeroshotDataset
+	from source.keras.applications.convnext import ConvNeXt
+	from source.keras.applications.efficientnet import EfficientNet
+	from source.zeroshot.classifiers import QuasifullyGeneralizedZeroshotCategoricalClassifier
+	from source.zeroshot.models import GeneralizedZeroshotModel
 
 #	Set all seeds:
 	tensorflow.keras.utils.set_random_seed(0)
