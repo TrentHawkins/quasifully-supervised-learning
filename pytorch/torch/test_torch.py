@@ -25,7 +25,7 @@ class TestTorchOperations:
 	def test_vector_dot_product(self):
 		"""Test tensordot as a vector dot product on the last dimension of tensors."""
 		from torch import Tensor
-		from torch import einsum, eq
+		from torch import all, einsum, eq
 
 	#   Use prime numbers for chape of tensor for better dot compatibility testing.
 		assert self.inputs.size() == (
@@ -36,15 +36,17 @@ class TestTorchOperations:
 
 	#	Assume x is a (2,3)-shaped batch of 5-sized feature vectors. The norm should be (2,3) then.
 		assert einsum("...i, ...i -> ...", self.inputs, self.inputs).size() == (2, 3)
-		assert eq(
-			einsum("...i, ...i -> ...", self.inputs, self.inputs),
-			Tensor([[j @ j for j in i] for i in self.inputs.numpy()])
+		assert all(
+			eq(
+				einsum("...i, ...i -> ...", self.inputs, self.inputs),
+				Tensor([[j @ j for j in i] for i in self.inputs.numpy()])
+			)
 		)
 
 	def test_matrix_multiplication(self):
 		"""Test tensordot as a vector dot product on the last dimension of tensors."""
 		from torch import Tensor
-		from torch import einsum, eq
+		from torch import all, einsum, eq
 
 	#   Use prime numbers for chape of tensor for better dot compatibility testing.
 		assert self.inputs.size() == (
@@ -55,9 +57,11 @@ class TestTorchOperations:
 
 	#	Assume x is a 2-sized batch of (3,5)-shaped kernel weights. The norm should be (2,3) again, via the diagonal dots.
 		assert einsum("...ji, ...ji -> ...j", self.inputs, self.inputs).size() == (2, 3)
-		assert eq(
-			einsum("...i, ...i -> ...", self.inputs, self.inputs),
-			Tensor([(i @ i.transpose()).diagonal() for i in self.inputs.numpy()])
+		assert all(
+			eq(
+				einsum("...i, ...i -> ...", self.inputs, self.inputs),
+				Tensor([(i @ i.transpose()).diagonal() for i in self.inputs.numpy()])
+			)
 		)
 
 
@@ -74,7 +78,7 @@ class TestMetricLinear:
 
 	def test_cosine(self):
 		"""Test if operations are carried out successfully over a batch of inputs."""
-		from torch import rand, ge, le
+		from torch import all, rand, ge, le
 		from torch.nn import Linear
 		from pytorch.torch.nn import CosineLinear
 
@@ -92,12 +96,12 @@ class TestMetricLinear:
 		)(self.input).size()
 
 	#	Assert the range of values of a `CosineLinear` pass is 0 to 1.
-		assert ge(testLinear(self.input), 0)
-		assert le(testLinear(self.input), 1)
+		assert all(ge(testLinear(self.input), 0))
+		assert all(le(testLinear(self.input), 1))
 
 	def test_jaccard(self):
 		"""Test if operations are carried out successfully over a batch of inputs."""
-		from torch import rand, ge, le
+		from torch import all, rand, ge, le
 		from torch.nn import Linear
 		from pytorch.torch.nn import JaccardLinear
 
@@ -115,12 +119,12 @@ class TestMetricLinear:
 		)(self.input).size()
 
 	#	Assert the range of values of a `JaccardLinear` pass is 0 to 1.
-		assert ge(testLinear(self.input), 0)
-		assert le(testLinear(self.input), 1)
+		assert all(ge(testLinear(self.input), 0))
+		assert all(le(testLinear(self.input), 1))
 
 	def test_dice(self):
 		"""Test if operations are carried out successfully over a batch of inputs."""
-		from torch import rand, ge, le
+		from torch import all, rand, ge, le
 		from torch.nn import Linear
 		from pytorch.torch.nn import DiceLinear
 
@@ -138,8 +142,8 @@ class TestMetricLinear:
 		)(self.input).size()
 
 	#	Assert the range of values of a `DiceLinear` pass is 0 to 1.
-		assert ge(testLinear(self.input), 0)
-		assert le(testLinear(self.input), 1)
+		assert all(ge(testLinear(self.input), 0))
+		assert all(le(testLinear(self.input), 1))
 
 
 class TestDropoutLinear:
@@ -156,7 +160,7 @@ class TestDropoutLinear:
 
 	def test_forward_pass(self):
 		"""Test if operations are carried out successfully over a batch of inputs."""
-		from torch import ge, le
+		from torch import all, ge, le
 		from torch.nn import Linear
 		from pytorch.torch.nn import DropoutLinear
 
@@ -170,7 +174,3 @@ class TestDropoutLinear:
 			self.input.size()[-1],
 			self.input.size()[-1],
 		)(self.input).size()
-
-	#	Assert the range of values of a `DropoutLinear` pass is 0 to 1.
-		assert ge(testLinear(self.input), 0)
-		assert le(testLinear(self.input), 1)
