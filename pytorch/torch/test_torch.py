@@ -142,7 +142,7 @@ class TestMetricLinear:
 		assert le(testLinear(self.input), 1)
 
 
-class TestBaseLinear:
+class TestDropoutLinear:
 	"""Test the custom Jaccard layer as a sinlge layer model."""
 
 	from torch import rand
