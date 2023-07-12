@@ -51,7 +51,7 @@ class DropoutLinear(torch.nn.Linear):
 			`output_size`: size of each output sample
 
 		Keyword arguments:
-			`dropout`: logit of probability of an element to be zeroed (default half probability)
+			`dropout`: logit of probability of an element to be zeroed (default: half probability)
 		"""
 		super(DropoutLinear, self).__init__(
 			inputs_size,
@@ -215,8 +215,8 @@ def LinearStack(
 		`output_dim`: size of last output dimension
 
 	keyword arguments:
-		`skip`: the (inverse) depth of the linear layer stack (default full depth)
-		`dropout`: logit of dropout factor applied on input of dense layers in dense layer stack (default half probability)
+		`skip`: the (inverse) depth of the linear layer stack (default: full depth)
+		`dropout`: logit of dropout factor applied on input of dense layers in dense layer stack (default: half probability)
 
 	Returns:
 		`torch.nn.Sequential` module with predefined linear submodules
@@ -257,8 +257,8 @@ class LinearStackArray(torch.nn.Module):
 			`output_dim`: size of last output dimension
 
 		keyword arguments:
-			`threads`: the number of (parallel) dense layer stacks to build (default base thread only)
-			`dropout`: logit of dropout factor applied on input of dense layers in dense layer stack (default half probability)
+			`threads`: the number of (parallel) dense layer stacks to build (default: base thread only)
+			`dropout`: logit of dropout factor applied on input of dense layers in dense layer stack (default: half probability)
 		"""
 		super(LinearStackArray, self).__init__(**kwargs)
 
