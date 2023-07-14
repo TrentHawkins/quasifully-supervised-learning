@@ -81,7 +81,7 @@ class Dataset(torchvision.datasets.ImageFolder):
 	def __init__(self,
 		images_path: str = "datasets/animals_with_attributes",
 		splits_path: str = "standard_split",
-		labels_path: str = "allclasses",
+		labels_path: str = "allclasses.txt",
 		transform: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
 		target_transform: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
 	):
@@ -103,15 +103,6 @@ class Dataset(torchvision.datasets.ImageFolder):
 			images_path,
 			splits_path,
 			labels_path,
-		)
-
-	#	Instantiate `torchvision.datasets.ImageFolder`:
-		super(Dataset, self).__init__(
-			path.join(self._images_path, "JPEGImages"),  # `self.root` overwriten later but the same
-			transform=transform,
-			target_transform=target_transform,
-		#	loader=torchvision.io.read_image,
-		#	is_valid_file=None,
 		)
 
 	#	Labels (animal labels):
@@ -148,6 +139,15 @@ class Dataset(torchvision.datasets.ImageFolder):
 	#	Images (paths and labels):
 		self._images: pandas.Series[int] = pandas.Series(dict(*zip(self.imgs)))
 
+	#	Instantiate `torchvision.datasets.ImageFolder`:
+		super(Dataset, self).__init__(
+			path.join(self._images_path, "JPEGImages"),  # `self.root` overwriten later but the same
+			transform=transform,
+			target_transform=target_transform,
+		#	loader=torchvision.io.read_image,
+		#	is_valid_file=None,
+		)
+
 	#	Set global seed for dataset:
 		self.seed: int = 0
 		self.generator: torch.Generator = torch.Generator().manual_seed(self.seed)
@@ -168,8 +168,8 @@ class Dataset(torchvision.datasets.ImageFolder):
 		Returns:
 			list of all classes and dictionary mapping each class to an index
 		"""
-		directory = self._labels_path  # HACK: give label control to caller
-		classes = self._read(directory)
+		with open(path.join(self._labels_path)) as labels_file:
+			classes = [label.strip() for label in labels_file]
 
 		if not classes:
 			raise FileNotFoundError(f"Couldn't find any class labels in `{directory}`.")
@@ -397,7 +397,7 @@ class Dataset(torchvision.datasets.ImageFolder):
 	def plot_label_correlation(self, alter_dot: Callable = numpy.dot,
 		binary: Optional[bool] = None,
 		logits: bool = False,
-		softmax: bool = False,
+		softmx: bool = False,
 	):
 		"""Plot label correlation on predicates heatmap using dot product, optinally on logits.
 
@@ -410,7 +410,7 @@ class Dataset(torchvision.datasets.ImageFolder):
 		alpha_range = "-binary" if binary else ""
 		alpha_field = "-logits" if logits else ""
 
-		alpha_normalization = "-softmax" if softmax else ""
+		alpha_normalization = "-softmax" if softmx else ""
 
 		fig, ax = matplotlib.pyplot.subplots(
 			figsize=(
@@ -450,14 +450,14 @@ class Dataset(torchvision.datasets.ImageFolder):
 			)
 
 	#	Optinally dress correlation with a softmax:
-		if softmax:
+		if softmx:
 			label_correlation = label_correlation.transform(scipy.special.softmax)
 
 		seaborn.heatmap(label_correlation,
-			vmin=0. if softmax or alter_dot != numpy.dot else None,
-			vmax=1. if softmax or alter_dot != numpy.dot else None,
+			vmin=0. if softmx or alter_dot != numpy.dot else None,
+			vmax=1. if softmx or alter_dot != numpy.dot else None,
 			cmap="gnuplot",
-			robust=not softmax and alter_dot == numpy.dot,
+			robust=not softmx and alter_dot == numpy.dot,
 			linewidths=0,
 			linecolor="black",
 			cbar=False,
