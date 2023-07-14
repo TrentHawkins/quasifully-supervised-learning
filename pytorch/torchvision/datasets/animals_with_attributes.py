@@ -64,11 +64,24 @@ class Dataset(torchvision.datasets.ImageFolder):
 		`_labels`: `pandas.Series` of label index indexed by label name
 		`_alphas`: `pandas.Series` of integer listing of class predicates by name
 		`_images`: `pandas.Series` of image label index indexed by image path
+
+	Methods:
+		`labels`: `pandas.Series` of label index indexed by label name (optionally filtered)
+		`alphas`: `pandas.Dataframe` of predicate values indexed by label name (optionally filtered) and predicate name
+		`images`: `pandas.Series` of image label index (optionally filtered) indexed by image path
+
+		`random_split`: the images into proportionate training, development and validation subsets
+
+		`plot_labels`: plot label statistics
+		`plot_alphas`: plot predicates heatmap against labels
+
+		`plot_label_correlation`: plot label correlation on predicates heatmap using dot product, optinally on logits
 	"""
 
 	def __init__(self,
 		images_path: str = "datasets/animals_with_attributes",
-		labels_path: str = "standard_split",
+		splits_path: str = "standard_split",
+		labels_path: str = "allclasses",
 		transform: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
 		target_transform: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
 	):
@@ -79,15 +92,22 @@ class Dataset(torchvision.datasets.ImageFolder):
 			`transform`: a function/transform that takes in an PIL image and returns a transformed version
 			`target_transform`: A function/transform that takes in the target and transforms it
 		"""
-		self._images_path: str = path.normpath(images_path)
-		self._labels_path = path.join(self._images_path, labels_path)
-
-	#	`ImageFolder` `root` path:
-		self.root = path.join(self._images_path, "JPEGImages")  # `self.root` overwriten later but the same
+		self._images_path = path.join(
+			images_path,
+		)
+		self._splits_path = path.join(
+			images_path,
+			splits_path,
+		)
+		self._labels_path = path.join(
+			images_path,
+			splits_path,
+			labels_path,
+		)
 
 	#	Instantiate `torchvision.datasets.ImageFolder`:
 		super(Dataset, self).__init__(
-			self.root,
+			path.join(self._images_path, "JPEGImages"),  # `self.root` overwriten later but the same
 			transform=transform,
 			target_transform=target_transform,
 		#	loader=torchvision.io.read_image,
@@ -148,6 +168,7 @@ class Dataset(torchvision.datasets.ImageFolder):
 		Returns:
 			list of all classes and dictionary mapping each class to an index
 		"""
+		directory = self._labels_path  # HACK: give label control to caller
 		classes = self._read(directory)
 
 		if not classes:
@@ -167,7 +188,7 @@ class Dataset(torchvision.datasets.ImageFolder):
 			`list` with items in selection
 		"""
 		if isinstance(selection, str):
-			with open(path.join(self._images_path, self._labels_path, selection)) as labels_file:
+			with open(path.join(self._images_path, self._splits_path, selection)) as labels_file:
 				return [label.strip() for label in labels_file]
 
 		if isinstance(selection, pandas.Series):
@@ -236,28 +257,18 @@ class Dataset(torchvision.datasets.ImageFolder):
 		"""
 		return self._images[self._images.isin(self.labels(selection))]
 
-	def random_split(self,
-		labels: Union[pandas.Series, str] = "allclasses.txt",
-		*,
-		image_size: int = 224,
-		batch_size: int = 1,
-	) -> tuple[
+	def random_split(self) -> tuple[
 		torch.utils.data.Dataset,
 		torch.utils.data.Dataset,
 		torch.utils.data.Dataset,
 	]:
-		"""Get shuffled split by label and subset.
-
-		Arguments:
-			labels: get examples only from these
-			subset: after splitting dataset get this
-
-		Keyword_arguments:
-			image_size: to rescale fetched examples to (square ratio)
-			batch_size: to batch   fetched examples
+		"""Randomly split the images into proportionate training, development and validation subsets.
 
 		Returns:
-			An optimized (cached and prefeched) torch.utils dataset.
+			`torch.utils.data.Subset` including:
+				`train_images`: images used for training
+				`devel_images`: images used for hyper-tuning and or regularization
+				`valid_images`: images used for testing
 		"""
 		_target_source: float = len(self.images("testclasses.txt")) / len(self.images("trainvalclasses.txt"))
 		_target_totals: float = len(self.images("testclasses.txt")) / len(self.images())
@@ -279,7 +290,10 @@ class Dataset(torchvision.datasets.ImageFolder):
 		)
 
 	def plot_labels(self):
-		"""Plot label statistics."""
+		"""Plot label statistics.
+
+		Label distribution in dataset in both linear and logarigthmic scales.
+		"""
 		fig, ax = matplotlib.pyplot.subplots(
 			figsize=(
 				9.,
@@ -344,8 +358,7 @@ class Dataset(torchvision.datasets.ImageFolder):
 		"""Plot predicates heatmap against labels.
 
 		Arguments:
-			binary: continuous if `False`
-				default: continuous
+			binary: continuous if `False` (default: continuous)
 		"""
 		alpha_range = "-binary" if binary else "-continuous"
 
@@ -384,22 +397,20 @@ class Dataset(torchvision.datasets.ImageFolder):
 	def plot_label_correlation(self, alter_dot: Callable = numpy.dot,
 		binary: Optional[bool] = None,
 		logits: bool = False,
-		softmx: bool = False,
+		softmax: bool = False,
 	):
 		"""Plot label correlation on predicates heatmap using dot product, optinally on logits.
 
 		Arguments:
-			binary: continuous if `False`
-				default: continuous
-			logits: modify probabilistic range to logits
-				default: not
-			softmx: apply softmax to predictions
+			`binary`: continuous if `False` (default: continuous)
+			`logits`: modify probabilistic range to logits (default: not
+			`softmx`: apply softmax to predictions
 				default not
 		"""
 		alpha_range = "-binary" if binary else ""
 		alpha_field = "-logits" if logits else ""
 
-		alpha_normalization = "-softmax" if softmx else ""
+		alpha_normalization = "-softmax" if softmax else ""
 
 		fig, ax = matplotlib.pyplot.subplots(
 			figsize=(
@@ -412,18 +423,20 @@ class Dataset(torchvision.datasets.ImageFolder):
 		ax.xaxis.set_tick_params(length=0)
 		ax.yaxis.set_tick_params(length=0)
 
-	#	Mix continuous and binary semantic representations, emulating sigmoid predictions against binary truth.
+	#	Mix continuous and binary semantic representations, emulating sigmoid predictions against binary truth:
 		if binary is not None:
-			alphas = self.alphas(
-				binary=binary,
-				logits=logits,
-			)
 			label_correlation = dotDataFrame(
-				alphas,
-				alphas.transpose(), alter_dot=alter_dot
+				self.alphas(
+					binary=binary,
+					logits=logits,
+				),
+				self.alphas(
+					binary=binary,
+					logits=logits,
+				).transpose(), alter_dot=alter_dot
 			)
 
-	#	Pure binary or continuous semantic representation correlation.
+	#	Pure binary or continuous semantic representation correlation:
 		else:
 			label_correlation = dotDataFrame(
 				self.alphas(
@@ -436,15 +449,15 @@ class Dataset(torchvision.datasets.ImageFolder):
 				).transpose(), alter_dot=alter_dot
 			)
 
-	#	Optinally dress correlation with a softmax.
-		if softmx:
+	#	Optinally dress correlation with a softmax:
+		if softmax:
 			label_correlation = label_correlation.transform(scipy.special.softmax)
 
 		seaborn.heatmap(label_correlation,
-			vmin=0. if softmx or alter_dot != numpy.dot else None,
-			vmax=1. if softmx or alter_dot != numpy.dot else None,
+			vmin=0. if softmax or alter_dot != numpy.dot else None,
+			vmax=1. if softmax or alter_dot != numpy.dot else None,
 			cmap="gnuplot",
-			robust=not softmx and alter_dot == numpy.dot,
+			robust=not softmax and alter_dot == numpy.dot,
 			linewidths=0,
 			linecolor="black",
 			cbar=False,
@@ -467,46 +480,73 @@ class Dataset(torchvision.datasets.ImageFolder):
 		)
 
 
-class ZeroshotDataset(Dataset):
+class ZeroshotDataset(torch.utils.data.ConcatDataset):
 	"""Animals with Attributes 2.
 
 	Semi-transductive generalized zeroshot setting.
 
 	Methods:
-		split: the images into proportionate training, development and validation subsets
+		`random_split`: the images into proportionate training, development and validation subsets
 	"""
 
-	def random_split(self,
-		source: Union[pandas.Series, str] = "trainvalclasses.txt",
-		target: Union[pandas.Series, str] = "testclasses.txt",
-	) -> tuple[
+	def __init__(self,
+		images_path: str = "datasets/animals_with_attributes",
+		splits_path: str = "standard_split",
+		source_path: str = "trainvalclasses.txt",
+		target_path: str = "testclasses.txt",
+		transform: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
+		target_transform: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
+	):
+		self.source = Dataset(
+			images_path=images_path,
+			splits_path=splits_path,
+			labels_path=source_path,
+			transform=transform,
+			target_transform=target_transform
+		)
+		self.target = Dataset(
+			images_path=images_path,
+			splits_path=splits_path,
+			labels_path=target_path,
+			transform=transform,
+			target_transform=target_transform
+		)
+
+	#	Make it as a concatenated dataset:
+		super(ZeroshotDataset, self).__init__(
+			[
+				self.source,
+				self.target,
+			]
+		)
+
+	def random_split(self) -> tuple[
 		torch.utils.data.Dataset,
 		torch.utils.data.Dataset,
 		torch.utils.data.Dataset,
 	]:
-		"""Get shuffled split by label and subset.
-
-		Arguments:
-			source: get examples only from these for training, development and validation
-			target: get examples only from these for validation only
-
-		Keyword_arguments:
-			image_size: to rescale fetched examples to (square ratio)
-			batch_size: to batch   fetched examples
+		"""Randomly split the images into proportionate training, development and validation subsets.
 
 		Returns:
-			An optimized (cached and prefeched) torch.utils dataset.
+			`torch.utils.data.Subset` including:
+				`train_images`: source label images only for training
+				`devel_images`: source label images only for development
+				`valid_images`: source label images only for testing plus
+					target label images for training
+					target label images for develpment
+					target label images for testing
+				as target label images are axiomatically unknown during training in the semi-tranductive setting
 		"""
 		(
 			source_train_images,
 			source_devel_images,
 			source_valid_images,
-		) = super(ZeroshotDataset, self).random_split(source)
+		) = self.source.random_split()
 		(
 			target_train_images,
 			target_devel_images,
 			target_valid_images,
-		) = super(ZeroshotDataset, self).random_split(target,)
+		) = self.target.random_split()
 
 		train_images = source_train_images
 		devel_images = source_devel_images
@@ -526,47 +566,39 @@ class ZeroshotDataset(Dataset):
 		)
 
 
-class TransductiveZeroshotDataset(Dataset):
+class TransductiveZeroshotDataset(ZeroshotDataset):
 	"""Animals with Attributes 2.
 
 	Transductive generalized zeroshot setting.
 
 	Methods:
-		split: the images into proportionate training, development and validation subsets
+		`random_split`: the images into proportionate training, development and validation subsets
 	"""
 
-	def split(self,
-		source: Union[pandas.Series, str] = "trainvalclasses.txt",
-		target: Union[pandas.Series, str] = "testclasses.txt",
-	) -> tuple[
+	def random_split(self) -> tuple[
 		torch.utils.data.Dataset,
 		torch.utils.data.Dataset,
 		torch.utils.data.Dataset,
 	]:
-		"""Get shuffled split by label and subset.
-
-		Arguments:
-			source: get examples only from these for training, development and validation
-			target: get examples only from these for training, development and validation
-				NOTE: development and validation must be used unlabelled
-
-		Keyword_arguments:
-			image_size: to rescale fetched examples to (square ratio)
-			batch_size: to batch   fetched examples
+		"""Randomly split the images into proportionate training, development and validation subsets.
 
 		Returns:
-			An optimized (cached and prefeched) torch.utils dataset.
+			`torch.utils.data.Subset` including:
+				`train_images`: source label images and target label images unlabelled only for training
+				`devel_images`: source label images and target label images unlabelled only for development
+				`valid_images`: source label images and target label images unlabelled only for testing plus
+			as target label images are axiomatically known but without label during training in the tranductive setting
 		"""
 		(
 			source_train_images,
 			source_devel_images,
 			source_valid_images,
-		) = super(TransductiveZeroshotDataset, self).random_split(source)
+		) = super(TransductiveZeroshotDataset, self).random_split()
 		(
 			target_train_images,
 			target_devel_images,
 			target_valid_images,
-		) = super(TransductiveZeroshotDataset, self).random_split(target)
+		) = super(TransductiveZeroshotDataset, self).random_split()
 
 		train_images = torch.utils.data.ConcatDataset(
 			[
