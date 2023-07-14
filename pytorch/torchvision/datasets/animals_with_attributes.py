@@ -136,9 +136,6 @@ class Dataset(torchvision.datasets.ImageFolder):
 		print_separator(3)
 		print_separator(3, "Animals with Attributes 2: directory look-up")
 
-	#	Images (paths and labels):
-		self._images: pandas.Series[int] = pandas.Series(dict(*zip(self.imgs)))
-
 	#	Instantiate `torchvision.datasets.ImageFolder`:
 		super(Dataset, self).__init__(
 			path.join(self._images_path, "JPEGImages"),  # `self.root` overwriten later but the same
@@ -147,6 +144,10 @@ class Dataset(torchvision.datasets.ImageFolder):
 		#	loader=torchvision.io.read_image,
 		#	is_valid_file=None,
 		)
+
+	#	Images (paths and labels):
+		keys, values = zip(*self.imgs)
+		self._images: pandas.Series[int] = pandas.Series(values, keys)
 
 	#	Set global seed for dataset:
 		self.seed: int = 0
@@ -188,7 +189,7 @@ class Dataset(torchvision.datasets.ImageFolder):
 			`list` with items in selection
 		"""
 		if isinstance(selection, str):
-			with open(path.join(self._images_path, self._splits_path, selection)) as labels_file:
+			with open(path.join(self._splits_path, selection)) as labels_file:
 				return [label.strip() for label in labels_file]
 
 		if isinstance(selection, pandas.Series):
@@ -257,12 +258,19 @@ class Dataset(torchvision.datasets.ImageFolder):
 		"""
 		return self._images[self._images.isin(self.labels(selection))]
 
-	def random_split(self) -> tuple[
+	def random_split(self,
+		len_source: Optional[int] = None,
+		len_target: Optional[int] = None,
+	) -> tuple[
 		torch.utils.data.Dataset,
 		torch.utils.data.Dataset,
 		torch.utils.data.Dataset,
 	]:
 		"""Randomly split the images into proportionate training, development and validation subsets.
+
+		Arguments:
+			`len_source`: size of training
+			`len_target`: size of testing
 
 		Returns:
 			`torch.utils.data.Subset` including:
@@ -270,16 +278,18 @@ class Dataset(torchvision.datasets.ImageFolder):
 				`devel_images`: images used for hyper-tuning and or regularization
 				`valid_images`: images used for testing
 		"""
-		_target_source: float = len(self.images("testclasses.txt")) / len(self.images("trainvalclasses.txt"))
-		_target_totals: float = len(self.images("testclasses.txt")) / len(self.images())
+		len_source = len_source or len(self.images("trainvalclasses.txt"))
+		len_target = len_target or len(self.images("testclasses.txt"))
 
 	#	Split validation subset off total data. Use a larger chunk than what corresponds to the source/target labels:
-		_train_images, _valid_images = torch.utils.data.random_split(self, [1. - _target_source, _target_source],
+		_train_images, _valid_images = torch.utils.data.random_split(self,
+			[1. - len_target / len_source, len_target / len_source],
 			generator=self.generator,
 		)
 
 	#	Split development subset off training data. Use a smaller chunk than what corresponds to the source/target labels:
-		_train_images, _devel_images = torch.utils.data.random_split(self, [1. - _target_totals, _target_totals],
+		_train_images, _devel_images = torch.utils.data.random_split(_train_images,
+			[1. - len_target / (len_source + len_target), len_target / (len_source + len_target)],
 			generator=self.generator,
 		)
 
@@ -520,7 +530,10 @@ class ZeroshotDataset(torch.utils.data.ConcatDataset):
 			]
 		)
 
-	def random_split(self) -> tuple[
+	def random_split(self,
+		len_source: Optional[int] = None,
+		len_target: Optional[int] = None,
+	) -> tuple[
 		torch.utils.data.Dataset,
 		torch.utils.data.Dataset,
 		torch.utils.data.Dataset,
@@ -541,12 +554,18 @@ class ZeroshotDataset(torch.utils.data.ConcatDataset):
 			source_train_images,
 			source_devel_images,
 			source_valid_images,
-		) = self.source.random_split()
+		) = self.source.random_split(
+			len(self.source),
+			len(self.target),
+		)
 		(
 			target_train_images,
 			target_devel_images,
 			target_valid_images,
-		) = self.target.random_split()
+		) = self.target.random_split(
+			len(self.source),
+			len(self.target),
+		)
 
 		train_images = source_train_images
 		devel_images = source_devel_images
@@ -575,7 +594,10 @@ class TransductiveZeroshotDataset(ZeroshotDataset):
 		`random_split`: the images into proportionate training, development and validation subsets
 	"""
 
-	def random_split(self) -> tuple[
+	def random_split(self,
+		len_source: Optional[int] = None,
+		len_target: Optional[int] = None,
+	) -> tuple[
 		torch.utils.data.Dataset,
 		torch.utils.data.Dataset,
 		torch.utils.data.Dataset,
@@ -593,12 +615,18 @@ class TransductiveZeroshotDataset(ZeroshotDataset):
 			source_train_images,
 			source_devel_images,
 			source_valid_images,
-		) = super(TransductiveZeroshotDataset, self).random_split()
+		) = self.source.random_split(
+			len(self.source),
+			len(self.target),
+		)
 		(
 			target_train_images,
 			target_devel_images,
 			target_valid_images,
-		) = super(TransductiveZeroshotDataset, self).random_split()
+		) = self.target.random_split(
+			len(self.source),
+			len(self.target),
+		)
 
 		train_images = torch.utils.data.ConcatDataset(
 			[

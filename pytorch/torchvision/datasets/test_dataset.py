@@ -51,8 +51,6 @@ class TestAnimalsAttributes:
 			quasifully_zeroshot_valid_subset,
 		) = TransductiveZeroshotDataset().random_split()
 
-		train_subset.__len__()
-
 	#	Assert no-zeroshot and transductive settings approximately match (accounting for rounding errors):
 		assert abs(len(train_subset) - len(quasifully_zeroshot_train_subset)) <= 1
 		assert abs(len(devel_subset) - len(quasifully_zeroshot_devel_subset)) <= 1
