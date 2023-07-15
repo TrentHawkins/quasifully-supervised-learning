@@ -127,6 +127,24 @@ class MetricLinear(torch.nn.Linear):
 			self.weight,
 		)
 
+	@staticmethod
+	def _norm(inputs: torch.Tensor):
+		"""Contract last index of ${`inputs`}\times{`inputs}$.
+
+		Arguments:
+			`inputs`: of arbitrary batch dimension
+
+		Return:
+			`torch.einsum("...i, ...i -> ...",
+				inputs,
+				inputs,
+			)`
+		"""
+		return torch.einsum("...i, ...i -> ...",
+			inputs,
+			inputs,
+		)
+
 
 class CosineLinear(MetricLinear):
 	"""A `MetricLinear` based on the cosine similarity index.
@@ -143,13 +161,7 @@ class CosineLinear(MetricLinear):
 		"""
 		output = super(CosineLinear, self).forward(inputs)
 
-	#	the norms of inputs vectors:
-		inputs_norms = torch.einsum("...i, ...i -> ...",
-			inputs,
-			inputs,
-		)
-
-		return output / torch.sqrt(inputs_norms.unsqueeze(-1) * self.kernel_norms.expand(output.size()))
+		return output / torch.sqrt(self._norm(inputs).unsqueeze(-1) * self.kernel_norms.expand(output.size()))
 
 
 class JaccardLinear(MetricLinear):
@@ -167,13 +179,7 @@ class JaccardLinear(MetricLinear):
 		"""
 		output = super(JaccardLinear, self).forward(inputs)
 
-	#	the norms of inputs vectors:
-		inputs_norms = torch.einsum("...i, ...i -> ...",
-			inputs,
-			inputs,
-		)
-
-		return output / (inputs_norms.unsqueeze(-1) + self.kernel_norms.expand(output.size()) - output)
+		return output / (self._norm(inputs).unsqueeze(-1) + self.kernel_norms.expand(output.size()) - output)
 
 
 class DiceLinear(MetricLinear):
@@ -191,13 +197,7 @@ class DiceLinear(MetricLinear):
 		"""
 		output = super(DiceLinear, self).forward(inputs)
 
-	#	the norms of inputs vectors:
-		inputs_norms = torch.einsum("...i, ...i -> ...",
-			inputs,
-			inputs,
-		)
-
-		return output / ((inputs_norms.unsqueeze(-1) + self.kernel_norms.expand(output.size())) / 2)
+		return output / ((self._norm(inputs).unsqueeze(-1) + self.kernel_norms.expand(output.size())) / 2)
 
 
 def LinearStack(
