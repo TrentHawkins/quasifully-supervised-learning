@@ -262,10 +262,10 @@ class QuasifullyGeneralizedZeroshotCategoricalCrossentropy(ZeroshotCategoricalCr
 		Returns:
 			Loss values with the shape `[batch_size, d0, ..., dN-1]`.
 		"""
-		y_pred_target = tensorflow.gather(y_pred, self.source,
+		y_pred_target = tensorflow.gather(y_pred, self.target,
 			axis=self.axis,
 		)
-	#	y_true_target = tensorflow.gather(y_true, self.source,
+	#	y_true_target = tensorflow.gather(y_true, self.target,
 	#		axis=self.axis,
 	#	)
 
