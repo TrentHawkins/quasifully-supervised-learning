@@ -25,6 +25,7 @@ import torch.utils.data
 import torchvision
 
 from ..chartools import separator
+from ..globals import generator as default_generator
 from ..similarities import dotDataFrame
 
 
@@ -108,9 +109,6 @@ class AnimalsWithAttributesDataset(torchvision.datasets.ImageFolder):
 			},
 		).squeeze()
 
-		separator(3)
-		separator(3, "Animals with Attributes 2: directory look-up")
-
 	#	Instantiate `torchvision.datasets.ImageFolder`:
 		super(AnimalsWithAttributesDataset, self).__init__(
 			path.join(self._images_path, "JPEGImages"),  # `self.root` overwriten later but the same
@@ -125,7 +123,7 @@ class AnimalsWithAttributesDataset(torchvision.datasets.ImageFolder):
 		self._images: pandas.Series[int] = pandas.Series(values, keys)
 
 	#	Set global seed for dataset:
-		self._generator = generator or torch.Generator().manual_seed(0)
+		self._generator = generator or default_generator
 
 	def find_classes(self, directory: str) -> tuple[list[str], dict[str, int]]:
 		"""Find the class labels in the Animals with Attributes dataset:
@@ -488,6 +486,9 @@ class ZeroshotAnimalsWithAttributesDataset(torch.utils.data.ConcatDataset):
 			`source_path`: relative path to file with source labels (default: source labels)
 			`target_path`: relative path to file with target labels (default: target labels)
 		"""
+		separator(3)
+		separator(2, "Animals with Attributes 2: directory look-up")
+
 		kwargs.pop("labels_path", None)
 
 	#	Images with source label:
@@ -495,10 +496,14 @@ class ZeroshotAnimalsWithAttributesDataset(torch.utils.data.ConcatDataset):
 			labels_path=source_path,
 		**kwargs)
 
+		separator(1, str(self._source))
+
 	#	Images with target label:
 		self._target = AnimalsWithAttributesDataset(
 			labels_path=target_path,
 		**kwargs)
+
+		separator(3, str(self._target))
 
 	#	Concatenated view of the datasets forming the original full dataset:
 		super(ZeroshotAnimalsWithAttributesDataset, self).__init__(

@@ -122,7 +122,7 @@ class MetricLinear(torch.nn.Linear):
 		self.weight.requires_grad = False
 
 	#	the norms of kernel vectors (diagonal):
-		self.kernel_norms = torch.einsum("ij, ij -> i",
+		self.kernel_norms = torch.einsum("...ij, ...ij -> i",
 			self.weight,
 			self.weight,
 		)

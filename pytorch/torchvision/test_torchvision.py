@@ -1,11 +1,12 @@
 """Tests for dataset-related code."""
 
 
-class TestAnimalsAttributes:
+class TestAnimalsWithAttributes:
 	"""Test Animals with Attributes dataset."""
 
 	def test_plots(self):
 		"""Generate plots akin to the Animals with Attributes dataset."""
+		import pytorch.globals
 		import numpy
 
 		from pytorch.torchvision.datasets import AnimalsWithAttributesDataset
@@ -33,6 +34,8 @@ class TestAnimalsAttributes:
 
 	def test_split(self):
 		"""Test Animals with Attributes splitting on various settings."""
+		import pytorch.globals
+
 		from pytorch.torchvision.datasets import (
 			AnimalsWithAttributesDataset,
 			ZeroshotAnimalsWithAttributesDataset,

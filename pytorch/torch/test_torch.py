@@ -4,7 +4,10 @@
 class TestTorchOperations:
 	"""Tests for torch bsic linear operations to be used inside call methods and functional models."""
 
-	from torch import Tensor
+	from torch import Tensor, set_default_device
+	from torch.cuda import is_available
+
+	set_default_device("cuda" if is_available() else "cpu")  # use CUDA if available
 
 #	A small sample tensor to test linear operations.
 	inputs = Tensor(
@@ -67,7 +70,11 @@ class TestTorchOperations:
 
 class TestMetricLinear:
 	"""Test the custom Jaccard layer as a sinlge layer model."""
-	from torch import rand
+
+	from torch import Tensor, rand, set_default_device
+	from torch.cuda import is_available
+
+	set_default_device("cuda" if is_available() else "cpu")  # use CUDA if available
 
 #	A small sample tensor of sigmoids to test the Jaccard layer.
 	input = rand(
@@ -76,13 +83,12 @@ class TestMetricLinear:
 		5,
 	)
 
-	def test_cosine(self):
+	def template_test_metric(self, typeMetricLinear: type):
 		"""Test if operations are carried out successfully over a batch of inputs."""
 		from torch import all, rand, ge, le
 		from torch.nn import Linear
-		from pytorch.torch.nn import CosineLinear
 
-		testLinear = CosineLinear(
+		testLinear = typeMetricLinear(
 			kernel=rand(
 				5,
 				5,
@@ -99,57 +105,32 @@ class TestMetricLinear:
 		assert all(ge(testLinear(self.input), 0))
 		assert all(le(testLinear(self.input), 1))
 
+	def test_cosine(self):
+		"""Test if operations are carried out successfully over a batch of inputs."""
+		from pytorch.torch.nn import CosineLinear
+
+		self.template_test_metric(CosineLinear)
+
 	def test_jaccard(self):
 		"""Test if operations are carried out successfully over a batch of inputs."""
-		from torch import all, rand, ge, le
-		from torch.nn import Linear
 		from pytorch.torch.nn import JaccardLinear
 
-		testLinear = JaccardLinear(
-			kernel=rand(
-				5,
-				5,
-			)
-		)
-
-	#	Assert `JaccardLinear` forwards successfully and with the same shapes as a normal `Linear`.
-		assert testLinear(self.input).size() == Linear(
-			self.input.size()[-1],
-			self.input.size()[-1],
-		)(self.input).size()
-
-	#	Assert the range of values of a `JaccardLinear` pass is 0 to 1.
-		assert all(ge(testLinear(self.input), 0))
-		assert all(le(testLinear(self.input), 1))
+		self.template_test_metric(JaccardLinear)
 
 	def test_dice(self):
 		"""Test if operations are carried out successfully over a batch of inputs."""
-		from torch import all, rand, ge, le
-		from torch.nn import Linear
 		from pytorch.torch.nn import DiceLinear
 
-		testLinear = DiceLinear(
-			kernel=rand(
-				5,
-				5,
-			)
-		)
-
-	#	Assert `DiceLinear` forwards successfully and with the same shapes as a normal `Linear`.
-		assert testLinear(self.input).size() == Linear(
-			self.input.size()[-1],
-			self.input.size()[-1],
-		)(self.input).size()
-
-	#	Assert the range of values of a `DiceLinear` pass is 0 to 1.
-		assert all(ge(testLinear(self.input), 0))
-		assert all(le(testLinear(self.input), 1))
+		self.template_test_metric(DiceLinear)
 
 
 class TestDropoutLinear:
 	"""Test the custom Jaccard layer as a sinlge layer model."""
 
-	from torch import rand
+	from torch import Tensor, rand, set_default_device
+	from torch.cuda import is_available
+
+	set_default_device("cuda" if is_available() else "cpu")  # use CUDA if available
 
 #	A small sample tensor of sigmoids to test the Jaccard layer.
 	input = rand(
@@ -160,7 +141,6 @@ class TestDropoutLinear:
 
 	def test_forward_pass(self):
 		"""Test if operations are carried out successfully over a batch of inputs."""
-		from torch import all, ge, le
 		from torch.nn import Linear
 		from pytorch.torch.nn import DropoutLinear
 

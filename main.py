@@ -6,22 +6,14 @@ from __future__ import annotations
 import numpy
 import torch
 
+import pytorch.globals
 import pytorch.torch.nn
-
+import pytorch.torch.utils.data
+import pytorch.torchvision.datasets
 
 if __name__ == "__main__":
-	seed: int = 0  # reproducibility
-
-	numpy.random.seed(seed)  # reproducibility
-	torch.manual_seed(seed)  # reproducibility
-
-	torch.use_deterministic_algorithms(True)  # reproducibility
-
-	model = pytorch.torch.nn.LinearStackArray(1280, 50)
-	x = torch.ones((5, 1280))
-	y = model(x)
-
-	print(x.size(), y.size())
+	dataset = pytorch.torchvision.datasets.TransductiveZeroshotAnimalsWithAttributesDataset()
+	dataloader = pytorch.torch.utils.data.AnimalsWithAttributesDataLoader(dataset, pytorch.globals.generator, 2)
 
 if __name__ == "__main__" and False:
 	"""Test."""
