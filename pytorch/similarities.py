@@ -1,4 +1,12 @@
-"""Vectorizable utilites."""
+"""Vectorizable numerical utilites.
+
+Includes:
+	`dotDataFrame`: custom dot operatop
+
+	`cosine` : similarity between two `numpy.array`
+	`jaccard`: similarity between two `numpy.array`
+	`dice`   : similarity between two `numpy.array`
+"""
 
 
 from __future__ import annotations
@@ -7,6 +15,28 @@ from typing import Callable
 
 import numpy
 import pandas
+
+
+def dotDataFrame(
+	a: pandas.DataFrame,
+	b: pandas.DataFrame, alter_dot: Callable[[pandas.DataFrame, pandas.DataFrame], pandas.DataFrame] = numpy.dot
+):
+	"""Modify dot product for dataframes.
+
+	Keyword Arguments:
+		alter_dot: customized dot product to replace the NumPy original
+
+	Returns:
+		dataframe of customized dot product results
+	"""
+	numpy_dot = numpy.dot  # save-keep NumPy original dot product
+	numpy.dot = alter_dot  # replace   NumPy original dot product with custom
+
+	_dot = a.dot(b)
+
+	numpy.dot = numpy_dot  # load-back NumPy original dot product
+
+	return _dot
 
 
 def cosine(
@@ -74,25 +104,3 @@ def dice(
 
 	if len(a.shape) == len(b.shape) >= 2:
 		return numpy.array([[dice(i, j) for i in a] for j in b.transpose()])  # type: ignore
-
-
-def dotDataFrame(
-	a: pandas.DataFrame,
-	b: pandas.DataFrame, alter_dot: Callable = numpy.dot
-):
-	"""Modify dot product for dataframes.
-
-	Keyword Arguments:
-		alter_dot: customized dot product to replace the NumPy original
-
-	Returns:
-		dataframe of customized dot product results
-	"""
-	numpy_dot = numpy.dot  # save-keep NumPy original dot product
-	numpy.dot = alter_dot  # replace   NumPy original dot product with custom
-
-	_dot = a.dot(b)
-
-	numpy.dot = numpy_dot  # load-back NumPy original dot product
-
-	return _dot

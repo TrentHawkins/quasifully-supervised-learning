@@ -24,36 +24,8 @@ import seaborn
 import torch.utils.data
 import torchvision
 
+from ..chartools import separator
 from ..similarities import dotDataFrame
-
-
-def print_separator(char: Union[str, int] = 0,
-	title: Optional[str] = None,
-):
-	"""Repeat character across full terminal width.
-
-	Arguments:
-		`char`: single character to repeat
-			0: " "
-			1: "─"
-			2: "═"
-			3: "━"
-
-	Keyword Arguments:
-		`title`: optional text to display before separator
-	"""
-	if isinstance(char, int):
-		char = {
-			0: " ",
-			1: "─",
-			2: "═",
-			3: "━",
-		}[char]
-
-	if title is not None:
-		print(title)
-
-	print(char * get_terminal_size((96, 96)).columns)
 
 
 class AnimalsWithAttributes(torchvision.datasets.ImageFolder):
@@ -132,8 +104,8 @@ class AnimalsWithAttributes(torchvision.datasets.ImageFolder):
 			},
 		).squeeze()
 
-		print_separator(3)
-		print_separator(3, "Animals with Attributes 2: directory look-up")
+		separator(3)
+		separator(3, "Animals with Attributes 2: directory look-up")
 
 	#	Instantiate `torchvision.datasets.ImageFolder`:
 		super(AnimalsWithAttributes, self).__init__(

@@ -1,4 +1,18 @@
-"""Basic integer numeric utilities."""
+"""Basic integer numeric utilities.
+
+Includes:
+	`lcm`: `math.lcm` is unavailable to `python < 3.9`
+
+	`divisors`: of an integer
+	`is_prime`: is an integer
+
+	`hidden_sizes`: devise hidden sizes of a pyramid-like MLP based on divisor logic given inputs and output size
+
+	`mettalic`: `a(n) = m * a(n - 1) + a(n - 2)'
+		`golden`: `m = 1` (Fibonacci)
+		`silver`: `m = 2`
+		`bronze`: `m = 3`
+"""
 
 
 from __future__ import annotations
