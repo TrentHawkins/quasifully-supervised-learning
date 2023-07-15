@@ -261,9 +261,9 @@ class AnimalsWithAttributes(torchvision.datasets.ImageFolder):
 		len_source: Optional[int] = None,
 		len_target: Optional[int] = None,
 	) -> tuple[
-		torch.utils.data.Dataset,
-		torch.utils.data.Dataset,
-		torch.utils.data.Dataset,
+		torch.utils.data.Subset,
+		torch.utils.data.Subset,
+		torch.utils.data.Subset,
 	]:
 		"""Randomly split the images into proportionate training, development and validation subsets.
 
@@ -533,9 +533,9 @@ class ZeroshotAnimalsWithAttributes(torch.utils.data.ConcatDataset):
 		len_source: Optional[int] = None,
 		len_target: Optional[int] = None,
 	) -> tuple[
-		torch.utils.data.Dataset,
-		torch.utils.data.Dataset,
-		torch.utils.data.Dataset,
+		torch.utils.data.ConcatDataset,
+		torch.utils.data.ConcatDataset,
+		torch.utils.data.ConcatDataset,
 	]:
 		"""Randomly split the images into proportionate training, development and validation subsets.
 
@@ -566,8 +566,16 @@ class ZeroshotAnimalsWithAttributes(torch.utils.data.ConcatDataset):
 			len_target or len(self._target),
 		)
 
-		train_images = source_train_images
-		devel_images = source_devel_images
+		train_images = torch.utils.data.ConcatDataset(
+			[
+				source_train_images,
+			]
+		)
+		devel_images = torch.utils.data.ConcatDataset(
+			[
+				source_devel_images,
+			]
+		)
 		valid_images = torch.utils.data.ConcatDataset(
 			[
 				source_valid_images,
@@ -597,9 +605,9 @@ class TransductiveZeroshotAnimalsWithAttributes(ZeroshotAnimalsWithAttributes):
 		len_source: Optional[int] = None,
 		len_target: Optional[int] = None,
 	) -> tuple[
-		torch.utils.data.Dataset,
-		torch.utils.data.Dataset,
-		torch.utils.data.Dataset,
+		torch.utils.data.ConcatDataset,
+		torch.utils.data.ConcatDataset,
+		torch.utils.data.ConcatDataset,
 	]:
 		"""Randomly split the images into proportionate training, development and validation subsets.
 
