@@ -1,10 +1,12 @@
-"""Custom dataset and dataloader for the Animals with Attributes 2 dataset.
+"""Custom `torch.utils.data.Dataset` for the Animals with Attributes 2 dataset.
 
 [homepage](https://cvml.ista.ac.at/AwA2/)
 [download](https://cvml.ista.ac.at/AwA2/AwA2-data.zip)
 
 Includes:
-	`torchvision.datasets.AnimalsWithAttributes`
+	`torchvision.datasets.AnimalsWithAttributesDataset`
+	`torchvision.datasets.ZeroshotAnimalsWithAttributesDataset`
+	`torchvision.datasets.TransductiveZeroshotAnimalsWithAttributesDataset`
 """
 
 from __future__ import annotations
