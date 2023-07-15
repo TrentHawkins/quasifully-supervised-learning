@@ -28,7 +28,7 @@ from ..chartools import separator
 from ..similarities import dotDataFrame
 
 
-class AnimalsWithAttributes(torchvision.datasets.ImageFolder):
+class AnimalsWithAttributesDataset(torchvision.datasets.ImageFolder):
 	"""A custom dataset loading images from the Animals with Attributes dataset.
 
 	Attributes:
@@ -108,7 +108,7 @@ class AnimalsWithAttributes(torchvision.datasets.ImageFolder):
 		separator(3, "Animals with Attributes 2: directory look-up")
 
 	#	Instantiate `torchvision.datasets.ImageFolder`:
-		super(AnimalsWithAttributes, self).__init__(
+		super(AnimalsWithAttributesDataset, self).__init__(
 			path.join(self._images_path, "JPEGImages"),  # `self.root` overwriten later but the same
 			transform=transform,
 			target_transform=target_transform,
@@ -461,7 +461,7 @@ class AnimalsWithAttributes(torchvision.datasets.ImageFolder):
 		)
 
 
-class ZeroshotAnimalsWithAttributes(torch.utils.data.ConcatDataset):
+class ZeroshotAnimalsWithAttributesDataset(torch.utils.data.ConcatDataset):
 	"""Animals with Attributes 2.
 
 	Semi-transductive generalized zeroshot setting.
@@ -478,14 +478,14 @@ class ZeroshotAnimalsWithAttributes(torch.utils.data.ConcatDataset):
 		transform: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
 		target_transform: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
 	):
-		self._source = AnimalsWithAttributes(
+		self._source = AnimalsWithAttributesDataset(
 			images_path=images_path,
 			splits_path=splits_path,
 			labels_path=source_path,
 			transform=transform,
 			target_transform=target_transform
 		)
-		self._target = AnimalsWithAttributes(
+		self._target = AnimalsWithAttributesDataset(
 			images_path=images_path,
 			splits_path=splits_path,
 			labels_path=target_path,
@@ -494,7 +494,7 @@ class ZeroshotAnimalsWithAttributes(torch.utils.data.ConcatDataset):
 		)
 
 	#	Make it as a concatenated dataset:
-		super(ZeroshotAnimalsWithAttributes, self).__init__(
+		super(ZeroshotAnimalsWithAttributesDataset, self).__init__(
 			[
 				self._source,
 				self._target,
@@ -564,7 +564,7 @@ class ZeroshotAnimalsWithAttributes(torch.utils.data.ConcatDataset):
 		)
 
 
-class TransductiveZeroshotAnimalsWithAttributes(ZeroshotAnimalsWithAttributes):
+class TransductiveZeroshotAnimalsWithAttributesDataset(ZeroshotAnimalsWithAttributesDataset):
 	"""Animals with Attributes 2.
 
 	Transductive generalized zeroshot setting.

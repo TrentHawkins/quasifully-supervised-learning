@@ -11,9 +11,9 @@ Layers:
 		a `torch.nn.Sigmoid` hard-coded activation
 
 	`MetricLinear`: a `torch.nn.Linear` module with a non-linear modification based on a similarity metric
-	`CosineLinear`: a `MetricLinear` based on the cosine similarity index
-	`JaccardLinear`: a `MetricLinear` based on the Jaccard similarity index
-	`DiceLinear`: a `MetricLinear` based on the Dice similarity index
+		`CosineLinear` : a `MetricLinear` based on the cosine similarity index
+		`JaccardLinear`: a `MetricLinear` based on the Jaccard similarity index
+		`DiceLinear`   : a `MetricLinear` based on the Dice similarity index
 
 Models:
 	Custom combinations of aforementioned custom layers.
