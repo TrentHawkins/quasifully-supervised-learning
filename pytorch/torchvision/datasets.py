@@ -11,11 +11,9 @@ Includes:
 
 from __future__ import annotations
 
-from math import ceil, sqrt
 from os import path
-from shutil import get_terminal_size
 from sys import float_info
-from typing import Callable, Iterable, Optional, Union
+from typing import Callable, Optional, Union
 
 import matplotlib.pyplot
 import matplotlib.ticker
@@ -31,7 +29,7 @@ from ..similarities import dotDataFrame
 
 
 class AnimalsWithAttributesDataset(torchvision.datasets.ImageFolder):
-	"""A custom dataset loading images from the Animals with Attributes dataset.
+	"""A custom dataset on images from the Animals with Attributes dataset.
 
 	Attributes:
 		`_labels`: `pandas.Series` of label index indexed by label name
@@ -57,13 +55,17 @@ class AnimalsWithAttributesDataset(torchvision.datasets.ImageFolder):
 		labels_path: str = "allclasses.txt",
 		transform: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
 		target_transform: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
+		generator: Optional[torch.Generator] = None,
 	):
 		"""Initialize the directory containing the images.
 
 		Arguments:
-			`base`: absolute path to dataset (default: assumes root directory)
-			`transform`: a function/transform that takes in an PIL image and returns a transformed version
-			`target_transform`: A function/transform that takes in the target and transforms it
+			`images_path`: relative path to dataset (default: assumes root directory)
+			`splits_path`: relative path to definition of data splitting (default: standard)
+			`labels_path`: relative path to file with labels (default: all labels)
+			`transform`: a function/transform that takes in an PIL image and returns a transformed version (optional)
+			`target_transform`: A function/transform that takes in the target and transforms it (optional)
+			`generator`: random number generator to pass around for reproducibility (default: one with seed 0)
 		"""
 		self._images_path = path.join(
 			images_path,
@@ -114,7 +116,7 @@ class AnimalsWithAttributesDataset(torchvision.datasets.ImageFolder):
 			path.join(self._images_path, "JPEGImages"),  # `self.root` overwriten later but the same
 			transform=transform,
 			target_transform=target_transform,
-		#	loader=torchvision.io.read_image,
+			loader=torchvision.io.read_image,
 		#	is_valid_file=None,
 		)
 
@@ -123,8 +125,7 @@ class AnimalsWithAttributesDataset(torchvision.datasets.ImageFolder):
 		self._images: pandas.Series[int] = pandas.Series(values, keys)
 
 	#	Set global seed for dataset:
-		self.seed: int = 0
-		self.generator: torch.Generator = torch.Generator().manual_seed(self.seed)
+		self._generator = generator or torch.Generator().manual_seed(0)
 
 	def find_classes(self, directory: str) -> tuple[list[str], dict[str, int]]:
 		"""Find the class labels in the Animals with Attributes dataset:
@@ -257,13 +258,13 @@ class AnimalsWithAttributesDataset(torchvision.datasets.ImageFolder):
 	#	Split validation subset off total data. Use a larger chunk than what corresponds to the source/target labels:
 		_train_images, _valid_images = torch.utils.data.random_split(self,
 			[1. - len_target / len_source, len_target / len_source],
-			generator=self.generator,
+			generator=self._generator,
 		)
 
 	#	Split development subset off training data. Use a smaller chunk than what corresponds to the source/target labels:
 		_train_images, _devel_images = torch.utils.data.random_split(_train_images,
 			[1. - len_target / (len_source + len_target), len_target / (len_source + len_target)],
-			generator=self.generator,
+			generator=self._generator,
 		)
 
 		return (
@@ -468,34 +469,38 @@ class ZeroshotAnimalsWithAttributesDataset(torch.utils.data.ConcatDataset):
 
 	Semi-transductive generalized zeroshot setting.
 
+	Attributes:
+		`_source`: source-labelled images
+		`_taregt`: target-labelled images
+
 	Methods:
 		`random_split`: the images into proportionate training, development and validation subsets
 	"""
 
 	def __init__(self,
-		images_path: str = "datasets/animals_with_attributes",
-		splits_path: str = "standard_split",
 		source_path: str = "trainvalclasses.txt",
 		target_path: str = "testclasses.txt",
-		transform: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
-		target_transform: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
-	):
-		self._source = AnimalsWithAttributesDataset(
-			images_path=images_path,
-			splits_path=splits_path,
-			labels_path=source_path,
-			transform=transform,
-			target_transform=target_transform
-		)
-		self._target = AnimalsWithAttributesDataset(
-			images_path=images_path,
-			splits_path=splits_path,
-			labels_path=target_path,
-			transform=transform,
-			target_transform=target_transform
-		)
+	**kwargs):
+		"""Initialize two separate datasets by source and target labels.
 
-	#	Make it as a concatenated dataset:
+		Arguments:
+			`labels_path`: not used
+			`source_path`: relative path to file with source labels (default: source labels)
+			`target_path`: relative path to file with target labels (default: target labels)
+		"""
+		kwargs.pop("labels_path", None)
+
+	#	Images with source label:
+		self._source = AnimalsWithAttributesDataset(
+			labels_path=source_path,
+		**kwargs)
+
+	#	Images with target label:
+		self._target = AnimalsWithAttributesDataset(
+			labels_path=target_path,
+		**kwargs)
+
+	#	Concatenated view of the datasets forming the original full dataset:
 		super(ZeroshotAnimalsWithAttributesDataset, self).__init__(
 			[
 				self._source,
@@ -540,6 +545,7 @@ class ZeroshotAnimalsWithAttributesDataset(torch.utils.data.ConcatDataset):
 			len_target or len(self._target),
 		)
 
+	#	Only source-labelled data can be used in training:
 		train_images = torch.utils.data.ConcatDataset(
 			[
 				source_train_images,
@@ -570,6 +576,10 @@ class TransductiveZeroshotAnimalsWithAttributesDataset(ZeroshotAnimalsWithAttrib
 	"""Animals with Attributes 2.
 
 	Transductive generalized zeroshot setting.
+
+	Attributes:
+		`_source`: source-labelled images
+		`_taregt`: target-labelled images
 
 	Methods:
 		`random_split`: the images into proportionate training, development and validation subsets
@@ -609,6 +619,7 @@ class TransductiveZeroshotAnimalsWithAttributesDataset(ZeroshotAnimalsWithAttrib
 			len(self._target),
 		)
 
+	#	Only source-labelled data and target-labelled data but unlabelled can be used in training:
 		train_images = torch.utils.data.ConcatDataset(
 			[
 				source_train_images,

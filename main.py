@@ -3,16 +3,19 @@
 
 from __future__ import annotations
 
+import numpy
+import torch
+
+import pytorch.torch.nn
+
+
 if __name__ == "__main__":
-	"""Test `torch` framework.
+	seed: int = 0  # reproducibility
 
-	Include tests on `numpy` utilities defined.
-	"""
+	numpy.random.seed(seed)  # reproducibility
+	torch.manual_seed(seed)  # reproducibility
 
-	import numpy
-	import torch
-
-	import pytorch.torch.nn
+	torch.use_deterministic_algorithms(True)  # reproducibility
 
 	model = pytorch.torch.nn.LinearStackArray(1280, 50)
 	x = torch.ones((5, 1280))
