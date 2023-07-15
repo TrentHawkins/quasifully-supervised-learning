@@ -36,11 +36,9 @@ class TestAnimalsWithAttributes:
 		"""Test Animals with Attributes splitting on various settings."""
 		import pytorch.globals
 
-		from pytorch.torchvision.datasets import (
-			AnimalsWithAttributesDataset,
-			ZeroshotAnimalsWithAttributesDataset,
-			TransductiveZeroshotAnimalsWithAttributesDataset,
-		)
+		from pytorch.torchvision.datasets import AnimalsWithAttributesDataset
+		from pytorch.zeroshot.datasets \
+			import ZeroshotAnimalsWithAttributesDataset, TransductiveZeroshotAnimalsWithAttributesDataset
 
 		(
 			train_subset,

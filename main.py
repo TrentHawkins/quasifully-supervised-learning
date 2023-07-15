@@ -11,8 +11,10 @@ import pytorch.torch.nn
 import pytorch.torch.utils.data
 import pytorch.torchvision.datasets
 
+import pytorch.zeroshot.datasets
+
 if __name__ == "__main__":
-	dataset = pytorch.torchvision.datasets.TransductiveZeroshotAnimalsWithAttributesDataset()
+	dataset = pytorch.zeroshot.datasets.TransductiveZeroshotAnimalsWithAttributesDataset()
 	dataloader = pytorch.torch.utils.data.AnimalsWithAttributesDataLoader(dataset, pytorch.globals.generator, 2)
 
 if __name__ == "__main__" and False:

@@ -20,6 +20,9 @@ Models:
 
 	`LinearStack`: a pyramid-like `torch.nn.Sequential` module made of `DropoutLinear` submodules in a stack
 	`LinearStackArray`: several `LinearStack` submodules in parallel combining output with an `AttentionLinear` submodule
+
+Losses:
+
 """
 
 from __future__ import annotations
