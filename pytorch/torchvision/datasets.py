@@ -4,8 +4,7 @@
 [download](https://cvml.ista.ac.at/AwA2/AwA2-data.zip)
 
 Includes:
-	`torch.utils.data.Dataset`
-	`torch.utils.data.DataLoader`
+	`torchvision.datasets.AnimalsWithAttributes`
 """
 
 from __future__ import annotations
@@ -25,7 +24,7 @@ import seaborn
 import torch.utils.data
 import torchvision
 
-from ...similarities import dotDataFrame
+from ..similarities import dotDataFrame
 
 
 def print_separator(char: Union[str, int] = 0,
@@ -57,7 +56,7 @@ def print_separator(char: Union[str, int] = 0,
 	print(char * get_terminal_size((96, 96)).columns)
 
 
-class Dataset(torchvision.datasets.ImageFolder):
+class AnimalsWithAttributes(torchvision.datasets.ImageFolder):
 	"""A custom dataset loading images from the Animals with Attributes dataset.
 
 	Attributes:
@@ -137,7 +136,7 @@ class Dataset(torchvision.datasets.ImageFolder):
 		print_separator(3, "Animals with Attributes 2: directory look-up")
 
 	#	Instantiate `torchvision.datasets.ImageFolder`:
-		super(Dataset, self).__init__(
+		super(AnimalsWithAttributes, self).__init__(
 			path.join(self._images_path, "JPEGImages"),  # `self.root` overwriten later but the same
 			transform=transform,
 			target_transform=target_transform,
@@ -490,7 +489,7 @@ class Dataset(torchvision.datasets.ImageFolder):
 		)
 
 
-class ZeroshotDataset(torch.utils.data.ConcatDataset):
+class ZeroshotAnimalsWithAttributes(torch.utils.data.ConcatDataset):
 	"""Animals with Attributes 2.
 
 	Semi-transductive generalized zeroshot setting.
@@ -507,14 +506,14 @@ class ZeroshotDataset(torch.utils.data.ConcatDataset):
 		transform: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
 		target_transform: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
 	):
-		self.source = Dataset(
+		self._source = AnimalsWithAttributes(
 			images_path=images_path,
 			splits_path=splits_path,
 			labels_path=source_path,
 			transform=transform,
 			target_transform=target_transform
 		)
-		self.target = Dataset(
+		self._target = AnimalsWithAttributes(
 			images_path=images_path,
 			splits_path=splits_path,
 			labels_path=target_path,
@@ -523,10 +522,10 @@ class ZeroshotDataset(torch.utils.data.ConcatDataset):
 		)
 
 	#	Make it as a concatenated dataset:
-		super(ZeroshotDataset, self).__init__(
+		super(ZeroshotAnimalsWithAttributes, self).__init__(
 			[
-				self.source,
-				self.target,
+				self._source,
+				self._target,
 			]
 		)
 
@@ -554,17 +553,17 @@ class ZeroshotDataset(torch.utils.data.ConcatDataset):
 			source_train_images,
 			source_devel_images,
 			source_valid_images,
-		) = self.source.random_split(
-			len(self.source),
-			len(self.target),
+		) = self._source.random_split(
+			len_source or len(self._source),
+			len_target or len(self._target),
 		)
 		(
 			target_train_images,
 			target_devel_images,
 			target_valid_images,
-		) = self.target.random_split(
-			len(self.source),
-			len(self.target),
+		) = self._target.random_split(
+			len_source or len(self._source),
+			len_target or len(self._target),
 		)
 
 		train_images = source_train_images
@@ -585,7 +584,7 @@ class ZeroshotDataset(torch.utils.data.ConcatDataset):
 		)
 
 
-class TransductiveZeroshotDataset(ZeroshotDataset):
+class TransductiveZeroshotAnimalsWithAttributes(ZeroshotAnimalsWithAttributes):
 	"""Animals with Attributes 2.
 
 	Transductive generalized zeroshot setting.
@@ -615,17 +614,17 @@ class TransductiveZeroshotDataset(ZeroshotDataset):
 			source_train_images,
 			source_devel_images,
 			source_valid_images,
-		) = self.source.random_split(
-			len(self.source),
-			len(self.target),
+		) = self._source.random_split(
+			len(self._source),
+			len(self._target),
 		)
 		(
 			target_train_images,
 			target_devel_images,
 			target_valid_images,
-		) = self.target.random_split(
-			len(self.source),
-			len(self.target),
+		) = self._target.random_split(
+			len(self._source),
+			len(self._target),
 		)
 
 		train_images = torch.utils.data.ConcatDataset(

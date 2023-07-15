@@ -8,10 +8,10 @@ class TestAnimalsAttributes:
 		"""Generate plots akin to the Animals with Attributes dataset."""
 		import numpy
 
-		from pytorch.torchvision.datasets.animals_with_attributes import Dataset
+		from pytorch.torchvision.datasets import AnimalsWithAttributes
 		from pytorch.similarities import cosine, jaccard, dice
 
-		dataset = Dataset()
+		dataset = AnimalsWithAttributes()
 
 	#	Plot basics:
 		dataset.plot_labels()
@@ -33,23 +33,24 @@ class TestAnimalsAttributes:
 
 	def test_split(self):
 		"""Test Animals with Attributes splitting on various settings."""
-		from pytorch.torchvision.datasets.animals_with_attributes import Dataset, ZeroshotDataset, TransductiveZeroshotDataset
+		from pytorch.torchvision.datasets import \
+			AnimalsWithAttributes, ZeroshotAnimalsWithAttributes, TransductiveZeroshotAnimalsWithAttributes
 
 		(
 			train_subset,
 			devel_subset,
 			valid_subset,
-		) = Dataset().random_split()
+		) = AnimalsWithAttributes().random_split()
 		(
 			zeroshot_train_subset,
 			zeroshot_devel_subset,
 			zeroshot_valid_subset,
-		) = ZeroshotDataset().random_split()
+		) = ZeroshotAnimalsWithAttributes().random_split()
 		(
 			quasifully_zeroshot_train_subset,
 			quasifully_zeroshot_devel_subset,
 			quasifully_zeroshot_valid_subset,
-		) = TransductiveZeroshotDataset().random_split()
+		) = TransductiveZeroshotAnimalsWithAttributes().random_split()
 
 	#	Assert no-zeroshot and transductive settings approximately match (accounting for rounding errors):
 		assert abs(len(train_subset) - len(quasifully_zeroshot_train_subset)) <= 1  # type: ignore
