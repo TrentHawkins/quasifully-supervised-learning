@@ -65,7 +65,7 @@ class DropoutLinear(torch.nn.Linear):
 	#	activation:
 		self.activation = torch.nn.SiLU()  # hardcoded
 
-	def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+	def forward(self, x: torch.Tensor) -> torch.Tensor:
 		"""Define the computation performed at every call.
 
 		Call stack:
@@ -73,7 +73,7 @@ class DropoutLinear(torch.nn.Linear):
 			`torch.nn.Dropout`
 			`torch.nn.Linear`
 		"""
-		return super(DropoutLinear, self).forward(self.dropout(self.activation(inputs)))
+		return super(DropoutLinear, self).forward(self.dropout(self.activation(x)))
 
 
 class AttentionLinear(torch.nn.Linear):
@@ -90,13 +90,13 @@ class AttentionLinear(torch.nn.Linear):
 		"""
 		super(AttentionLinear, self).__init__(threads, 1, bias=False, **kwargs)
 
-	def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+	def forward(self, x: torch.Tensor) -> torch.Tensor:
 		"""Define the computation performed at every call.
 
 		Call stack:
 			`torch.nn.Linear` (on stacked output)
 		"""
-		return super(AttentionLinear, self).forward(inputs).squeeze(dim=-1)
+		return super(AttentionLinear, self).forward(x).squeeze(dim=-1)
 
 
 class MetricLinear(torch.nn.Linear):
@@ -125,7 +125,7 @@ class MetricLinear(torch.nn.Linear):
 		)
 
 	@staticmethod
-	def _norm(inputs: torch.Tensor):
+	def _norm(x: torch.Tensor):
 		"""Contract last index of ${`inputs`}\times{`inputs}$.
 
 		Arguments:
@@ -138,8 +138,8 @@ class MetricLinear(torch.nn.Linear):
 			)`
 		"""
 		return torch.einsum("...i, ...i -> ...",
-			inputs,
-			inputs,
+			x,
+			x,
 		)
 
 
@@ -149,16 +149,16 @@ class CosineLinear(MetricLinear):
 	Such a modified module has no bias explicitely and is frozen.
 	"""
 
-	def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+	def forward(self, x: torch.Tensor) -> torch.Tensor:
 		"""Define the computation performed at every call.
 
 		Formula:
 			`torch.nn.Linear`: $y_{i}=\\sum_{j}w_{ij}x_{j}$
 			$$y_{i}=\\dfrac{\\sum_{j}w_{ij}x_{j}}{\\sum_{j}w_{ij}w_{ij}\\sum_{j}x_{j}x_{j}}$$
 		"""
-		output = super(CosineLinear, self).forward(inputs)
+		output = super(CosineLinear, self).forward(x)
 
-		return output / torch.sqrt(self._norm(inputs).unsqueeze(-1) * self.kernel_norms.expand(output.size()))
+		return output / torch.sqrt(self._norm(x).unsqueeze(-1) * self.kernel_norms.expand(output.size()))
 
 
 class JaccardLinear(MetricLinear):
@@ -167,16 +167,16 @@ class JaccardLinear(MetricLinear):
 	Such a modified module has no bias explicitely.
 	"""
 
-	def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+	def forward(self, x: torch.Tensor) -> torch.Tensor:
 		"""Define the computation performed at every call.
 
 		Formula:
 			`torch.nn.Linear`: $y_{i}=\\sum_{j}w_{ij}x_{j}$
 			$$y_{i}=\\dfrac{\\sum_{j}w_{ij}x_{j}}{\\sum_{j}w_{ij}w_{ij}+\\sum_{j}x_{j}x_{j}-\\sum_{j}w_{ij}x_{j}}$$
 		"""
-		output = super(JaccardLinear, self).forward(inputs)
+		output = super(JaccardLinear, self).forward(x)
 
-		return output / (self._norm(inputs).unsqueeze(-1) + self.kernel_norms.expand(output.size()) - output)
+		return output / (self._norm(x).unsqueeze(-1) + self.kernel_norms.expand(output.size()) - output)
 
 
 class DiceLinear(MetricLinear):
@@ -185,16 +185,16 @@ class DiceLinear(MetricLinear):
 	Such a modified module has no bias explicitely.
 	"""
 
-	def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+	def forward(self, x: torch.Tensor) -> torch.Tensor:
 		"""Define the computation performed at every call.
 
 		Formula:
 			`torch.nn.Linear`: $y_{i}=\\sum_{j}w_{ij}x_{j}$
 			$$y_{i}=\\dfrac{\\sum_{j}w_{ij}x_{j}}{\\sum_{j}w_{ij}w_{ij}+\\sum_{j}x_{j}x_{j}-\\sum_{j}w_{ij}x_{j}}$$
 		"""
-		output = super(DiceLinear, self).forward(inputs)
+		output = super(DiceLinear, self).forward(x)
 
-		return output / ((self._norm(inputs).unsqueeze(-1) + self.kernel_norms.expand(output.size())) / 2)
+		return output / ((self._norm(x).unsqueeze(-1) + self.kernel_norms.expand(output.size())) / 2)
 
 
 def LinearStack(
@@ -275,7 +275,7 @@ class LinearStackArray(torch.nn.Module):
 	#	attention:
 		self.attention = AttentionLinear(threads)
 
-	def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+	def forward(self, x: torch.Tensor) -> torch.Tensor:
 		"""Define the computation performed at every call.
 
 		Call stack:
@@ -284,4 +284,4 @@ class LinearStackArray(torch.nn.Module):
 				`LinearStack` of full depth (parallel thread)
 			`AttentionLinear` (on all threads stacked)
 		"""
-		return self.attention(torch.stack([stack(inputs) for stack in self.array], dim=-1))
+		return self.attention(torch.stack([stack(x) for stack in self.array], dim=-1))
