@@ -20,10 +20,8 @@ Models:
 
 	`LinearStack`: a pyramid-like `torch.nn.Sequential` module made of `DropoutLinear` submodules in a stack
 	`LinearStackArray`: several `LinearStack` submodules in parallel combining output with an `AttentionLinear` submodule
-
-Losses:
-
 """
+
 
 from __future__ import annotations
 
@@ -81,8 +79,7 @@ class DropoutLinear(torch.nn.Linear):
 class AttentionLinear(torch.nn.Linear):
 	"""A `torch.nn.Linear` module linearly combining multiple outputs (stacked in a higher dimension tensor).
 
-	Attributes:
-		activation: a `torch.nn.Sigmoid` hard-coded activation
+	The sedon to last dimension is expected to act as a batch dimension of size the number of threads coming in.
 	"""
 
 	def __init__(self, threads: int, **kwargs):
@@ -93,16 +90,13 @@ class AttentionLinear(torch.nn.Linear):
 		"""
 		super(AttentionLinear, self).__init__(threads, 1, bias=False, **kwargs)
 
-		self.activation = torch.nn.Sigmoid()  # hardcoded
-
 	def forward(self, inputs: torch.Tensor) -> torch.Tensor:
 		"""Define the computation performed at every call.
 
 		Call stack:
 			`torch.nn.Linear` (on stacked output)
-			`torch.nn.Sigmoid`
 		"""
-		return self.activation(super(AttentionLinear, self).forward(inputs).squeeze(dim=-1))
+		return super(AttentionLinear, self).forward(inputs).squeeze(dim=-1)
 
 
 class MetricLinear(torch.nn.Linear):
