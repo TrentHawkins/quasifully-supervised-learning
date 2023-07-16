@@ -6,11 +6,11 @@ class TestAnimalsWithAttributes:
 
 	def test_plots(self):
 		"""Generate plots akin to the Animals with Attributes dataset."""
-		import pytorch.globals
+		import src.globals
 		import numpy
 
-		from pytorch.torchvision.datasets import AnimalsWithAttributesDataset
-		from pytorch.similarities import cosine, jaccard, dice
+		from src.torchvision.datasets import AnimalsWithAttributesDataset
+		from src.similarities import cosine, jaccard, dice
 
 		dataset = AnimalsWithAttributesDataset()
 
@@ -34,10 +34,10 @@ class TestAnimalsWithAttributes:
 
 	def test_split(self):
 		"""Test Animals with Attributes splitting on various settings."""
-		import pytorch.globals
+		import src.globals
 
-		from pytorch.torchvision.datasets import AnimalsWithAttributesDataset
-		from pytorch.zeroshot.datasets \
+		from src.torchvision.datasets import AnimalsWithAttributesDataset
+		from src.zeroshot.datasets \
 			import ZeroshotAnimalsWithAttributesDataset, TransductiveZeroshotAnimalsWithAttributesDataset
 
 		(

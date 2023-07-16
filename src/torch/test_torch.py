@@ -107,19 +107,19 @@ class TestMetricLinear:
 
 	def test_cosine(self):
 		"""Test if operations are carried out successfully over a batch of inputs."""
-		from pytorch.torch.nn import CosineLinear
+		from src.torch.nn import CosineLinear
 
 		self.template_test_metric(CosineLinear)
 
 	def test_jaccard(self):
 		"""Test if operations are carried out successfully over a batch of inputs."""
-		from pytorch.torch.nn import JaccardLinear
+		from src.torch.nn import JaccardLinear
 
 		self.template_test_metric(JaccardLinear)
 
 	def test_dice(self):
 		"""Test if operations are carried out successfully over a batch of inputs."""
-		from pytorch.torch.nn import DiceLinear
+		from src.torch.nn import DiceLinear
 
 		self.template_test_metric(DiceLinear)
 
@@ -142,7 +142,7 @@ class TestDropoutLinear:
 	def test_forward_pass(self):
 		"""Test if operations are carried out successfully over a batch of inputs."""
 		from torch.nn import Linear
-		from pytorch.torch.nn import DropoutLinear
+		from src.torch.nn import DropoutLinear
 
 		testLinear = DropoutLinear(
 			self.input.size()[-1],

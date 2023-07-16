@@ -6,11 +6,11 @@ class TestDataLoader:
 
 	def test_data_loader(self):
 		"""Test Animals with Attributes dataloader."""
-		import pytorch.globals
+		import src.globals
 
 		from torchvision.transforms import CenterCrop, Compose, Resize
-		from pytorch.torchvision.datasets import AnimalsWithAttributesDataset
-		from pytorch.torch.utils.data import AnimalsWithAttributesDataLoader
+		from src.torchvision.datasets import AnimalsWithAttributesDataset
+		from src.torch.utils.data import AnimalsWithAttributesDataLoader
 
 	#	Transform to be used on images:
 		size = 224
@@ -28,7 +28,7 @@ class TestDataLoader:
 		dataloader = AnimalsWithAttributesDataLoader(
 			AnimalsWithAttributesDataset(
 				transform=transform,
-			), pytorch.globals.generator, batch_size)
+			), src.globals.generator, batch_size)
 		image, label = next(iter(dataloader))
 		assert image.size()[0] == batch_size
 		assert label.size()[0] == batch_size

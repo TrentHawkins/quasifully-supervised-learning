@@ -6,16 +6,16 @@ from __future__ import annotations
 import numpy
 import torch
 
-import pytorch.globals
-import pytorch.torch.nn
-import pytorch.torch.utils.data
-import pytorch.torchvision.datasets
+import src.globals
+import src.torch.nn
+import src.torch.utils.data
+import src.torchvision.datasets
 
-import pytorch.zeroshot.datasets
+import src.zeroshot.datasets
 
 if __name__ == "__main__":
-	dataset = pytorch.zeroshot.datasets.TransductiveZeroshotAnimalsWithAttributesDataset()
-	dataloader = pytorch.torch.utils.data.AnimalsWithAttributesDataLoader(dataset, pytorch.globals.generator, 2)
+	dataset = src.zeroshot.datasets.TransductiveZeroshotAnimalsWithAttributesDataset()
+	dataloader = src.torch.utils.data.AnimalsWithAttributesDataLoader(dataset, src.globals.generator, 2)
 
 if __name__ == "__main__" and False:
 	"""Test."""
