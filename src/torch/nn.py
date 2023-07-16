@@ -90,13 +90,16 @@ class AttentionLinear(torch.nn.Linear):
 		"""
 		super(AttentionLinear, self).__init__(threads, 1, bias=False, **kwargs)
 
+	#	activation:
+		self.activation = torch.nn.Sigmoid()  # HACK: with the intention of producing binary probabilities
+
 	def forward(self, x: torch.Tensor) -> torch.Tensor:
 		"""Define the computation performed at every call.
 
 		Call stack:
 			`torch.nn.Linear` (on stacked output)
 		"""
-		return super(AttentionLinear, self).forward(x).squeeze(dim=-1)
+		return self.activation(super(AttentionLinear, self).forward(x).squeeze(dim=-1))
 
 
 class MetricLinear(torch.nn.Linear):
