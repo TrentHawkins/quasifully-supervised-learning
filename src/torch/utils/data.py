@@ -24,7 +24,7 @@ class AnimalsWithAttributesDataLoader(torch.utils.data.DataLoader):
 
 	"""
 
-	def __init__(self, dataset: Union[torch.utils.data.ConcatDataset, AnimalsWithAttributesDataset], generator: torch.Generator,
+	def __init__(self, dataset: torch.utils.data.Dataset, generator: torch.Generator,
 		batch_size: int = 1,
 	**kwargs):
 		"""Initialize the directory containing the images.

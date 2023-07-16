@@ -23,7 +23,6 @@ import seaborn
 import torch.utils.data
 import torchvision
 
-from ..chartools import separator
 from ..globals import generator as default_generator
 from ..similarities import dotDataFrame
 
@@ -53,6 +52,7 @@ class AnimalsWithAttributesDataset(torchvision.datasets.ImageFolder):
 		images_path: str = "datasets/animals_with_attributes",
 		splits_path: str = "standard_split",
 		labels_path: str = "allclasses.txt",
+		target_size: int = 224,
 		transform: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
 		target_transform: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
 		generator: Optional[torch.Generator] = None,
@@ -63,6 +63,7 @@ class AnimalsWithAttributesDataset(torchvision.datasets.ImageFolder):
 			`images_path`: relative path to dataset (default: assumes root directory)
 			`splits_path`: relative path to definition of data splitting (default: standard)
 			`labels_path`: relative path to file with labels (default: all labels)
+			`target_size`: scale images to size `(target_size, target_size)` via center cropping
 			`transform`: a function/transform that takes in an PIL image and returns a transformed version (optional)
 			`target_transform`: A function/transform that takes in the target and transforms it (optional)
 			`generator`: random number generator to pass around for reproducibility (default: one with seed 0)
@@ -79,6 +80,16 @@ class AnimalsWithAttributesDataset(torchvision.datasets.ImageFolder):
 			splits_path,
 			labels_path,
 		)
+		self._target_size = target_size
+
+	#	Data transforms:
+		self.transform = transform or torchvision.transforms.Compose(
+			[
+				torchvision.transforms.Resize(self._target_size),
+				torchvision.transforms.CenterCrop(self._target_size),
+			]
+		)
+		self.target_transform = target_transform or torch.nn.functional.one_hot
 
 	#	Labels (animal labels):
 		self._labels: pandas.Series[int] = pandas.read_csv(

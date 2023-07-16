@@ -162,7 +162,7 @@ class QuasifullyZeroshotBCELoss(ZeroshotBCELoss):
 
 	def __init__(self,
 		source: Iterable[int],
-		target: Iterable[int], pos_weight: Optional[torch.Tensor] = None,
+		target: Iterable[int],
 	**kwargs):
 		"""Provide loss with a source labels filter.
 
@@ -170,9 +170,7 @@ class QuasifullyZeroshotBCELoss(ZeroshotBCELoss):
 			$pos_weight$: a weight of positive examples. Must be a vector with length equal to the number of classes.
 			$source$: filter
 		"""
-		super(QuasifullyZeroshotBCELoss, self).__init__(source,
-			pos_weight=pos_weight,
-		**kwargs)
+		super(QuasifullyZeroshotBCELoss, self).__init__(source, **kwargs)
 
 	#	Transform $pandas.Series$ or other source label iterable to integer tensor:
 		self._target = torch.Tensor(target).long()
@@ -212,7 +210,7 @@ class QuasifullyZeroshotBCELoss(ZeroshotBCELoss):
 		```
 		"""
 		y_pred_target = torch.gather(y_pred, -1, self._target.expand(*self._target.size()[:-1], -1))  # clip source labels
-		y_pred_target = torch.nn.functional.sigmoid(y_pred_target)  # turn to a probability
+	#	y_true_target = torch.gather(y_true, -1, self._target.expand(*self._target.size()[:-1], -1))  # clip source labels
 
 		return super(QuasifullyZeroshotBCELoss, self).forward(
 			y_pred,
