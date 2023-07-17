@@ -10,12 +10,38 @@ import src.globals
 import src.torch.nn
 import src.torch.utils.data
 import src.torchvision.datasets
+import src.lightning
 
-import src.zeroshot.datasets
 
 if __name__ == "__main__":
-	dataset = src.zeroshot.datasets.TransductiveZeroshotAnimalsWithAttributesDataset()
-	dataloader = src.torch.utils.data.AnimalsWithAttributesDataLoader(dataset, src.globals.generator, 2)
+	data = src.lightning.AnimalsWithAttributesDataModule(
+		generalized_zeroshot=False,
+		transductive_setting=False,
+	)
+	data.prepare_data()
+	data.setup("fit"); data.train_dataloader()
+	data.setup("validate"); data.val_dataloader()
+	data.setup("test"); data.test_dataloader()
+	data.setup("predict"); data.predict_dataloader()
+	data = src.lightning.AnimalsWithAttributesDataModule(
+		generalized_zeroshot=True,
+		transductive_setting=False,
+	)
+	data.prepare_data()
+	data.setup("fit"); data.train_dataloader()
+	data.setup("validate"); data.val_dataloader()
+	data.setup("test"); data.test_dataloader()
+	data.setup("predict"); data.predict_dataloader()
+	data = src.lightning.AnimalsWithAttributesDataModule(
+		generalized_zeroshot=True,
+		transductive_setting=True,
+	)
+	data.prepare_data()
+	data.setup("fit"); data.train_dataloader()
+	data.setup("validate"); data.val_dataloader()
+	data.setup("test"); data.test_dataloader()
+	data.setup("predict"); data.predict_dataloader()
+
 
 if __name__ == "__main__" and False:
 	"""Test."""
