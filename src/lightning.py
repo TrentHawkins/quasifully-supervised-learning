@@ -6,7 +6,7 @@ Includes:
 """
 
 
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 from .chartools import separator
 from .globals import generator
@@ -244,3 +244,52 @@ class AnimalsWithAttributesDataModule(pytorch_lightning.LightningDataModule):
 
 	def predict_dataloader(self) -> AnimalsWithAttributesDataLoader:
 		return AnimalsWithAttributesDataLoader(self.valid_images, generator, batch_size=self.batch_size)
+
+
+class GeneralizedZeroshotModule(pytorch_lightning.LightningModule):
+	"""Full stack model for training on any visual `pytorch_lightning.DataModule` in a generalized zeroshot setting.
+
+	Submodules:
+		`visual`: translate images into visual features
+		`visual_semantic`: translate visual features into semantic features
+		`semantic`: translate semantic features into (fuzzy similarity) labels
+		`loss`: compare fuzzy sigmoid predicitons to "many-hot" binary multi-label truths
+	"""
+
+	def __init__(self,
+		visual: torch.nn.Module,
+		visual_semantic: torch.nn.Module,
+		semantic: torch.nn.Module,
+		loss: torch.nn.Module,
+	):
+		"""Instansiate model stack with given subcomponents.
+
+		Arguments:
+			`visual`: translate images into visual features
+			`visual_semantic`: translate visual features into semantic features
+			`semantic`: translate semantic features into (fuzzy similarity) labels
+		"""
+		super().__init__()
+
+		self.visual = visual
+		self.visual_semantic = visual_semantic
+		self.semantic = semantic
+		self.loss = loss
+
+	def configure_optimizers(self) -> torch.optim.Optimizer:
+		return torch.optim.Adam(
+			self.parameters(),
+		#	lr=0.001,
+		#	betas=(
+		#		0.9,
+		#		0.999,
+		#	),
+		#	eps=1e-08,
+		#	weight_decay=0,
+		#	amsgrad=False,
+		#	foreach=None,
+		#	maximize=False,
+		#	capturable=False,
+		#	differentiable=False,
+		#	fused=None,
+		)
