@@ -11,6 +11,7 @@ from .globals import generator
 
 import torch
 import torch.utils.data
+import torchmetrics
 import pytorch_lightning
 
 from src.torch.utils.data import AnimalsWithAttributesDataLoader
@@ -275,6 +276,21 @@ class GeneralizedZeroshotModule(pytorch_lightning.LightningModule):
 		self.semantic = semantic
 		self.loss = loss
 
+	#	Accuracy monitoring:
+		self.accuracy: torchmetrics.Metric = torchmetrics.Accuracy("multilabel",
+			threshold=0.5,
+			num_classes=None,
+			num_labels=None,
+			average="micro",
+			multidim_average="global",
+			top_k=1,
+			ignore_index=None,
+			validate_args=True,
+		)
+
+	#	Dictionary of metrics:
+		self.metrics = {}
+
 	def configure_optimizers(self) -> torch.optim.Optimizer:
 		return torch.optim.Adam(
 			self.parameters(),
@@ -292,3 +308,25 @@ class GeneralizedZeroshotModule(pytorch_lightning.LightningModule):
 		#	differentiable=False,
 		#	fused=None,
 		)
+
+	def _shared_eval_step(self, batch, batch_idx, prefix: str = ""):
+		x, y_true = batch
+
+	#	Model forward:
+		y_pred = self.semantic(self.visual_semantic(self.visual(x)))
+
+	#	Update metrics:
+		self.metrics.update(
+			{
+				f"{prefix}_loss": self.loss(
+					y_pred,
+					y_true,
+				),
+				f"{prefix}_accuracy": self.accuracy(
+					y_pred,
+					y_true,
+				)
+			}
+		)
+
+		return self.metrics
