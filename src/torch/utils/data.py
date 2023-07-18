@@ -14,6 +14,7 @@ from typing import Union
 
 import torch.utils.data
 
+from ...globals import generator as default_generator
 from ...torchvision.datasets import AnimalsWithAttributesDataset
 
 
@@ -24,7 +25,8 @@ class AnimalsWithAttributesDataLoader(torch.utils.data.DataLoader):
 
 	"""
 
-	def __init__(self, dataset: torch.utils.data.Dataset, generator: torch.Generator,
+	def __init__(self, dataset: torch.utils.data.Dataset,
+		generator: torch.Generator = default_generator,
 		batch_size: int = 1,
 	**kwargs):
 		"""Initialize the directory containing the images.

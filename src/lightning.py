@@ -6,18 +6,15 @@ Includes:
 """
 
 
-from typing import Any, Optional, Union
-
 from .chartools import separator
 from .globals import generator
 
 import torch
 import torch.utils.data
+import pytorch_lightning
 
 from src.torch.utils.data import AnimalsWithAttributesDataLoader
 from src.torchvision.datasets import AnimalsWithAttributesDataset
-
-import pytorch_lightning
 
 
 torch.utils.data.ConcatDataset.__str__ = torch.utils.data.Dataset.__str__
@@ -139,7 +136,7 @@ class AnimalsWithAttributesDataModule(pytorch_lightning.LightningDataModule):
 
 		#	If unlabelled samples allowed during training:
 			if self.transductive_setting:
-				separator(2, f"Animals with Attributes 2: data to {stage} in generalized zeroshot transductive setting")
+				separator(3, f"Animals with Attributes 2: data to {stage} in generalized zeroshot transductive setting")
 
 				if stage == "fit":
 					self.train_images = torch.utils.data.ConcatDataset(
@@ -149,8 +146,6 @@ class AnimalsWithAttributesDataModule(pytorch_lightning.LightningDataModule):
 						]
 					)
 
-					separator(3, str(self.train_images))
-
 				if stage == "validate":
 					self.devel_images = torch.utils.data.ConcatDataset(
 						[
@@ -159,8 +154,6 @@ class AnimalsWithAttributesDataModule(pytorch_lightning.LightningDataModule):
 						]
 					)
 
-					separator(3, str(self.devel_images))
-
 				if stage == "test" or stage == "predict":
 					self.valid_images = torch.utils.data.ConcatDataset(
 						[
@@ -168,12 +161,10 @@ class AnimalsWithAttributesDataModule(pytorch_lightning.LightningDataModule):
 							target_valid_images,
 						]
 					)
-
-					separator(3, str(self.valid_images))
 
 		#	if only source labels allowed during training:
 			else:
-				separator(2, f"Animals with Attributes 2: data to {stage} in generalized zeroshot")
+				separator(3, f"Animals with Attributes 2: data to {stage} in generalized zeroshot")
 
 				if stage == "fit":
 					self.train_images = torch.utils.data.ConcatDataset(
@@ -182,16 +173,12 @@ class AnimalsWithAttributesDataModule(pytorch_lightning.LightningDataModule):
 						]
 					)
 
-					separator(3, str(self.train_images))
-
 				if stage == "validate":
 					self.devel_images = torch.utils.data.ConcatDataset(
 						[
 							source_devel_images,
 						]
 					)
-
-					separator(3, str(self.devel_images))
 
 				if stage == "test" or stage == "predict":
 					self.valid_images = torch.utils.data.ConcatDataset(
@@ -202,8 +189,6 @@ class AnimalsWithAttributesDataModule(pytorch_lightning.LightningDataModule):
 							target_valid_images,
 						]
 					)
-
-					separator(3, str(self.valid_images))
 
 	#	If training normally:
 		else:
@@ -216,33 +201,47 @@ class AnimalsWithAttributesDataModule(pytorch_lightning.LightningDataModule):
 				len(self.target),
 			)
 
-			separator(2, f"Animals with Attributes 2: data to {stage}")
+			separator(3, f"Animals with Attributes 2: data to {stage}")
 
 			if stage == "fit":
 				self.train_images = train_images
 
-				separator(3, str(self.train_images))
-
 			if stage == "validate":
 				self.devel_images = devel_images
-
-				separator(3, str(self.devel_images))
 
 			if stage == "test" or stage == "predict":
 				self.valid_images = valid_images
 
-				separator(3, str(self.valid_images))
-
 	def train_dataloader(self) -> AnimalsWithAttributesDataLoader:
+		"""Create dataloader for fitting.
+
+		Returns:
+			`AnimalsWithAttributesDataLoader(torch.utils.dataDataloader)` on a subset
+		"""
 		return AnimalsWithAttributesDataLoader(self.train_images, generator, batch_size=self.batch_size)
 
 	def val_dataloader(self) -> AnimalsWithAttributesDataLoader:
+		"""Create dataloader for validating.
+
+		Returns:
+			`AnimalsWithAttributesDataLoader(torch.utils.dataDataloader)` on a subset
+		"""
 		return AnimalsWithAttributesDataLoader(self.devel_images, generator, batch_size=self.batch_size)
 
 	def test_dataloader(self) -> AnimalsWithAttributesDataLoader:
+		"""Create dataloader for testing.
+
+		Returns:
+			`AnimalsWithAttributesDataLoader(torch.utils.dataDataloader)` on a subset
+		"""
 		return AnimalsWithAttributesDataLoader(self.valid_images, generator, batch_size=self.batch_size)
 
 	def predict_dataloader(self) -> AnimalsWithAttributesDataLoader:
+		"""Create dataloader for predicting.
+
+		Returns:
+			`AnimalsWithAttributesDataLoader(torch.utils.dataDataloader)` on a subset
+		"""
 		return AnimalsWithAttributesDataLoader(self.valid_images, generator, batch_size=self.batch_size)
 
 
