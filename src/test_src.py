@@ -8,6 +8,7 @@ class TestAnimalsWithAttributesDataModule:
 		"""Test Animals with Attributes splitting on various settings."""
 		from src.lightning import AnimalsWithAttributesDataModule
 
+	#	Normal:
 		data = AnimalsWithAttributesDataModule(
 			generalized_zeroshot=False,
 			transductive_setting=False,
@@ -18,6 +19,7 @@ class TestAnimalsWithAttributesDataModule:
 		data.setup("test"); data.test_dataloader()
 		data.setup("predict"); data.predict_dataloader()
 
+	#	Zeroshot:
 		data = AnimalsWithAttributesDataModule(
 			generalized_zeroshot=True,
 			transductive_setting=False,
@@ -28,6 +30,7 @@ class TestAnimalsWithAttributesDataModule:
 		data.setup("test"); data.test_dataloader()
 		data.setup("predict"); data.predict_dataloader()
 
+	#	Transductive:
 		data = AnimalsWithAttributesDataModule(
 			generalized_zeroshot=True,
 			transductive_setting=True,
