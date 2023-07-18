@@ -6,6 +6,8 @@ Includes:
 """
 
 
+from typing import Any
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 from .chartools import separator
 from .globals import generator
 
@@ -292,6 +294,15 @@ class GeneralizedZeroshotModule(pytorch_lightning.LightningModule):
 		self.metrics = {}
 
 	def configure_optimizers(self) -> torch.optim.Optimizer:
+		"""Choose what optimizers and learning-rate schedulers to use in your optimization.
+
+		Normally you’d need one.
+		But in the case of GANs or similar you might have multiple.
+		Optimization with multiple optimizers only works in the manual optimization mode.
+
+		Returns:
+			`torch.optim.Optimizer` with default settings
+		"""
 		return torch.optim.Adam(
 			self.parameters(),
 		#	lr=0.001,
@@ -309,7 +320,21 @@ class GeneralizedZeroshotModule(pytorch_lightning.LightningModule):
 		#	fused=None,
 		)
 
-	def _shared_eval_step(self, batch, batch_idx, prefix: str = ""):
+	def _shared_eval_step(self, batch: torch.Tensor, batch_idx: int, stage: str) -> dict[str, torchmetrics.Metric]:
+		"""Do calculations shared across different stages.
+
+		Base function for:
+			`training_step`
+			`validation_step`
+			`test_step
+
+		Arguments:
+			`batch`: current batch
+			`batch_idx`: index of current batch
+
+		Returns:
+			dictionary of metrics including loss
+		"""
 		x, y_true = batch
 
 	#	Model forward:
@@ -318,11 +343,11 @@ class GeneralizedZeroshotModule(pytorch_lightning.LightningModule):
 	#	Update metrics:
 		self.metrics.update(
 			{
-				f"{prefix}_loss": self.loss(
+				f"{stage}_loss": self.loss(
 					y_pred,
 					y_true,
 				),
-				f"{prefix}_accuracy": self.accuracy(
+				f"{stage}_accuracy": self.accuracy(
 					y_pred,
 					y_true,
 				)
@@ -330,3 +355,33 @@ class GeneralizedZeroshotModule(pytorch_lightning.LightningModule):
 		)
 
 		return self.metrics
+
+	def training_step(self, batch: torch.Tensor, batch_idx: int) -> STEP_OUTPUT:
+		"""Here you compute and return the training loss and some additional metrics for e.g. the progress bar or
+		logger.
+
+		Args:
+			batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
+				The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
+			batch_idx (``int``): Integer displaying index of this batch
+
+		Return:
+			Any of.
+
+			- :class:`~torch.Tensor` - The loss tensor
+			- ``dict`` - A dictionary. Can include any keys, but must include the key ``'loss'``
+			- ``None`` - Training will skip to the next batch. This is only for automatic optimization.
+				This is not supported for multi-GPU, TPU, IPU, or DeepSpeed.
+
+		In this step you'd normally do the forward pass and calculate the loss for a batch.
+		You can also do fancier things like multiple forward passes or something model specific.
+
+		Example::
+
+			def training_step(self, batch, batch_idx):
+				x, y, z = batch
+				out = self.encoder(x)
+				loss = self.loss(out, x)
+				return loss
+		"""
+		return self._shared_eval_step(batch, batch_idx, "fit")
