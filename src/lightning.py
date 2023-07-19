@@ -26,6 +26,8 @@ torch.utils.data.ConcatDataset.__str__ = torch.utils.data.Dataset.__str__
 class AnimalsWithAttributesDataModule(pytorch_lightning.LightningDataModule):
 	"""A lightning data module encapsulating datasplitting and loading depending on context.
 
+	[https://lightning.ai/docs/pytorch/latest/data/datamodule.html]
+
 	Contexts:
 		normal training:
 		-	all labels known during training
@@ -77,6 +79,8 @@ class AnimalsWithAttributesDataModule(pytorch_lightning.LightningDataModule):
 	def prepare_data(self):
 		"""Create datasets for accessing Animals with Attributes data based on label.
 
+		[https://lightning.ai/docs/pytorch/latest/data/datamodule.html#prepare-data]
+
 		Attributes:
 			`source`: subset containing examples of source label
 			`target`: subset containing examples of target label
@@ -109,12 +113,14 @@ class AnimalsWithAttributesDataModule(pytorch_lightning.LightningDataModule):
 	def setup(self, stage: str):
 		"""Create subsets for training/validating/testing/predicting.
 
+		[https://lightning.ai/docs/pytorch/latest/data/datamodule.html#setup]
+
 		Arguments:
 			`stage`: the staging/`stage`/name correpsondence is:
-			-	training  :`'fit'`     :`train`
-			-	validation:`'validate'`:`devel`
-			-	testing   :`'test'`    :`valid`
-			-	prediction:`'predict'` :`valid`
+			-	training  :`"fit"`     :`train`
+			-	validation:`"validate"`:`devel`
+			-	testing   :`"test"`    :`valid`
+			-	prediction:`"predict"` :`valid`
 		"""
 		separator(2, f"Animals with Attributes 2: spliting")
 
@@ -218,6 +224,8 @@ class AnimalsWithAttributesDataModule(pytorch_lightning.LightningDataModule):
 	def train_dataloader(self) -> AnimalsWithAttributesDataLoader:
 		"""Create dataloader for fitting.
 
+		[https://lightning.ai/docs/pytorch/latest/data/datamodule.html#train-dataloader]
+
 		Returns:
 			`AnimalsWithAttributesDataLoader(torch.utils.dataDataloader)` on a subset
 		"""
@@ -225,6 +233,8 @@ class AnimalsWithAttributesDataModule(pytorch_lightning.LightningDataModule):
 
 	def val_dataloader(self) -> AnimalsWithAttributesDataLoader:
 		"""Create dataloader for validating.
+
+		[https://lightning.ai/docs/pytorch/latest/data/datamodule.html#val-dataloader]
 
 		Returns:
 			`AnimalsWithAttributesDataLoader(torch.utils.dataDataloader)` on a subset
@@ -234,6 +244,8 @@ class AnimalsWithAttributesDataModule(pytorch_lightning.LightningDataModule):
 	def test_dataloader(self) -> AnimalsWithAttributesDataLoader:
 		"""Create dataloader for testing.
 
+		[https://lightning.ai/docs/pytorch/latest/data/datamodule.html#test-dataloader]
+
 		Returns:
 			`AnimalsWithAttributesDataLoader(torch.utils.dataDataloader)` on a subset
 		"""
@@ -241,6 +253,8 @@ class AnimalsWithAttributesDataModule(pytorch_lightning.LightningDataModule):
 
 	def predict_dataloader(self) -> AnimalsWithAttributesDataLoader:
 		"""Create dataloader for predicting.
+
+		[https://lightning.ai/docs/pytorch/latest/data/datamodule.html#predict-dataloader]
 
 		Returns:
 			`AnimalsWithAttributesDataLoader(torch.utils.dataDataloader)` on a subset
@@ -250,6 +264,8 @@ class AnimalsWithAttributesDataModule(pytorch_lightning.LightningDataModule):
 
 class GeneralizedZeroshotModule(pytorch_lightning.LightningModule):
 	"""Full stack model for training on any visual `pytorch_lightning.DataModule` in a generalized zeroshot setting.
+
+	[https://lightning.ai/docs/pytorch/latest/common/lightning_module.html]
 
 	Submodules:
 		`visual`: translate images into visual features
@@ -296,6 +312,8 @@ class GeneralizedZeroshotModule(pytorch_lightning.LightningModule):
 	def configure_optimizers(self) -> torch.optim.Optimizer:
 		"""Choose what optimizers and learning-rate schedulers to use in your optimization.
 
+		[https://lightning.ai/docs/pytorch/latest/common/lightning_module.html#configure-optimizers]
+
 		Normally you’d need one.
 		But in the case of GANs or similar you might have multiple.
 		Optimization with multiple optimizers only works in the manual optimization mode.
@@ -323,6 +341,8 @@ class GeneralizedZeroshotModule(pytorch_lightning.LightningModule):
 	def _shared_eval_step(self, batch: torch.Tensor, batch_idx: int, stage: str) -> dict[str, torchmetrics.Metric]:
 		"""Do calculations shared across different stages.
 
+		[https://lightning.ai/docs/pytorch/latest/common/lightning_module.html#child-modules]
+
 		Base function for:
 			`training_step`
 			`validation_step`
@@ -341,47 +361,87 @@ class GeneralizedZeroshotModule(pytorch_lightning.LightningModule):
 		y_pred = self.semantic(self.visual_semantic(self.visual(x)))
 
 	#	Update metrics:
-		self.metrics.update(
-			{
-				f"{stage}_loss": self.loss(
-					y_pred,
-					y_true,
-				),
-				f"{stage}_accuracy": self.accuracy(
-					y_pred,
-					y_true,
-				)
-			}
-		)
+		metrics = {
+			f"{stage}_loss": self.loss(
+				y_pred,
+				y_true,
+			),
+			f"{stage}_accuracy": self.accuracy(
+				y_pred,
+				y_true,
+			)
+		}
 
-		return self.metrics
+	#	Log metrics:
+		self.log_dict(metrics)
 
-	def training_step(self, batch: torch.Tensor, batch_idx: int) -> STEP_OUTPUT:
-		"""Here you compute and return the training loss and some additional metrics for e.g. the progress bar or
-		logger.
+		return metrics
 
-		Args:
-			batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
-				The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
-			batch_idx (``int``): Integer displaying index of this batch
+	def training_step(self, batch: torch.Tensor, batch_idx: int) -> dict[str, torchmetrics.Metric]:
+		"""Here you compute and return the training loss and some additional metrics for e.g. the progress bar or logger.
 
-		Return:
-			Any of.
+		[https://lightning.ai/docs/pytorch/latest/common/lightning_module.html#training-step]
 
-			- :class:`~torch.Tensor` - The loss tensor
-			- ``dict`` - A dictionary. Can include any keys, but must include the key ``'loss'``
-			- ``None`` - Training will skip to the next batch. This is only for automatic optimization.
-				This is not supported for multi-GPU, TPU, IPU, or DeepSpeed.
+		Arguments:
+			`batch`: the tensor output of your `torch.utils.data.DataLoader`
+			`batch_idx`: integer displaying index of this batch
 
-		In this step you'd normally do the forward pass and calculate the loss for a batch.
+		Returns:
+			a dictionary that can include any keys, but must include the key `"loss"` with `torch.Tensor` loss value
+
+		In this step you"d normally do the forward pass and calculate the loss for a batch.
 		You can also do fancier things like multiple forward passes or something model specific.
 
 		Example::
-
-			def training_step(self, batch, batch_idx):
-				x, y, z = batch
-				out = self.encoder(x)
-				loss = self.loss(out, x)
-				return loss
+		```
+		def training_step(self, batch, batch_idx):
+			x, y, z = batch
+			out = self.encoder(x)
+			loss = self.loss(out, x)
+			return loss
+		```
 		"""
-		return self._shared_eval_step(batch, batch_idx, "fit")
+		return self._shared_eval_step(batch, batch_idx, "train")
+
+	def validation_step(self, batch: torch.Tensor, batch_idx: int) -> dict[str, torchmetrics.Metric]:
+		"""Operates on a single batch of data from the validation set.
+		In this step you"d might generate examples or calculate anything of interest like accuracy.
+
+		[https://lightning.ai/docs/pytorch/latest/common/lightning_module.html#training-step]
+
+		Arguments:
+			`batch`: the output of your data iterable normally a `torch.utils.data.DataLoader`
+			`batch_idx`: the index of this batch
+
+		Returns:
+			a dictionary that can include any keys, but must include the key `"loss"` with `torch.Tensor` loss value
+
+		Example:
+		```
+		def validation_step(self, batch, batch_idx):
+			x, y = batch
+
+		#	implement your own
+			out = self(x)
+			loss = self.loss(out, y)
+
+		#	log 6 example images or generated text... or whatever
+			sample_imgs = x[:6]
+			grid = torchvision.utils.make_grid(sample_imgs)
+			self.logger.experiment.add_image("example_images", grid, 0)
+
+		#	calculate accuracy
+			labels_hat = torch.argmax(out, dim=1)
+			val_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
+
+		#	log the outputs!
+			self.log_dict({"val_loss": loss, "val_acc": val_acc})
+		```
+
+		NOTE: If you don't need to validate you don't need to implement this method.
+		NOTE: When the `validation_step` is called,
+		the model has been put in eval mode and PyTorch gradients have been disabled.
+		At the end of validation,
+		the model goes back to training mode and gradients are enabled.
+		"""
+		return self._shared_eval_step(batch, batch_idx, "devel")
