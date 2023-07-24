@@ -314,7 +314,7 @@ class GeneralizedZeroshotModule(pytorch_lightning.LightningModule):
 
 		[https://lightning.ai/docs/pytorch/latest/common/lightning_module.html#configure-optimizers]
 
-		Normally you’d need one.
+		Normally you would need one.
 		But in the case of GANs or similar you might have multiple.
 		Optimization with multiple optimizers only works in the manual optimization mode.
 
@@ -443,5 +443,7 @@ class GeneralizedZeroshotModule(pytorch_lightning.LightningModule):
 		the model has been put in eval mode and PyTorch gradients have been disabled.
 		At the end of validation,
 		the model goes back to training mode and gradients are enabled.
+		NOTE: This is where early stopping regularization occurs.
+		Dropout regularization is engraved in the model.
 		"""
 		return self._shared_eval_step(batch, batch_idx, "devel")
