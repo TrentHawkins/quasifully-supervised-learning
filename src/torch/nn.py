@@ -103,7 +103,7 @@ class AttentionLinear(torch.nn.Linear):
 
 
 class MetricLinear(torch.nn.Linear):
-	"""A `torch.nn.Linear` module with a non-linear modification based on a similarity metric
+	"""A `torch.nn.Linear` module with a non-linear modification based on a similarity metric.
 
 	A `MetricLinear` has no bias, no activation (it is nonlinear anyway) and is frozen as an explicit comparator comparator.
 	"""
@@ -129,7 +129,7 @@ class MetricLinear(torch.nn.Linear):
 
 	@staticmethod
 	def _norm(x: torch.Tensor):
-		"""Contract last index of ${`inputs`}\times{`inputs}$.
+		r"""Contract last index of ${`inputs`}\times{`inputs}$.
 
 		Arguments:
 			`inputs`: of arbitrary batch dimension
@@ -153,11 +153,11 @@ class CosineLinear(MetricLinear):
 	"""
 
 	def forward(self, x: torch.Tensor) -> torch.Tensor:
-		"""Define the computation performed at every call.
+		r"""Define the computation performed at every call.
 
 		Formula:
-			`torch.nn.Linear`: $y_{i}=\\sum_{j}w_{ij}x_{j}$
-			$$y_{i}=\\dfrac{\\sum_{j}w_{ij}x_{j}}{\\sum_{j}w_{ij}w_{ij}\\sum_{j}x_{j}x_{j}}$$
+			`torch.nn.Linear`: $y_{i}=\sum_{j}w_{ij}x_{j}$
+			$$y_{i}=\dfrac{\sum_{j}w_{ij}x_{j}}{\sum_{j}w_{ij}w_{ij}\sum_{j}x_{j}x_{j}}$$
 		"""
 		output = super(CosineLinear, self).forward(x)
 
@@ -171,11 +171,11 @@ class JaccardLinear(MetricLinear):
 	"""
 
 	def forward(self, x: torch.Tensor) -> torch.Tensor:
-		"""Define the computation performed at every call.
+		r"""Define the computation performed at every call.
 
 		Formula:
-			`torch.nn.Linear`: $y_{i}=\\sum_{j}w_{ij}x_{j}$
-			$$y_{i}=\\dfrac{\\sum_{j}w_{ij}x_{j}}{\\sum_{j}w_{ij}w_{ij}+\\sum_{j}x_{j}x_{j}-\\sum_{j}w_{ij}x_{j}}$$
+			`torch.nn.Linear`: $y_{i}=\sum_{j}w_{ij}x_{j}$
+			$$y_{i}=\dfrac{\sum_{j}w_{ij}x_{j}}{\sum_{j}w_{ij}w_{ij}+\sum_{j}x_{j}x_{j}-\sum_{j}w_{ij}x_{j}}$$
 		"""
 		output = super(JaccardLinear, self).forward(x)
 
@@ -189,11 +189,11 @@ class DiceLinear(MetricLinear):
 	"""
 
 	def forward(self, x: torch.Tensor) -> torch.Tensor:
-		"""Define the computation performed at every call.
+		r"""Define the computation performed at every call.
 
 		Formula:
-			`torch.nn.Linear`: $y_{i}=\\sum_{j}w_{ij}x_{j}$
-			$$y_{i}=\\dfrac{\\sum_{j}w_{ij}x_{j}}{\\sum_{j}w_{ij}w_{ij}+\\sum_{j}x_{j}x_{j}-\\sum_{j}w_{ij}x_{j}}$$
+			`torch.nn.Linear`: $y_{i}=\sum_{j}w_{ij}x_{j}$
+			$$y_{i}=\dfrac{\sum_{j}w_{ij}x_{j}}{\sum_{j}w_{ij}w_{ij}+\sum_{j}x_{j}x_{j}-\sum_{j}w_{ij}x_{j}}$$
 		"""
 		output = super(DiceLinear, self).forward(x)
 
@@ -204,7 +204,7 @@ def LinearStack(
 	inputs_size: int,
 	output_size: int, skip: int = 1, dropout: float = .0
 ) -> torch.nn.Sequential:
-	"""A pyramid-like `torch.nn.Sequential` module made of `DropoutLinear` submodules in a stack.
+	"""Make a pyramid-like `torch.nn.Sequential` module made of `DropoutLinear` submodules in a stack.
 
 	The network complexity is defined in a specific way which is based on inputs and output sizes:
 	-	the hidden sizes gradually change from one to the other with complexities defined by an integer divisor logic
@@ -240,7 +240,7 @@ def LinearStack(
 
 
 class LinearStackArray(torch.nn.Module):
-	"""Several `LinearStack` submodules in parallel combining output with an `AttentionLinear` submodule
+	"""Several `LinearStack` submodules in parallel combining output with an `AttentionLinear` submodule.
 
 	The number of linear stacks (threads) is defined by the inputs and output sizes.
 	The linear stack array recombines the linear stacks (threads) with attention.

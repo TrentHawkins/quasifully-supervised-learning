@@ -136,7 +136,7 @@ class AnimalsWithAttributesDataset(torchvision.datasets.ImageFolder):
 		self._generator = generator or default_generator
 
 	def find_classes(self, directory: str) -> tuple[list[str], dict[str, int]]:
-		"""Find the class labels in the Animals with Attributes dataset:
+		"""Find the class labels in the Animals with Attributes dataset.
 
 		This method is overridden:
 		-	to consider subsets of classes based on a given labels file

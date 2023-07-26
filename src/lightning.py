@@ -378,7 +378,7 @@ class GeneralizedZeroshotModule(pytorch_lightning.LightningModule):
 		return metrics
 
 	def training_step(self, batch: torch.Tensor, batch_idx: int) -> dict[str, torchmetrics.Metric]:
-		"""Here you compute and return the training loss and some additional metrics for e.g. the progress bar or logger.
+		"""Compute and return the training loss and some additional metrics for e.g. the progress bar or logger.
 
 		[https://lightning.ai/docs/pytorch/latest/common/lightning_module.html#training-step]
 
@@ -389,10 +389,10 @@ class GeneralizedZeroshotModule(pytorch_lightning.LightningModule):
 		Returns:
 			a dictionary that can include any keys, but must include the key `"loss"` with `torch.Tensor` loss value
 
-		In this step you"d normally do the forward pass and calculate the loss for a batch.
+		In this step you'd normally do the forward pass and calculate the loss for a batch.
 		You can also do fancier things like multiple forward passes or something model specific.
 
-		Example::
+		Example
 		```
 		def training_step(self, batch, batch_idx):
 			x, y, z = batch
@@ -405,7 +405,8 @@ class GeneralizedZeroshotModule(pytorch_lightning.LightningModule):
 
 	def validation_step(self, batch: torch.Tensor, batch_idx: int) -> dict[str, torchmetrics.Metric]:
 		"""Operates on a single batch of data from the validation set.
-		In this step you"d might generate examples or calculate anything of interest like accuracy.
+
+		In this step you'd might generate examples or calculate anything of interest like accuracy.
 
 		[https://lightning.ai/docs/pytorch/latest/common/lightning_module.html#training-step]
 
@@ -439,11 +440,52 @@ class GeneralizedZeroshotModule(pytorch_lightning.LightningModule):
 		```
 
 		NOTE: If you don't need to validate you don't need to implement this method.
-		NOTE: When the `validation_step` is called,
-		the model has been put in eval mode and PyTorch gradients have been disabled.
-		At the end of validation,
-		the model goes back to training mode and gradients are enabled.
+
+		NOTE: When the `validation_step` is called, the model has been put in eval mode and PyTorch gradients have been disabled.
+		At the end of validation, the model goes back to training mode and gradients are enabled.
+
 		NOTE: This is where early stopping regularization occurs.
 		Dropout regularization is engraved in the model.
 		"""
 		return self._shared_eval_step(batch, batch_idx, "devel")
+
+	def test_step(self, batch: torch.Tensor, batch_idx: int) -> dict[str, torchmetrics.Metric]:
+		r"""Operates on a single batch of data from the test set.
+
+		In this step you'd normally generate examples or calculate anything of interest such as accuracy.
+
+		Arguments:
+			`batch`: the output of your data iterable, normally a `torch.utils.data.DataLoader`
+			`batch_idx`: the index of this batch
+
+		Return:
+			a dictionary that can include any keys, but must include the key `"loss"` with `torch.Tensor` loss value
+
+		Example:
+		```
+		def test_step(self, batch, batch_idx):
+			x, y = batch
+
+		#	implement your own
+			out = self(x)
+			loss = self.loss(out, y)
+
+		#	log 6 example images or generated text... or whatever
+			sample_imgs = x[:6]
+			grid = torchvision.utils.make_grid(sample_imgs)
+			self.logger.experiment.add_image('example_images', grid, 0)
+
+		#	calculate acc
+			labels_hat = torch.argmax(out, dim=1)
+			test_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
+
+		#	log the outputs!
+			self.log_dict({'test_loss': loss, 'test_acc': test_acc})
+		```
+
+		NOTE: If you don't need to test you don't need to implement this method.
+
+		NOTE: When the `test_step` is called, the model has been put in eval mode and PyTorch gradients have been disabled.
+		At the end of the test epoch, the model goes back to training mode and gradients are enabled.
+		"""
+		return self._shared_eval_step(batch, batch_idx, "valid")
