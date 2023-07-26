@@ -389,7 +389,7 @@ class GeneralizedZeroshotModule(pytorch_lightning.LightningModule):
 		Returns:
 			a dictionary that can include any keys, but must include the key `"loss"` with `torch.Tensor` loss value
 
-		In this step you'd normally do the forward pass and calculate the loss for a batch.
+		In this step you would normally do the forward pass and calculate the loss for a batch.
 		You can also do fancier things like multiple forward passes or something model specific.
 
 		Example
@@ -406,7 +406,7 @@ class GeneralizedZeroshotModule(pytorch_lightning.LightningModule):
 	def validation_step(self, batch: torch.Tensor, batch_idx: int) -> dict[str, torchmetrics.Metric]:
 		"""Operates on a single batch of data from the validation set.
 
-		In this step you'd might generate examples or calculate anything of interest like accuracy.
+		In this step you would might generate examples or calculate anything of interest like accuracy.
 
 		[https://lightning.ai/docs/pytorch/latest/common/lightning_module.html#training-step]
 
@@ -454,7 +454,7 @@ class GeneralizedZeroshotModule(pytorch_lightning.LightningModule):
 
 		[https://lightning.ai/docs/pytorch/latest/common/lightning_module.html#test-step]
 
-		In this step you'd normally generate examples or calculate anything of interest such as accuracy.
+		In this step you would normally generate examples or calculate anything of interest such as accuracy.
 
 		Arguments:
 			`batch`: the output of your data iterable, normally a `torch.utils.data.DataLoader`
