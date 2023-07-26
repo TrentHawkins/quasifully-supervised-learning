@@ -15,6 +15,7 @@ import torch
 import torch.utils.data
 import torchmetrics
 import pytorch_lightning
+import pytorch_lightning.callbacks
 
 from src.torch.utils.data import AnimalsWithAttributesDataLoader
 from src.torchvision.datasets import AnimalsWithAttributesDataset
@@ -309,6 +310,30 @@ class GeneralizedZeroshotModule(pytorch_lightning.LightningModule):
 	#	Dictionary of metrics:
 		self.metrics = {}
 
+	def configure_callbacks(self) -> pytorch_lightning.Callback:
+		"""Configure model-specific callbacks.
+
+		When the model gets attached, e.g., when `.fit()` or `.test()` gets called, the list or a callback returned here
+		will be merged with the list of callbacks passed to the Trainer's `callbacks` argument.
+
+		If a callback returned here has the same type as one or several callbacks
+		already present in the Trainer's `callbacks` list, it will take priority and replace them.
+
+		In addition, Lightning will make sure `lightning.pytorch.callbacks.model_checkpoint.ModelCheckpoint` callbacks run last.
+
+		Returns:
+			a callback or a list of callbacks which will extend the list of callbacks in the Trainer
+
+		Example:
+		```
+		def configure_callbacks(self):
+			early_stop = EarlyStopping(monitor="val_acc", mode="max")
+			checkpoint = ModelCheckpoint(monitor="val_loss")
+			return [early_stop, checkpoint]
+		```
+		"""
+		return pytorch_lightning.callbacks.EarlyStopping("devel_loss")
+
 	def configure_optimizers(self) -> torch.optim.Optimizer:
 		"""Choose what optimizers and learning-rate schedulers to use in your optimization.
 
@@ -393,13 +418,13 @@ class GeneralizedZeroshotModule(pytorch_lightning.LightningModule):
 		You can also do fancier things like multiple forward passes or something model specific.
 
 		Example
-		```
+		``
 		def training_step(self, batch, batch_idx):
 			x, y, z = batch
 			out = self.encoder(x)
 			loss = self.loss(out, x)
 			return loss
-		```
+		``
 		"""
 		return self._shared_eval_step(batch, batch_idx, "train")
 
@@ -418,7 +443,7 @@ class GeneralizedZeroshotModule(pytorch_lightning.LightningModule):
 			a dictionary that can include any keys, but must include the key `"loss"` with `torch.Tensor` loss value
 
 		Example:
-		```
+		``
 		def validation_step(self, batch, batch_idx):
 			x, y = batch
 
@@ -437,7 +462,7 @@ class GeneralizedZeroshotModule(pytorch_lightning.LightningModule):
 
 		#	log the outputs!
 			self.log_dict({"val_loss": loss, "val_acc": val_acc})
-		```
+		``
 
 		NOTE: If you don't need to validate you don't need to implement this method.
 
@@ -464,7 +489,7 @@ class GeneralizedZeroshotModule(pytorch_lightning.LightningModule):
 			a dictionary that can include any keys, but must include the key `"loss"` with `torch.Tensor` loss value
 
 		Example:
-		```
+		``
 		def test_step(self, batch, batch_idx):
 			x, y = batch
 
@@ -483,7 +508,7 @@ class GeneralizedZeroshotModule(pytorch_lightning.LightningModule):
 
 		#	log the outputs!
 			self.log_dict({'test_loss': loss, 'test_acc': test_acc})
-		```
+		``
 
 		NOTE: If you don't need to test you don't need to implement this method.
 
