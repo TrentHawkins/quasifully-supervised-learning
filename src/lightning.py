@@ -452,6 +452,8 @@ class GeneralizedZeroshotModule(pytorch_lightning.LightningModule):
 	def test_step(self, batch: torch.Tensor, batch_idx: int) -> dict[str, torchmetrics.Metric]:
 		r"""Operates on a single batch of data from the test set.
 
+		[https://lightning.ai/docs/pytorch/latest/common/lightning_module.html#test-step]
+
 		In this step you'd normally generate examples or calculate anything of interest such as accuracy.
 
 		Arguments:
