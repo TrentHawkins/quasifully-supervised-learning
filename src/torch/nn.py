@@ -117,8 +117,8 @@ class MetricLinear(torch.nn.Linear):
 		super(MetricLinear, self).__init__(*kernel.size(), bias=False, **kwargs)
 
 	#	frozen kernel:
-		assert self.weight.size() == kernel.size()
-		self.weight = torch.nn.parameter.Parameter(kernel)  # no need to transpose `kernel` as `self.weight` is already transposed
+		assert self.weight.size() == kernel.transpose(0, 1).size()
+		self.weight = torch.nn.parameter.Parameter(kernel.transpose(0, 1))
 		self.weight.requires_grad = False
 
 	#	the norms of kernel vectors (diagonal):
