@@ -6,7 +6,7 @@ class TestAnimalsWithAttributesDataModule:
 
 	def test_splitting(self):
 		"""Test Animals with Attributes splitting on various settings."""
-		from src.lightning import AnimalsWithAttributesDataModule
+		from src.lightning.pytorch.data import AnimalsWithAttributesDataModule
 
 	#	Normal:
 		data = AnimalsWithAttributesDataModule(
