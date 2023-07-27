@@ -11,7 +11,7 @@ import numpy
 import torch
 
 
-device = "cuda" if torch.cuda.is_available() else "cpu"  # use CUDA if available
+device = "cpu"  # use CUDA if available
 
 torch.set_default_device(device)
 
