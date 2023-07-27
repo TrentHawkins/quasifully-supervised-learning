@@ -20,47 +20,58 @@ class GeneralizedZeroshotModule(lightning.pytorch.LightningModule):
 
 	Submodules:
 		`visual`: translate images into visual features
-		`visual_semantic`: translate visual features into semantic features
-		`semantic`: translate semantic features into (fuzzy similarity) labels
-		`loss`: compare fuzzy sigmoid predicitons to "many-hot" binary multi-label truths
+		`latent`: translate visual features into semantic features
+		`alphas`: translate semantic features into (fuzzy similarity) labels
+		`loss_f`: compare fuzzy sigmoid predicitons to "many-hot" binary multi-label truths
 	"""
 
 	def __init__(self,
 		visual: torch.nn.Module,
-		visual_semantic: torch.nn.Module,
-		semantic: torch.nn.Module,
-		loss: torch.nn.Module,
+		latent: torch.nn.Module,
+		alphas: torch.nn.Module,
+		loss_f: torch.nn.Module,
+		*,
+		patience: int = 3,
+		learning_rate: float = 1e-3,
 	):
 		"""Instansiate model stack with given subcomponents.
 
 		Arguments:
 			`visual`: translate images into visual features
-			`visual_semantic`: translate visual features into semantic features
-			`semantic`: translate semantic features into (fuzzy similarity) labels
+			`latent`: translate visual features into semantic features
+			`alphas`: translate semantic features into (fuzzy similarity) labels
+			`loss_f`: compare fuzzy sigmoid predicitons to "many-hot" binary multi-label truths
+
+		Keyword Arguments:
+			`patience`: of `lightning.pytorch.callbacks.EarlyStopping` callback
+			`learning_rate`: of `torch.optim.Adam` optimizer
 		"""
 		super().__init__()
 
 		self.visual = visual
-		self.visual_semantic = visual_semantic
-		self.semantic = semantic
-		self.loss = loss
+		self.latent = latent
+		self.alphas = alphas
+		self.loss_f = loss_f
 
 	#	Accuracy monitoring:
 		self.accuracy: torchmetrics.Metric = torchmetrics.Accuracy("multilabel",
-			threshold=0.5,
-			num_classes=None,
-			num_labels=None,
-			average="micro",
-			multidim_average="global",
-			top_k=1,
-			ignore_index=None,
-			validate_args=True,
+		#	threshold=0.5,
+		#	num_classes=None,
+		#	num_labels=None,
+		#	average="micro",
+		#	multidim_average="global",
+		#	top_k=1,
+		#	ignore_index=None,
+		#	validate_args=True,
 		)
 
-	#	Dictionary of metrics:
-		self.metrics = {}
+	#	Early stopping:
+		self.patience = patience
 
-	def configure_callbacks(self) -> lightning.pytorch.Callback:
+	#	Adam optimizer:
+		self.learning_rate = learning_rate
+
+	def configure_callbacks(self) -> list[lightning.pytorch.Callback]:
 		"""Configure model-specific callbacks.
 
 		When the model gets attached, e.g., when `.fit()` or `.test()` gets called, the list or a callback returned here
@@ -72,7 +83,7 @@ class GeneralizedZeroshotModule(lightning.pytorch.LightningModule):
 		In addition, Lightning will make sure `lightning.pytorch.callbacks.model_checkpoint.ModelCheckpoint` callbacks run last.
 
 		Returns:
-			a callback or a list of callbacks which will extend the list of callbacks in the Trainer
+			a list of callbacks which will extend the list of callbacks in the Trainer
 
 		Example:
 		```
@@ -82,7 +93,20 @@ class GeneralizedZeroshotModule(lightning.pytorch.LightningModule):
 			return [early_stop, checkpoint]
 		```
 		"""
-		return lightning.pytorch.callbacks.EarlyStopping("devel_loss")
+		return [
+			lightning.pytorch.callbacks.EarlyStopping("devel_loss",
+			#	min_delta=0,
+				patience=self.patience,
+				verbose=True,
+			#	mode="min",
+			#	strict=True,
+			#	check_finite=True,
+			#	stopping_threshold=None,
+			#	divergence_threshold=None,
+			#	check_on_train_epoch_end=None,
+			#	log_rank_zero_only=False,
+			),
+		]
 
 	def configure_optimizers(self) -> torch.optim.Optimizer:
 		"""Choose what optimizers and learning-rate schedulers to use in your optimization.
@@ -96,9 +120,8 @@ class GeneralizedZeroshotModule(lightning.pytorch.LightningModule):
 		Returns:
 			`torch.optim.Optimizer` with default settings
 		"""
-		return torch.optim.Adam(
-			self.parameters(),
-		#	lr=0.001,
+		return torch.optim.Adam(self.parameters(),
+			lr=self.learning_rate,
 		#	betas=(
 		#		0.9,
 		#		0.999,
@@ -130,14 +153,16 @@ class GeneralizedZeroshotModule(lightning.pytorch.LightningModule):
 		Returns:
 			dictionary of metrics including loss
 		"""
-		x, y_true = batch
+		y_pred, y_true = batch
 
 	#	Model forward:
-		y_pred = self.semantic(self.visual_semantic(self.visual(x)))
+		y_pred = self.visual(y_pred)
+		y_pred = self.latent(y_pred)
+		y_pred = self.alphas(y_pred)
 
 	#	Update metrics:
 		metrics = {
-			f"{stage}_loss": self.loss(
+			f"{stage}_loss": self.loss_f(
 				y_pred,
 				y_true,
 			),
