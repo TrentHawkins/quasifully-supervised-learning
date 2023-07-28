@@ -106,6 +106,21 @@ class GeneralizedZeroshotModule(lightning.pytorch.LightningModule):
 			#	check_on_train_epoch_end=None,
 			#	log_rank_zero_only=False,
 			),
+			lightning.pytorch.callbacks.ModelCheckpoint(
+			#	dirpath=None,
+			#	filename=None,
+				monitor="devel_loss",  # None
+			#	verbose=False,
+				save_last=True,  # None
+			#	save_top_k=1,
+			#	save_weights_only=False,
+			#	mode="min",
+			#	auto_insert_metric_name=True,
+			#	every_n_train_steps=None,
+			#	train_time_interval=None,
+			#	every_n_epochs=None,
+			#	save_on_train_epoch_end=None,
+			)
 		]
 
 	def configure_optimizers(self) -> torch.optim.Optimizer:

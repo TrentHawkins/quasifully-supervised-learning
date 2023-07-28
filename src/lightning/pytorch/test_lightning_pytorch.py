@@ -45,10 +45,11 @@ class TestAnimalsWithAttributesDataModule:
 class TestGeneralizedZeroshotModule:
 	"""Test generalized zeroshot lightning module."""
 
-	def test_model_prep(self):
+	def test_model(self):
 		"""Test preparation of module wit data."""
 		from torch import from_numpy
 		from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights
+		from lightning.pytorch import Trainer
 
 		from src.torch.nn import JaccardLinear, LinearStackArray
 		from src.zeroshot.nn import QuasifullyZeroshotBCELoss
@@ -56,24 +57,71 @@ class TestGeneralizedZeroshotModule:
 		from src.lightning.pytorch.models import GeneralizedZeroshotModule
 
 	#	Data:
-		data = AnimalsWithAttributesDataModule(
+		datamodule = AnimalsWithAttributesDataModule(
 			generalized_zeroshot=True,
 			transductive_setting=True,
 		)
-		data.prepare_data()
-		data.setup("fit")
-		data.setup("validate")
-		data.setup("test")
-		data.setup("predict")
+		datamodule.prepare_data()
+		datamodule.setup("fit")
+		datamodule.setup("validate")
+		datamodule.setup("test")
+		datamodule.setup("predict")
 
 		model = GeneralizedZeroshotModule(
 			visual=efficientnet_b0(
 				weights=EfficientNet_B0_Weights.IMAGENET1K_V1,
 			),
 			latent=LinearStackArray(1280, 85),
-			alphas=JaccardLinear(from_numpy(data.totals.alphas().to_numpy())),
+			alphas=JaccardLinear(from_numpy(datamodule.totals.alphas().to_numpy())),
 			loss_f=QuasifullyZeroshotBCELoss(
-				data.source.labels(),
-				data.target.labels(),
+				datamodule.source.labels(),
+				datamodule.target.labels(),
 			),
 		)
+
+		classifier = Trainer(
+		#	accelerator="auto",
+		#	strategy="auto",
+		#	devices="auto",
+		#	num_nodes=1,
+		#	precision="32-true",
+		#	logger=None,
+		#	callbacks=None,
+		#	fast_dev_run=True,  # False
+			max_epochs=1,  # none
+		#	min_epochs=None,
+		#	max_steps=-1,
+		#	min_steps=None,
+		#	max_time=None,
+		#	limit_train_batches=None,
+		#	limit_val_batches=None,
+		#	limit_test_batches=None,
+		#	limit_predict_batches=None,
+		#	overfit_batches=0.0,
+		#	val_check_interval=None,
+		#	check_val_every_n_epoch=1,
+		#	num_sanity_val_steps=None,
+		#	log_every_n_steps=None,
+		#	enable_checkpointing=None,
+		#	enable_progress_bar=None,
+		#	enable_model_summary=None,
+		#	accumulate_grad_batches=1,
+		#	gradient_clip_val=None,
+		#	gradient_clip_algorithm=None,
+			deterministic=True,  # None
+		#	benchmark=None,
+		#	inference_mode=True,
+		#	use_distributed_sampler=True,
+		#	profiler=None,
+		#	detect_anomaly=False,
+		#	barebones=False,
+		#	plugins=None,
+		#	sync_batchnorm=False,
+		#	reload_dataloaders_every_n_epochs=0,
+			default_root_dir="models",
+		)
+
+	#	classifier.fit(
+	#		model=model,
+	#		datamodule=datamodule,
+	#	)
