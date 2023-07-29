@@ -66,7 +66,7 @@ class ZeroshotBCELoss(torch.nn.BCELoss):
 		"""Provide loss with a source labels filter.
 
 		Arguments:
-			$source$: filter
+			source: filter
 		"""
 		super(ZeroshotBCELoss, self).__init__(**kwargs)
 
@@ -77,13 +77,13 @@ class ZeroshotBCELoss(torch.nn.BCELoss):
 		"""Clip all samples with a target label from evaluation.
 
 		Arguments:
-			`y_pred`: prediction logit of any label
-			`y_true`: true probability of any label
+			y_pred: prediction logit of any label
+			y_true: true probability of any label
 
 		Shape:
-			`y_pred`: `(*)`, where `*` means any number of dimensions.
-			`y_true`: `(*)`, same shape as the input.
-			`output`: scalar. If `reduction` is `"none"`, then `(*)`, same shape as input.
+			y_pred: `(*)`, where `*` means any number of dimensions.
+			y_true: `(*)`, same shape as the input.
+			output: scalar. If `reduction` is `"none"`, then `(*)`, same shape as input.
 
 		Returns:
 			`torch.nn.BCEWithLogitsLoss` on the samples with a source label
@@ -169,8 +169,8 @@ class QuasifullyZeroshotBCELoss(ZeroshotBCELoss):
 		"""Provide loss with a source labels filter.
 
 		Arguments:
-			$pos_weight$: a weight of positive examples. Must be a vector with length equal to the number of classes.
-			$source$: filter
+			source: filter
+			target: filter
 		"""
 		super(QuasifullyZeroshotBCELoss, self).__init__(source, **kwargs)
 
@@ -185,13 +185,13 @@ class QuasifullyZeroshotBCELoss(ZeroshotBCELoss):
 		"""Clip all samples with a target label from evaluation.
 
 		Arguments:
-			`y_pred`: prediction logit of any label
-			`y_true`: true probability of any label
+			y_pred: prediction logit of any label
+			y_true: true probability of any label
 
 		Shape:
-			`y_pred`: `(*)`, where `*` means any number of dimensions.
-			`y_true`: `(*)`, same shape as the input.
-			`output`: scalar. If `reduction` is `"none"`, then `(*)`, same shape as input.
+			y_pred: `(*)`, where `*` means any number of dimensions.
+			y_true: `(*)`, same shape as the input.
+			output: scalar. If `reduction` is `"none"`, then `(*)`, same shape as input.
 
 		Returns:
 			`torch.nn.BCEWithLogitsLoss` on the samples with a source label plus bias on unlabelled samples

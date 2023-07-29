@@ -1,11 +1,11 @@
 """Vectorizable numerical utilites.
 
 Includes:
-	`dotDataFrame`: custom dot operatop
+	dotDataFrame: custom dot operatop
 
-	`cosine` : similarity between two `numpy.array`
-	`jaccard`: similarity between two `numpy.array`
-	`dice`   : similarity between two `numpy.array`
+	cosine : similarity between two `numpy.array`
+	jaccard: similarity between two `numpy.array`
+	dice   : similarity between two `numpy.array`
 """
 
 

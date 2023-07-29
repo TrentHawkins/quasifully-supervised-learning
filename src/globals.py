@@ -1,9 +1,9 @@
 """Code global settings.
 
 Includes:
-	`seed`: global seed
-	`generator`: once-defined random number generator with aforementioned seed
-	`torch.set_default_device`: use CUDA if available
+	seed: global seed
+	generator: once-defined random number generator with aforementioned seed
+	torch.set_default_device: use CUDA if available
 """
 
 

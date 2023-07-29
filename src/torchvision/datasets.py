@@ -31,21 +31,21 @@ class AnimalsWithAttributesDataset(torchvision.datasets.ImageFolder):
 	"""A custom dataset on images from the Animals with Attributes dataset.
 
 	Attributes:
-		`_labels`: `pandas.Series` of label index indexed by label name
-		`_alphas`: `pandas.Series` of integer listing of class predicates by name
-		`_images`: `pandas.Series` of image label index indexed by image path
+		_labels: `pandas.Series` of label index indexed by label name
+		_alphas: `pandas.Series` of integer listing of class predicates by name
+		_images: `pandas.Series` of image label index indexed by image path
 
 	Methods:
-		`labels`: `pandas.Series` of label index indexed by label name (optionally filtered)
-		`alphas`: `pandas.Dataframe` of predicate values indexed by label name (optionally filtered) and predicate name
-		`images`: `pandas.Series` of image label index (optionally filtered) indexed by image path
+		labels: `pandas.Series` of label index indexed by label name (optionally filtered)
+		alphas: `pandas.Dataframe` of predicate values indexed by label name (optionally filtered) and predicate name
+		images: `pandas.Series` of image label index (optionally filtered) indexed by image path
 
-		`random_split`: the images into proportionate training, development and validation subsets
+		random_split: the images into proportionate training, development and validation subsets
 
-		`plot_labels`: plot label statistics
-		`plot_alphas`: plot predicates heatmap against labels
+		plot_labels: plot label statistics
+		plot_alphas: plot predicates heatmap against labels
 
-		`plot_label_correlation`: plot label correlation on predicates heatmap using dot product, optinally on logits
+		plot_label_correlation: plot label correlation on predicates heatmap using dot product, optinally on logits
 	"""
 
 	def __init__(self,
@@ -60,13 +60,13 @@ class AnimalsWithAttributesDataset(torchvision.datasets.ImageFolder):
 		"""Initialize the directory containing the images.
 
 		Arguments:
-			`images_path`: relative path to dataset (default: assumes root directory)
-			`splits_path`: relative path to definition of data splitting (default: standard)
-			`labels_path`: relative path to file with labels (default: all labels)
-			`target_size`: scale images to size `(target_size, target_size)` via center cropping (default 224)
-			`transform`: a function/transform that takes in an PIL image and returns a transformed version (optional)
-			`target_transform`: A function/transform that takes in the target and transforms it (optional)
-			`generator`: random number generator to pass around for reproducibility (default: one with seed 0)
+			images_path: relative path to dataset (default: assumes root directory)
+			splits_path: relative path to definition of data splitting (default: standard)
+			labels_path: relative path to file with labels (default: all labels)
+			target_size: scale images to size `(target_size, target_size)` via center cropping (default 224)
+			transform: a function/transform that takes in an PIL image and returns a transformed version (optional)
+			target_transform: A function/transform that takes in the target and transforms it (optional)
+			generator: random number generator to pass around for reproducibility (default: one with seed 0)
 		"""
 		self._images_path = path.join(
 			images_path,
@@ -153,7 +153,7 @@ class AnimalsWithAttributesDataset(torchvision.datasets.ImageFolder):
 		-	to keep the ordering provided by the dataset labels files
 
 		Arguments:
-			`directory`: labels file
+			directory: labels file
 
 		Raises:
 			`FileNotFoundError`: If `directory` has no class labels.
@@ -175,7 +175,7 @@ class AnimalsWithAttributesDataset(torchvision.datasets.ImageFolder):
 		"""Read items either from a file or a series into a list.
 
 		Arguments:
-			`selection`: either a `pandas.Series` or a text file
+			selection: either a `pandas.Series` or a text file
 
 		Returns:
 			`list` with items in selection
@@ -193,7 +193,7 @@ class AnimalsWithAttributesDataset(torchvision.datasets.ImageFolder):
 		"""Get a label set from dataset.
 
 		Arguments:
-			`selection`: text file containing the labels to be listed (default: list all labels in dataset)
+			selection: text file containing the labels to be listed (default: list all labels in dataset)
 
 		Returns:
 			label `pandas.Series` indexed from 0 (contrary to the vanilla index starting from 1)
@@ -208,9 +208,9 @@ class AnimalsWithAttributesDataset(torchvision.datasets.ImageFolder):
 		"""Get label predicates.
 
 		Argumebts:
-			`selection`: text file containing the labels to be listed (default: list all labels in dataset)
-			`binary`: continuous if `False` (default: continuous)
-			`logits`: modify probabilistic range to logits (default: not)
+			selection: text file containing the labels to be listed (default: list all labels in dataset)
+			binary: continuous if `False` (default: continuous)
+			logits: modify probabilistic range to logits (default: not)
 
 		Returns:
 			predicate `pandas.DataFrame` indexed with labels and named with predicates
@@ -243,7 +243,7 @@ class AnimalsWithAttributesDataset(torchvision.datasets.ImageFolder):
 		"""Get images and a label set from dataset.
 
 		Arguments:
-			`selection`: text file containing the labels to be listed (default: list all labels in dataset)
+			selection: text file containing the labels to be listed (default: list all labels in dataset)
 
 		Returns:
 			label `pandas.Series` indexed with image paths
@@ -261,14 +261,14 @@ class AnimalsWithAttributesDataset(torchvision.datasets.ImageFolder):
 		"""Randomly split the images into proportionate training, development and validation subsets.
 
 		Arguments:
-			`len_source`: size of training
-			`len_target`: size of testing
+			len_source: size of training
+			len_target: size of testing
 
 		Returns:
-			`torch.utils.data.Subset` including:
-				`train_images`: images used for training
-				`devel_images`: images used for hyper-tuning and or regularization
-				`valid_images`: images used for testing
+			torch.utils.data.Subset` including:
+				train_images: images used for training
+				devel_images: images used for hyper-tuning and or regularization
+				valid_images: images used for testing
 		"""
 		len_source = len_source or len(self.images("trainvalclasses.txt"))
 		len_target = len_target or len(self.images("testclasses.txt"))
@@ -404,10 +404,9 @@ class AnimalsWithAttributesDataset(torchvision.datasets.ImageFolder):
 		"""Plot label correlation on predicates heatmap using dot product, optinally on logits.
 
 		Arguments:
-			`binary`: continuous if `False` (default: continuous)
-			`logits`: modify probabilistic range to logits (default: not
-			`softmx`: apply softmax to predictions
-				default not
+			binary: continuous if `False` (default: continuous)
+			logits: modify probabilistic range to logits (default: not)
+			softmx: apply softmax to predictions (default: not)
 		"""
 		alpha_range = "-binary" if binary else ""
 		alpha_field = "-logits" if logits else ""

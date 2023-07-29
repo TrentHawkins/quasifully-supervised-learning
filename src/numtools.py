@@ -1,17 +1,17 @@
 """Basic integer numeric utilities.
 
 Includes:
-	`lcm`: `math.lcm` is unavailable to `python < 3.9`
+	lcm: `math.lcm` is unavailable to `python < 3.9`
 
-	`divisors`: of an integer
-	`is_prime`: is an integer
+	divisors: of an integer
+	is_prime: is an integer
 
-	`hidden_sizes`: devise hidden sizes of a pyramid-like MLP based on divisor logic given inputs and output size
+	hidden_sizes: devise hidden sizes of a pyramid-like MLP based on divisor logic given inputs and output size
 
-	`mettalic`: `a(n) = m * a(n - 1) + a(n - 2)'
-		`golden`: `m = 1` (Fibonacci)
-		`silver`: `m = 2`
-		`bronze`: `m = 3`
+	mettalic: `a(n) = m * a(n - 1) + a(n - 2)'
+		golden: `m = 1` (Fibonacci)
+		silver: `m = 2`
+		bronze: `m = 3`
 """
 
 
@@ -26,8 +26,8 @@ def lcm(a, b):
 	"""`python3.8` compatibility `lcm` function.
 
 	Arguments:
-		`a`: number
-		`b`: number
+		a: number
+		b: number
 
 	Returns:
 		number
@@ -39,13 +39,13 @@ def divisors(dividee: int, reverse: bool = False) -> list[int]:
 	"""Get all divisors of dividee.
 
 	Arguments:
-		`dividee`: the number to divide
+		dividee: the number to divide
 
 	Keyword Arguments:
-		`reverse`: the order of devisors
+		reverse: the order of devisors
 
 	Returns:
-		`list` of divisors
+		list` of divisors
 	"""
 	_divisors = set()
 
@@ -61,10 +61,10 @@ def is_prime(dividee: int) -> bool:
 	"""Check if dividee is prime or not.
 
 	Arguments:
-		`dividee`: the number to check
+		dividee: the number to check
 
 	Returns:
-		`True` if dividee is prime else `False`
+		True` if dividee is prime else `False`
 	"""
 #	return dividee > 1 and all(dividee % divisor for divisor in range(2, int(numpy.sqrt(dividee)) + 1))
 	return dividee > 1 and len(divisors(dividee)) == 1
@@ -79,13 +79,13 @@ def hidden_sizes(
 	Take inputs_dim*outputs_dim and find all divisors in range(inputs_dim, outputs_dim+1, skip).
 
 	Arguments:
-		`inputs_size`: the inputs dimension for the requested architecture
-		`output_size`: the output dimension for the requested architecture
-		`skip`: subsample proposed architecture uniformly by skipping layers with a divisor of the depth (default no skip)
-		`less`: whether to thinout results by selection of multiples of the GCD only (default thinout)
+		inputs_size: the inputs dimension for the requested architecture
+		output_size: the output dimension for the requested architecture
+		skip: subsample proposed architecture uniformly by skipping layers with a divisor of the depth (default no skip)
+		less: whether to thinout results by selection of multiples of the GCD only (default thinout)
 
 	Returns:
-		`reversed` `list` of divisors as proposed layer sizes
+		reversed` `list` of divisors as proposed layer sizes
 	"""
 	_lcm = lcm(inputs_size, output_size) if less else inputs_size * output_size
 	_gcd = gcd(inputs_size, output_size) if less else 1
@@ -110,8 +110,8 @@ def metallic(n: int, m: int) -> int:
 	metallic(0)=0
 
 	Arguments:
-		`n`: input
-		`m`: rank
+		n: input
+		m: rank
 
 	Returns:
 		n-th term in the sequence starting from 0
@@ -128,7 +128,7 @@ def golden(n: int) -> int:
 	"""Golden ratio (`m=1`, Fibonacci) sequence.
 
 	Arguments:
-		`n`: input
+		n: input
 
 	Returns:
 		n-th term in the sequence starting from 0
@@ -140,7 +140,7 @@ def silver(n: int) -> int:
 	"""	Silver ratio (`m=2`) sequence.
 
 	Arguments:
-		`n`: input
+		n: input
 
 	Returns:
 		n-th term in the sequence starting from 0
@@ -152,7 +152,7 @@ def bronze(n: int) -> int:
 	"""	Bronze ratio (`m=3`) sequence.
 
 	Arguments:
-		`n`: input
+		n: input
 
 	Returns:
 		n-th term in the sequence starting from 0

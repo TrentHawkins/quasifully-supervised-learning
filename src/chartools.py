@@ -1,7 +1,7 @@
 """Tools for input and output formatting and other string operations.
 
 Includes:
-	`print_separator`: repeats character across full terminal width
+	print_separator: repeats character across full terminal width
 """
 
 
@@ -15,14 +15,14 @@ def separator(char: Union[str, int] = 0,
 	"""Repeat character across full terminal width.
 
 	Arguments:
-		`char`: single character to repeat
+		char: single character to repeat
 			0: " "
 			1: "─"
 			2: "═"
 			3: "━"
 
 	Keyword Arguments:
-		`title`: optional text to display before separator
+		title: optional text to display before separator
 	"""
 	if isinstance(char, int):
 		char = {

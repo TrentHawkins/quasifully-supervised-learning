@@ -71,9 +71,9 @@ class TestGeneralizedZeroshotModule:
 			visual=efficientnet_b0(
 				weights=EfficientNet_B0_Weights.IMAGENET1K_V1,
 			),
-			latent=LinearStackArray(1280, 85),
-			alphas=JaccardLinear(from_numpy(datamodule.totals.alphas().to_numpy())),
-			loss_f=QuasifullyZeroshotBCELoss(
+			visual_semantic=LinearStackArray(1280, 85),
+			semantic=JaccardLinear(from_numpy(datamodule.totals.alphas().to_numpy())),
+			loss=QuasifullyZeroshotBCELoss(
 				datamodule.source.labels(),
 				datamodule.target.labels(),
 			),

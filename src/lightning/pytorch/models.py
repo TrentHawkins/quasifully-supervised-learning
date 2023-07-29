@@ -1,8 +1,8 @@
 """Pytorch lightning wrappers.
 
 Includes:
-	`AnimalsWithAttributesDataModule`: based on `AnimalsWithAttribulesDataLoader` on a `AnimalsWithAttributesDataset`
-	`AnimalsWithAttributesModule`: composing several `torch.nn.Module` with a loss and an optimizer
+	`AnimalsWithAttributesDataModule: based on `AnimalsWithAttribulesDataLoader` on a `AnimalsWithAttributesDataset`
+	`AnimalsWithAttributesModule: composing several `torch.nn.Module` with a loss and an optimizer
 """
 
 
@@ -19,17 +19,17 @@ class GeneralizedZeroshotModule(lightning.pytorch.LightningModule):
 	[https://lightning.ai/docs/pytorch/latest/common/lightning_module.html]
 
 	Submodules:
-		`visual`: translate images into visual features
-		`latent`: translate visual features into semantic features
-		`alphas`: translate semantic features into (fuzzy similarity) labels
-		`loss_f`: compare fuzzy sigmoid predicitons to "many-hot" binary multi-label truths
+		visual: translate images into visual features
+		latent: translate visual features into semantic features
+		alphas: translate semantic features into (fuzzy similarity) labels
+		loss_f: compare fuzzy sigmoid predicitons to "many-hot" binary multi-label truths
 	"""
 
 	def __init__(self,
 		visual: torch.nn.Module,
-		latent: torch.nn.Module,
-		alphas: torch.nn.Module,
-		loss_f: torch.nn.Module,
+		visual_semantic: torch.nn.Module,
+		semantic: torch.nn.Module,
+		loss: torch.nn.Module,
 		*,
 		patience: int = 3,
 		learning_rate: float = 1e-3,
@@ -37,21 +37,21 @@ class GeneralizedZeroshotModule(lightning.pytorch.LightningModule):
 		"""Instansiate model stack with given subcomponents.
 
 		Arguments:
-			`visual`: translate images into visual features
-			`latent`: translate visual features into semantic features
-			`alphas`: translate semantic features into (fuzzy similarity) labels
-			`loss_f`: compare fuzzy sigmoid predicitons to "many-hot" binary multi-label truths
+			visual: translate images into visual features
+			latvisual_semanticent: translate visual features into semantic features
+			semantic: translate semantic features into (fuzzy similarity) labels
+			loss: compare fuzzy sigmoid predicitons to "many-hot" binary multi-label truths
 
 		Keyword Arguments:
-			`patience`: of `lightning.pytorch.callbacks.EarlyStopping` callback
-			`learning_rate`: of `torch.optim.Adam` optimizer
+			patience: of `lightning.pytorch.callbacks.EarlyStopping` callback
+			learning_rate: of `torch.optim.Adam` optimizer
 		"""
 		super().__init__()
 
 		self.visual = visual
-		self.latent = latent
-		self.alphas = alphas
-		self.loss_f = loss_f
+		self.latent = visual_semantic
+		self.alphas = semantic
+		self.loss_f = loss
 
 	#	Accuracy monitoring:
 		self.accuracy: torchmetrics.Metric = torchmetrics.Accuracy("multilabel",
@@ -162,8 +162,8 @@ class GeneralizedZeroshotModule(lightning.pytorch.LightningModule):
 			`test_step
 
 		Arguments:
-			`batch`: current batch
-			`batch_idx`: index of current batch
+			batch: current batch
+			batch_idx: index of current batch
 
 		Returns:
 			dictionary of metrics including loss
@@ -198,8 +198,8 @@ class GeneralizedZeroshotModule(lightning.pytorch.LightningModule):
 		[https://lightning.ai/docs/pytorch/latest/common/lightning_module.html#training-step]
 
 		Arguments:
-			`batch`: the tensor output of your `torch.utils.data.DataLoader`
-			`batch_idx`: integer displaying index of this batch
+			batch: the tensor output of your `torch.utils.data.DataLoader`
+			batch_idx: integer displaying index of this batch
 
 		Returns:
 			a dictionary that can include any keys, but must include the key `"loss"` with `torch.Tensor` loss value
@@ -208,13 +208,13 @@ class GeneralizedZeroshotModule(lightning.pytorch.LightningModule):
 		You can also do fancier things like multiple forward passes or something model specific.
 
 		Example
-		``
+		```
 		def training_step(self, batch, batch_idx):
 			x, y, z = batch
 			out = self.encoder(x)
 			loss = self.loss(out, x)
 			return loss
-		``
+		```
 		"""
 		return self._shared_eval_step(batch, batch_idx, "train")
 
@@ -226,14 +226,14 @@ class GeneralizedZeroshotModule(lightning.pytorch.LightningModule):
 		[https://lightning.ai/docs/pytorch/latest/common/lightning_module.html#training-step]
 
 		Arguments:
-			`batch`: the output of your data iterable normally a `torch.utils.data.DataLoader`
-			`batch_idx`: the index of this batch
+			batch: the output of your data iterable normally a `torch.utils.data.DataLoader`
+			batch_idx: the index of this batch
 
 		Returns:
 			a dictionary that can include any keys, but must include the key `"loss"` with `torch.Tensor` loss value
 
 		Example:
-		``
+		```
 		def validation_step(self, batch, batch_idx):
 			x, y = batch
 
@@ -252,7 +252,7 @@ class GeneralizedZeroshotModule(lightning.pytorch.LightningModule):
 
 		#	log the outputs!
 			self.log_dict({"val_loss": loss, "val_acc": val_acc})
-		``
+		```
 
 		NOTE: If you don't need to validate you don't need to implement this method.
 
@@ -272,14 +272,14 @@ class GeneralizedZeroshotModule(lightning.pytorch.LightningModule):
 		In this step you would normally generate examples or calculate anything of interest such as accuracy.
 
 		Arguments:
-			`batch`: the output of your data iterable, normally a `torch.utils.data.DataLoader`
-			`batch_idx`: the index of this batch
+			batch: the output of your data iterable, normally a `torch.utils.data.DataLoader`
+			batch_idx: the index of this batch
 
 		Return:
 			a dictionary that can include any keys, but must include the key `"loss"` with `torch.Tensor` loss value
 
 		Example:
-		``
+		```
 		def test_step(self, batch, batch_idx):
 			x, y = batch
 
@@ -298,7 +298,7 @@ class GeneralizedZeroshotModule(lightning.pytorch.LightningModule):
 
 		#	log the outputs!
 			self.log_dict({'test_loss': loss, 'test_acc': test_acc})
-		``
+		```
 
 		NOTE: If you don't need to test you don't need to implement this method.
 

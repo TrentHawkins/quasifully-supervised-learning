@@ -1,8 +1,8 @@
 """Pytorch lightning wrappers.
 
 Includes:
-	`AnimalsWithAttributesDataModule`: based on `AnimalsWithAttribulesDataLoader` on a `AnimalsWithAttributesDataset`
-	`AnimalsWithAttributesModule`: composing several `torch.nn.Module` with a loss and an optimizer
+	`AnimalsWithAttributesDataModule: based on `AnimalsWithAttribulesDataLoader` on a `AnimalsWithAttributesDataset`
+	`AnimalsWithAttributesModule: composing several `torch.nn.Module` with a loss and an optimizer
 """
 
 
@@ -50,13 +50,13 @@ class AnimalsWithAttributesDataModule(lightning.pytorch.LightningDataModule):
 		"""Set `AnimalsWithAttributesDataModule` metadata.
 
 		Arguments:
-			`source_path`: path to source labels (usually known during training)
-			`target_path`: path to target labels (usually known during  testing)
+			source_path: path to source labels (usually known during training)
+			target_path: path to target labels (usually known during  testing)
 
-			`batch_size`: for training/validating/testing/predicting
+			batch_size: for training/validating/testing/predicting
 
-			`generalized_zeroshot`: set to `True` to separate dataset based on source/target labels
-			`transductive_setting`: set to `True` to allocate samples with a target label as unlabelled during training
+			generalized_zeroshot: set to `True` to separate dataset based on source/target labels
+			transductive_setting: set to `True` to allocate samples with a target label as unlabelled during training
 		"""
 		super(AnimalsWithAttributesDataModule, self).__init__(**kwargs)
 
@@ -78,10 +78,10 @@ class AnimalsWithAttributesDataModule(lightning.pytorch.LightningDataModule):
 		[https://lightning.ai/docs/pytorch/latest/data/datamodule.html#prepare-data]
 
 		Attributes:
-			`source`: subset containing examples of source label
-			`target`: subset containing examples of target label
+			source: subset containing examples of source label
+			target: subset containing examples of target label
 
-			`totals`: a concatenated view of `source` and `target` for access as a whole dataset
+			totals: a concatenated view of `source` and `target` for access as a whole dataset
 		"""
 		separator(3)
 		separator(2, f"Animals with Attributes 2: reading")
@@ -112,7 +112,7 @@ class AnimalsWithAttributesDataModule(lightning.pytorch.LightningDataModule):
 		[https://lightning.ai/docs/pytorch/latest/data/datamodule.html#setup]
 
 		Arguments:
-			`stage`: the staging/`stage`/name correpsondence is:
+			stage: the staging/`stage`/name correpsondence is:
 			-	training  :`"fit"`     :`train`
 			-	validation:`"validate"`:`devel`
 			-	testing   :`"test"`    :`valid`
