@@ -128,13 +128,18 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-### Miscellaneous
-
+# Miscellaneous
 *.zip
+*.tex*
+*.lyx*
 *.pdf
 *.crdownload
 
-### QuasifullySupervisedLearning
+# TensorFlow saved models
+*.pb
+*.data*
+*.index
+checkpoint
 
 # Animals with Attributes
 JPEGImages/
