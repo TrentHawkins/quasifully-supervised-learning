@@ -30,6 +30,7 @@ class GeneralizedZeroshotModule(lightning.pytorch.LightningModule):
 		visual_semantic: torch.nn.Module,
 		semantic: torch.nn.Module,
 		loss: torch.nn.Module,
+		metrics: dict[str, torchmetrics.Metric],
 		*,
 		patience: int = 3,
 		learning_rate: float = 1e-3,
@@ -49,21 +50,10 @@ class GeneralizedZeroshotModule(lightning.pytorch.LightningModule):
 		super().__init__()
 
 		self.visual = visual
-		self.latent = visual_semantic
-		self.alphas = semantic
-		self.loss_f = loss
-
-	#	Accuracy monitoring:
-		self.accuracy: torchmetrics.Metric = torchmetrics.Accuracy("multilabel",
-		#	threshold=0.5,
-		#	num_classes=None,
-			num_labels=50,  # HACK
-		#	average="micro",
-		#	multidim_average="global",
-		#	top_k=1,
-		#	ignore_index=None,
-		#	validate_args=True,
-		)
+		self.visual_semantic = visual_semantic
+		self.semantic = semantic
+		self.loss = loss
+		self.metrics = metrics
 
 	#	Early stopping:
 		self.patience = patience
@@ -172,20 +162,20 @@ class GeneralizedZeroshotModule(lightning.pytorch.LightningModule):
 
 	#	Model forward:
 		y_pred = self.visual(y_pred)
-		y_pred = self.latent(y_pred)
-		y_pred = self.alphas(y_pred)
+		y_pred = self.visual_semantic(y_pred)
+		y_pred = self.semantic(y_pred)
 
-	#	Update metrics:
+	#	Update metrics and loss:
 		metrics = {
-			f"{stage}_loss": self.loss_f(
+			f"{stage}_{key}": value(
 				y_pred,
 				y_true,
-			),
-			f"{stage}_accuracy": self.accuracy(
-				y_pred,
-				y_true,
-			)
+			) for key, value in self.metrics.items()
 		}
+		metrics[f"{stage}_loss"] = self.loss(
+			y_pred,
+			y_true,
+		)
 
 	#	Log metrics:
 		self.log_dict(metrics)

@@ -50,6 +50,7 @@ class TestGeneralizedZeroshotModule:
 		from torch import from_numpy
 		from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights
 		from lightning.pytorch import Trainer
+		from torchmetrics.classification import MultilabelAccuracy
 
 		from src.torch.nn import JaccardLinear, LinearStackArray
 		from src.zeroshot.nn import QuasifullyZeroshotBCELoss
@@ -77,6 +78,15 @@ class TestGeneralizedZeroshotModule:
 				datamodule.source.labels(),
 				datamodule.target.labels(),
 			),
+			metrics={
+				"accuracy": MultilabelAccuracy(len(datamodule.totals.labels()),
+					threshold=0.5,
+					average='macro',
+					multidim_average='global',
+					ignore_index=None,
+					validate_args=True,
+				)
+			},
 		)
 
 		classifier = Trainer(
