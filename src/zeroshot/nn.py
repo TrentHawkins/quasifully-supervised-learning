@@ -13,44 +13,15 @@ from typing import Iterable
 import torch
 
 
-class ZeroshotBCELoss(torch.nn.BCELoss):
-	r"""Creates a criterion that measures the Binary Cross Entropy between the target and the input probabilities.
+class ZeroshotLoss(torch.nn.Module):
+	r"""Apply given loss filtered by a subcollection of labels (source).
 
-	NOTE: This modification applies binary cross-entropy loss with logits filtered by a subcollection of labels (source).
-
-	[https://pytorch.org/docs/stable/generated/torch.nn.BCELoss.html]
-
-	The unreduced (i.e. with `reduction` set to `"none"`) loss can be described as:
-		$$\ell(x, y) = L = \{l_1,\dots,l_N\}^\top,$$
-		$$l_n = - w_n \left[ y_n \cdot \log x_n + (1 - y_n) \cdot \log (1 - x_n) \right],$$
-	where $N$ is the batch size. If `reduction` is not `"none"` (default `"mean"`), then
-		$$\ell(x, y) = \begin{cases}
-			\operatorname{mean}(L), & \text{if reduction} = \text{"mean";}\\
-			\operatorname{sum}(L),  & \text{if reduction} = \text{"sum".}
-		\end{cases}$$
-
-	This is used for measuring the error of a reconstruction in for example an auto-encoder.
-	Note that the targets $y$ should be numbers between 0 and 1.
-
-	Notice that if $x_n$ is either 0 or 1, one of the log terms would be mathematically undefined in the above loss equation.
-	PyTorch chooses to set $\log (0) = -\infty$, since $\lim_{x\to 0} \log (x) = -\infty$.
-	However, an infinite term in the loss equation is not desirable for several reasons.
-
-	For one, if either $y_n = 0$ or $(1 - y_n) = 0$, then we would be multiplying 0 with infinity.
-	Secondly, if we have an infinite loss value, then we would also have an infinite term in our gradient,
-	since $\lim_{x\to 0} \frac{d}{dx} \log (x) = \infty$.
-	This would make the backward method of `torch.nn.BCELoss` nonlinear with respect to $x_n$,
-	and using it for things like linear regression would not be straight-forward.
-
-	Our solution is that `torch.nn.BCELoss` clamps its log function outputs to be greater than or equal to -100.
-	This way, we can always have a finite loss value and a linear backward method.
-
-	Examples
+	Example:
 	```
 	>>>	source = [1, 2, 3, 5, 7]
 	>>>	y_true = torch.ones([10, 10], dtype=torch.float32)  # 10 classes, batch size = 10
 	>>>	y_pred = torch.full([10, 10], 1.5)  # a prediction (logit)
-	>>>	criterion = ZeroshotBCELoss(
+	>>>	criterion = ZeroshotLoss(torch.nn.BCELoss(),
 	>>>		source,
 	>>>	)
 	>>>	criterion(
@@ -60,7 +31,7 @@ class ZeroshotBCELoss(torch.nn.BCELoss):
 	```
 	"""
 
-	def __init__(self,
+	def __init__(self, loss: torch.nn.Module,
 		source: Iterable[int],
 	**kwargs):
 		"""Provide loss with a source labels filter.
@@ -68,9 +39,12 @@ class ZeroshotBCELoss(torch.nn.BCELoss):
 		Arguments:
 			source: filter
 		"""
-		super(ZeroshotBCELoss, self).__init__(**kwargs)
+		super(ZeroshotLoss, self).__init__(**kwargs)
 
-	#	Transform $pandas.Series$ or other source label iterable to integer tensor:
+	#	Loss:
+		self.loss = loss
+
+	#	Transform `pandas.Series` or other source label iterable to integer tensor:
 		self._source = torch.Tensor(source).long()
 
 	def forward(self, y_pred, y_true):
@@ -86,7 +60,7 @@ class ZeroshotBCELoss(torch.nn.BCELoss):
 			output: scalar. If `reduction` is `"none"`, then `(*)`, same shape as input.
 
 		Returns:
-			`torch.nn.BCEWithLogitsLoss` on the samples with a source label
+			loss on the samples with a source label
 
 		Examples
 		```
@@ -105,46 +79,16 @@ class ZeroshotBCELoss(torch.nn.BCELoss):
 		y_pred_source = torch.gather(y_pred, -1, self._source.expand(*self._source.size()[:-1], -1))  # clip target labels
 		y_true_source = torch.gather(y_true, -1, self._source.expand(*self._source.size()[:-1], -1))  # clip target labels
 
-		return super(ZeroshotBCELoss, self).forward(
+		return self.loss.forward(
 			y_pred_source,
 			y_true_source,
 		)
 
 
-class QuasifullyZeroshotBCELoss(ZeroshotBCELoss):
-	r"""Creates a criterion that measures the Binary Cross Entropy between the target and the input probabilities.
+class QuasifullyZeroshotLoss(ZeroshotLoss):
+	r"""Apply given loss with logits filtered by a subcollection of labels (source) plus bias accounting for unlabelled samples.
 
-	NOTE: This modification applies binary cross-entropy loss with logits filtered by a subcollection of labels (source).
-	It also applied a modified bias to loss accounting on unlabelled samples (with a target label unknown in training).
-
-	[https://pytorch.org/docs/stable/generated/torch.nn.BCELoss.html]
-
-	The unreduced (i.e. with `reduction` set to `"none"`) loss can be described as:
-		$$\ell(x, y) = L = \{l_1,\dots,l_N\}^\top,$$
-		$$l_n = - w_n \left[ y_n \cdot \log x_n + (1 - y_n) \cdot \log (1 - x_n) \right],$$
-	where $N$ is the batch size. If `reduction` is not `"none"` (default `"mean"`), then
-		$$\ell(x, y) = \begin{cases}
-			\operatorname{mean}(L), & \text{if reduction} = \text{"mean";}\\
-			\operatorname{sum}(L),  & \text{if reduction} = \text{"sum".}
-		\end{cases}$$
-
-	This is used for measuring the error of a reconstruction in for example an auto-encoder.
-	Note that the targets $y$ should be numbers between 0 and 1.
-
-	Notice that if $x_n$ is either 0 or 1, one of the log terms would be mathematically undefined in the above loss equation.
-	PyTorch chooses to set $\log (0) = -\infty$, since $\lim_{x\to 0} \log (x) = -\infty$.
-	However, an infinite term in the loss equation is not desirable for several reasons.
-
-	For one, if either $y_n = 0$ or $(1 - y_n) = 0$, then we would be multiplying 0 with infinity.
-	Secondly, if we have an infinite loss value, then we would also have an infinite term in our gradient,
-	since $\lim_{x\to 0} \frac{d}{dx} \log (x) = \infty$.
-	This would make the backward method of `torch.nn.BCELoss` nonlinear with respect to $x_n$,
-	and using it for things like linear regression would not be straight-forward.
-
-	Our solution is that `torch.nn.BCELoss` clamps its log function outputs to be greater than or equal to -100.
-	This way, we can always have a finite loss value and a linear backward method.
-
-	Examples
+	Example:
 	```
 	>>>	source = [1, 2, 3, 5, 7]
 	>>>	target = [0, 4, 6, 8, 9]
@@ -162,7 +106,7 @@ class QuasifullyZeroshotBCELoss(ZeroshotBCELoss):
 	```
 	"""
 
-	def __init__(self,
+	def __init__(self, loss: torch.nn.Module,
 		source: Iterable[int],
 		target: Iterable[int],
 	**kwargs):
@@ -172,7 +116,7 @@ class QuasifullyZeroshotBCELoss(ZeroshotBCELoss):
 			source: filter
 			target: filter
 		"""
-		super(QuasifullyZeroshotBCELoss, self).__init__(source, **kwargs)
+		super(QuasifullyZeroshotLoss, self).__init__(loss, source, **kwargs)
 
 	#	Transform $pandas.Series$ or other source label iterable to integer tensor:
 		self._target = torch.Tensor(target).long()
@@ -214,7 +158,7 @@ class QuasifullyZeroshotBCELoss(ZeroshotBCELoss):
 		y_pred_target = torch.gather(y_pred, -1, self._target.expand(*self._target.size()[:-1], -1))  # clip source labels
 	#	y_true_target = torch.gather(y_true, -1, self._target.expand(*self._target.size()[:-1], -1))  # clip source labels
 
-		return super(QuasifullyZeroshotBCELoss, self).forward(
+		return super(QuasifullyZeroshotLoss, self).forward(
 			y_pred,
 			y_true,
 		) + self._log(self._reduce(y_pred_target, -1)) + self._log(self._reduce(1. - y_pred_target, -1)) / len(y_pred_target)

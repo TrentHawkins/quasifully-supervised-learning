@@ -48,12 +48,13 @@ class TestGeneralizedZeroshotModule:
 	def test_model(self):
 		"""Test preparation of module wit data."""
 		from torch import from_numpy
+		from torch.nn import BCELoss
 		from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights
 		from lightning.pytorch import Trainer
 		from torchmetrics.classification import MultilabelAccuracy
 
 		from src.torch.nn import JaccardLinear, LinearStackArray
-		from src.zeroshot.nn import QuasifullyZeroshotBCELoss
+		from src.zeroshot.nn import QuasifullyZeroshotLoss
 		from src.lightning.pytorch.data import AnimalsWithAttributesDataModule
 		from src.lightning.pytorch.models import GeneralizedZeroshotModule
 
@@ -74,7 +75,7 @@ class TestGeneralizedZeroshotModule:
 			),
 			visual_semantic=LinearStackArray(1280, 85),
 			semantic=JaccardLinear(from_numpy(datamodule.totals.alphas().to_numpy())),
-			loss=QuasifullyZeroshotBCELoss(
+			loss=QuasifullyZeroshotLoss(BCELoss(),
 				datamodule.source.labels(),
 				datamodule.target.labels(),
 			),
