@@ -63,7 +63,7 @@ class AnimalsWithAttributesDataset(torchvision.datasets.ImageFolder):
 			`images_path`: relative path to dataset (default: assumes root directory)
 			`splits_path`: relative path to definition of data splitting (default: standard)
 			`labels_path`: relative path to file with labels (default: all labels)
-			`target_size`: scale images to size `(target_size, target_size)` via center cropping
+			`target_size`: scale images to size `(target_size, target_size)` via center cropping (default 224)
 			`transform`: a function/transform that takes in an PIL image and returns a transformed version (optional)
 			`target_transform`: A function/transform that takes in the target and transforms it (optional)
 			`generator`: random number generator to pass around for reproducibility (default: one with seed 0)
@@ -85,8 +85,18 @@ class AnimalsWithAttributesDataset(torchvision.datasets.ImageFolder):
 	#	Data transforms:
 		self.transform = transform or torchvision.transforms.Compose(
 			[
-				torchvision.transforms.Resize(self._target_size),
-				torchvision.transforms.CenterCrop(self._target_size),
+				torchvision.transforms.Resize(self._target_size,
+				#	interpolation=InterpolationMode.BILINEAR,
+				#	max_size=None,
+				#	antialias="warn",
+				),
+			#	torchvision.transforms.CenterCrop(self._target_size),
+				torchvision.transforms.RandomCrop(self._target_size,
+				#	padding=None,
+				#	pad_if_needed=False,
+				#	fill=0,
+				#	padding_mode="constant",
+				),
 			]
 		)
 		self.target_transform = target_transform or torch.nn.functional.one_hot
@@ -136,7 +146,7 @@ class AnimalsWithAttributesDataset(torchvision.datasets.ImageFolder):
 		self._generator = generator or default_generator
 
 	def find_classes(self, directory: str) -> tuple[list[str], dict[str, int]]:
-		"""Find the class labels in the Animals with Attributes dataset:
+		"""Find the class labels in the Animals with Attributes dataset.
 
 		This method is overridden:
 		-	to consider subsets of classes based on a given labels file

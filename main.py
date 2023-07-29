@@ -10,14 +10,14 @@ import src.globals
 import src.torch.nn
 import src.torch.utils.data
 import src.torchvision.datasets
-import src.lightning
+import src.lightning.pytorch.data
 
 
 if __name__ == "__main__":
 	""" Main testing."""
 
 #	Normal:
-	data = src.lightning.AnimalsWithAttributesDataModule(
+	data = src.lightning.pytorch.data.AnimalsWithAttributesDataModule(
 		generalized_zeroshot=False,
 		transductive_setting=False,
 	)
@@ -28,7 +28,7 @@ if __name__ == "__main__":
 	data.setup("predict"); data.predict_dataloader()
 
 #	Zeroshot:
-	data = src.lightning.AnimalsWithAttributesDataModule(
+	data = src.lightning.pytorch.data.AnimalsWithAttributesDataModule(
 		generalized_zeroshot=True,
 		transductive_setting=False,
 	)
@@ -39,7 +39,7 @@ if __name__ == "__main__":
 	data.setup("predict"); data.predict_dataloader()
 
 #	Transductive:
-	data = src.lightning.AnimalsWithAttributesDataModule(
+	data = src.lightning.pytorch.data.AnimalsWithAttributesDataModule(
 		generalized_zeroshot=True,
 		transductive_setting=True,
 	)

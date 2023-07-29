@@ -14,7 +14,8 @@ import torch
 
 
 class ZeroshotBCELoss(torch.nn.BCELoss):
-	r"""Creates a criterion that measures the Binary Cross Entropy between the target and the input probabilities:
+	r"""Creates a criterion that measures the Binary Cross Entropy between the target and the input probabilities.
+
 	NOTE: This modification applies binary cross-entropy loss with logits filtered by a subcollection of labels (source).
 
 	[https://pytorch.org/docs/stable/generated/torch.nn.BCELoss.html]
@@ -111,7 +112,8 @@ class ZeroshotBCELoss(torch.nn.BCELoss):
 
 
 class QuasifullyZeroshotBCELoss(ZeroshotBCELoss):
-	r"""Creates a criterion that measures the Binary Cross Entropy between the target and the input probabilities:
+	r"""Creates a criterion that measures the Binary Cross Entropy between the target and the input probabilities.
+
 	NOTE: This modification applies binary cross-entropy loss with logits filtered by a subcollection of labels (source).
 	It also applied a modified bias to loss accounting on unlabelled samples (with a target label unknown in training).
 
