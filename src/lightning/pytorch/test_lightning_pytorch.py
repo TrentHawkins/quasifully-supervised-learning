@@ -132,7 +132,7 @@ class TestGeneralizedZeroshotModule:
 			default_root_dir="models",
 		)
 
-	#	classifier.fit(
-	#		model=model,
-	#		datamodule=datamodule,
-	#	)
+		classifier.fit(
+			model=model,
+			datamodule=datamodule,
+		)

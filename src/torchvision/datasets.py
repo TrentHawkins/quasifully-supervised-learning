@@ -97,6 +97,18 @@ class AnimalsWithAttributesDataset(torchvision.datasets.ImageFolder):
 				#	fill=0,
 				#	padding_mode="constant",
 				),
+				torchvision.transforms.Normalize(
+					(
+						0.,
+						0.,
+						0.,
+					), (
+						1.,
+						1.,
+						1.,
+					),
+				#	inplace=False,
+				)
 			]
 		)
 		self.target_transform = target_transform or torch.nn.functional.one_hot

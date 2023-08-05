@@ -25,7 +25,7 @@ Models:
 
 from __future__ import annotations
 
-from typing import Callable, Optional, Union
+from typing import Optional
 
 import scipy.special
 import torch
