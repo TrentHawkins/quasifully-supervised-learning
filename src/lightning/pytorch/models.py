@@ -160,6 +160,8 @@ class GeneralizedZeroshotModule(lightning.pytorch.LightningModule):
 		"""
 		y_pred, y_true = batch
 
+		y_pred = y_pred.float()
+
 	#	Model forward:
 		y_pred = self.visual(y_pred)
 		y_pred = self.visual_semantic(y_pred)
