@@ -1,23 +1,27 @@
 """Create image data loading pipeline for the Animals with Attributes 2 dataset using TensorFlow."""
 
 
-from os import path
+from __future__ import annotations
+
+from math import ceil, sqrt
 from sys import float_info
-from typing import Callable
+from typing import Callable, Optional, Union
 
 import matplotlib.pyplot
 import matplotlib.ticker
-import keras.utils.dataset_utils
-import keras.utils.image_dataset
 import numpy
+import os
 import pandas
 import scipy.special
 import sklearn.model_selection
 import seaborn
 import tensorflow
 
-from ..seed import SEED
-from ..similarity import dotDataFrame
+import keras.utils.dataset_utils
+import keras.utils.image_dataset
+
+from ..keras.utils.layer_utils import print_separator
+from ..similarities import dotDataFrame
 
 
 class Dataset:
@@ -34,11 +38,14 @@ class Dataset:
 		labels:	a selection of labels given by `labels_path`
 		alphas: the predicate matrix for the selection of labels given by `labels_path`
 		images:	the images filtered by the selection of labels given by `labels_path`
+		split: the images into proportionate training, development and validation subsets
 	"""
 
 	def __init__(self,
 		images_path: str = "datasets/animals_with_attributes",
 		labels_path: str = "standard_split",
+		*,
+		seed: int = 0,
 	):
 		"""Initialize paths for dataset, then generate dataset from said paths.
 
@@ -47,12 +54,16 @@ class Dataset:
 				default: assumes root directory
 			labels_path: absolute
 				default: assumes root directory
+
+		Keyword Arguments:
+			seed: global seed setting for dataset
+				default: 0
 		"""
 		self._images_path: str = images_path
 		self._labels_path: str = labels_path
 
 		self._labels: pandas.Series[int] = pandas.read_csv(
-			path.join(self._images_path, "classes.txt"),
+			os.path.join(self._images_path, "classes.txt"),
 			sep=r"\s+",
 			names=[
 				"index"
@@ -64,7 +75,7 @@ class Dataset:
 			},
 		).squeeze() - 1
 		self._alphas: pandas.Series[int] = pandas.read_csv(
-			path.join(self._images_path, "predicates.txt"),
+			os.path.join(self._images_path, "predicates.txt"),
 			sep=r"\s+",
 			names=[
 				"index"
@@ -76,9 +87,12 @@ class Dataset:
 			},
 		).squeeze()
 
+		print_separator(3)
+		print_separator(2, "Animals with Attributes 2: directory look-up")
+
 	#	Use TensorFlows's image look-up.
 		image_paths, labels, _ = keras.utils.dataset_utils.index_directory(
-			directory=path.join(self._images_path, "JPEGImages"),
+			directory=os.path.join(self._images_path, "JPEGImages"),
 			labels="inferred",
 			formats=(
 				".jpg",
@@ -87,6 +101,8 @@ class Dataset:
 			shuffle=False,  # delegate shuffling to the corresponding splits
 		)
 
+		print_separator(3)
+
 	#	Transform image path and label data to pandas series.
 		self._images: pandas.Series[int] = pandas.Series(dict(zip(image_paths, labels)))
 
@@ -94,7 +110,10 @@ class Dataset:
 		self._target_source: float = len(self.images("testclasses.txt")) / len(self.images("trainvalclasses.txt"))
 		self._target_totals: float = len(self.images("testclasses.txt")) / len(self.images())
 
-	def _read(self, selection: pandas.Series | str) -> list:
+	#	Set global seed for dataset:
+		self.seed = seed
+
+	def _read(self, selection: Union[pandas.Series, str]) -> list:
 		"""Read items either from a file or a series into a list.
 
 		Arguments:
@@ -104,14 +123,14 @@ class Dataset:
 			list with items in selection
 		"""
 		if isinstance(selection, str):
-			with open(path.join(self._images_path, self._labels_path, selection)) as labels_file:
+			with open(os.path.join(self._images_path, self._labels_path, selection)) as labels_file:
 				return [label.strip() for label in labels_file]
 
 		if isinstance(selection, pandas.Series):
 			return selection.tolist()
 
 	def labels(self,
-		selection: pandas.Series | str = "allclasses.txt",
+		selection: Union[pandas.Series, str] = "allclasses.txt",
 	) -> pandas.Series:
 		"""Get a label set from dataset.
 
@@ -125,7 +144,7 @@ class Dataset:
 		return self._labels.filter(self._read(selection), axis="index")
 
 	def alphas(self,
-		selection: pandas.Series | str = "allclasses.txt",
+		selection: Union[pandas.Series, str] = "allclasses.txt",
 		binary: bool = False,
 		logits: bool = False,
 	) -> pandas.DataFrame:
@@ -143,8 +162,8 @@ class Dataset:
 			predicate `pandas.DataFrame` indexed with labels and named with predicates
 		"""
 		alpha_matrix = pandas.read_csv(
-			path.join(self._images_path, "predicate-matrix-binary.txt") if binary else
-			path.join(self._images_path, "predicate-matrix-continuous.txt"),
+			os.path.join(self._images_path, "predicate-matrix-binary.txt") if binary else
+			os.path.join(self._images_path, "predicate-matrix-continuous.txt"),
 			sep=r"\s+",
 			names=self._alphas.index.tolist(),
 			dtype=float,
@@ -159,12 +178,12 @@ class Dataset:
 		if logits:
 			alpha_matrix = alpha_matrix\
 				.replace(0., 0. + float_info.epsilon)\
-				.replace(1., 1. - float_info.epsilon).applymap(scipy.special.logit)
+				.replace(1., 1. - float_info.epsilon).applymap(scipy.special.logit)  # type: ignore
 
 		return alpha_matrix.filter(self._read(selection), axis="index")
 
 	def images(self,
-		selection: pandas.Series | str = "allclasses.txt",
+		selection: Union[pandas.Series, str] = "allclasses.txt",
 	) -> pandas.Series:
 		"""Get images and a label set from dataset.
 
@@ -178,7 +197,7 @@ class Dataset:
 		return self._images[self._images.isin(self.labels(selection))]
 
 	def split(self,
-		labels: str | pandas.Series = "allclasses.txt",
+		labels: Union[pandas.Series, str] = "allclasses.txt",
 		*,
 		image_size: int = 224,
 		batch_size: int = 1,
@@ -205,7 +224,7 @@ class Dataset:
 	#	Split validation subset off total data. Use a larger chunk than what corresponds to the source/target labels.
 		_train_images, _valid_images = sklearn.model_selection.train_test_split(_total_images,
 			test_size=self._target_source,  # slightly more validation examples
-			random_state=SEED,
+			random_state=self.seed,
 			shuffle=True,
 			stratify=_total_images,
 		)
@@ -213,13 +232,15 @@ class Dataset:
 	#	Split development subset off training data. Use a smaller chunk than what corresponds to the source/target labels.
 		_train_images, _devel_images = sklearn.model_selection.train_test_split(_train_images,
 			test_size=self._target_totals,  # slightly less validation examples
-			random_state=SEED,
+			random_state=self.seed,
 			shuffle=True,
 			stratify=_train_images,
 		)
 
 	#	Return dataset from paths and labels with preferred settings.
-		def paths_and_labels_to_dataset(_images: pandas.Series) -> tensorflow.data.Dataset:
+		def paths_and_labels_to_dataset(_images: pandas.Series,
+			training: bool = False,
+		) -> tensorflow.data.Dataset:
 			images: tensorflow.data.Dataset = keras.utils.image_dataset.paths_and_labels_to_dataset(
 				image_paths=_images.index,
 				image_size=(
@@ -235,30 +256,35 @@ class Dataset:
 			)
 
 		#	Cache subset in RAM for performance.
-			images = images.cache()
+		#	images = images.cache()
 
 		#	Shuffle elements by fixed seed, but set subset for reshuffling after each epoch.
-			images = images.shuffle(len(images),
-				seed=SEED,
-				reshuffle_each_iteration=True,
+			images = images.shuffle(ceil(sqrt(len(images))),
+				seed=self.seed,
+				reshuffle_each_iteration=training,
 			)
 
 		#	If batch size is set, batch subset.
-			if batch_size > 1:
-				images = images.batch(batch_size,
-					num_parallel_calls=tensorflow.data.AUTOTUNE,
-					deterministic=False,
-				)
+			images = images.batch(batch_size,
+				num_parallel_calls=tensorflow.data.AUTOTUNE,
+				deterministic=True,
+			)
 
 		#	Prefetch the first examples of subset.
-			images = images.prefetch(tensorflow.data.AUTOTUNE)
+		#	images = images.prefetch(tensorflow.data.AUTOTUNE)
 
 			return images
 
 	#	Build datasets.
-		train_images: tensorflow.data.Dataset = paths_and_labels_to_dataset(_train_images)  # type: ignore
-		devel_images: tensorflow.data.Dataset = paths_and_labels_to_dataset(_devel_images)  # type: ignore
-		valid_images: tensorflow.data.Dataset = paths_and_labels_to_dataset(_valid_images)  # type: ignore
+		train_images: tensorflow.data.Dataset = paths_and_labels_to_dataset(_train_images,
+			training=True,
+		)
+		devel_images: tensorflow.data.Dataset = paths_and_labels_to_dataset(_devel_images,
+			training=False,
+		)
+		valid_images: tensorflow.data.Dataset = paths_and_labels_to_dataset(_valid_images,
+			training=False,
+		)
 
 		return (
 			train_images,
@@ -324,7 +350,7 @@ class Dataset:
 			labelcolor="#AAAAAA",
 		)
 
-		matplotlib.pyplot.savefig(path.join(self._images_path, "classes.pdf"))
+		matplotlib.pyplot.savefig(os.path.join(self._images_path, "classes.pdf"))
 
 	def plot_alphas(self,
 		binary: bool = False,
@@ -367,10 +393,10 @@ class Dataset:
 		ax.set_xlabel("predicates")
 		ax.set_ylabel("class label")
 
-		matplotlib.pyplot.savefig(path.join(self._images_path, f"predicate-matrix{alpha_range}.pdf"))
+		matplotlib.pyplot.savefig(os.path.join(self._images_path, f"predicate-matrix{alpha_range}.pdf"))
 
 	def plot_label_correlation(self, alter_dot: Callable = numpy.dot,
-		binary: bool | None = None,
+		binary: Optional[bool] = None,
 		logits: bool = False,
 		softmx: bool = False,
 	):
@@ -384,8 +410,8 @@ class Dataset:
 			softmx: apply softmax to predictions
 				default not
 		"""
-		alpha_range = "-binary" if binary else "-continuous"
-		alpha_field = "-logits" if logits else "-probabilities"
+		alpha_range = "-binary" if binary else ""
+		alpha_field = "-logits" if logits else ""
 
 		alpha_normalization = "-softmax" if softmx else ""
 
@@ -451,7 +477,133 @@ class Dataset:
 		altered_dot = f".{alter_dot.__name__}" if alter_dot != numpy.dot else ""
 
 		matplotlib.pyplot.savefig(
-			path.join(self._images_path,
+			os.path.join(self._images_path,
 				f"class-correlation{alpha_range}{alpha_field}{alpha_normalization}{altered_dot}.pdf"
 			)
+		)
+
+
+class ZeroshotDataset(Dataset):
+	"""Animals with Attributes 2.
+
+	Semi-transductive generalized zeroshot setting.
+
+	Methods:
+		split: the images into proportionate training, development and validation subsets
+	"""
+
+	def split(self,
+		source: Union[pandas.Series, str] = "trainvalclasses.txt",
+		target: Union[pandas.Series, str] = "testclasses.txt",
+		*,
+		image_size: int = 224,
+		batch_size: int = 1,
+	) -> tuple[
+		tensorflow.data.Dataset,
+		tensorflow.data.Dataset,
+		tensorflow.data.Dataset,
+	]:
+		"""Get shuffled split by label and subset.
+
+		Arguments:
+			source: get examples only from these for training, development and validation
+			target: get examples only from these for validation only
+
+		Keyword_arguments:
+			image_size: to rescale fetched examples to (square ratio)
+			batch_size: to batch   fetched examples
+
+		Returns:
+			An optimized (cached and prefeched) TensorFlow dataset.
+		"""
+		(
+			source_train_images,
+			source_devel_images,
+			source_valid_images,
+		) = super(ZeroshotDataset, self).split(source,
+			image_size=image_size,
+			batch_size=batch_size,
+		)
+		(
+			target_train_images,
+			target_devel_images,
+			target_valid_images,
+		) = super(ZeroshotDataset, self).split(target,
+			image_size=image_size,
+			batch_size=batch_size,
+		)
+
+		train_images = source_train_images
+		devel_images = source_devel_images
+		valid_images = source_valid_images\
+			.concatenate(target_train_images)\
+			.concatenate(target_devel_images)\
+			.concatenate(target_valid_images)
+
+		return (
+			train_images,
+			devel_images,
+			valid_images,
+		)
+
+
+class TransductiveZeroshotDataset(Dataset):
+	"""Animals with Attributes 2.
+
+	Transductive generalized zeroshot setting.
+
+	Methods:
+		split: the images into proportionate training, development and validation subsets
+	"""
+
+	def split(self,
+		source: Union[pandas.Series, str] = "trainvalclasses.txt",
+		target: Union[pandas.Series, str] = "testclasses.txt",
+		*,
+		image_size: int = 224,
+		batch_size: int = 1,
+	) -> tuple[
+		tensorflow.data.Dataset,
+		tensorflow.data.Dataset,
+		tensorflow.data.Dataset,
+	]:
+		"""Get shuffled split by label and subset.
+
+		Arguments:
+			source: get examples only from these for training, development and validation
+			target: get examples only from these for training, development and validation
+				NOTE: development and validation must be used unlabelled
+
+		Keyword_arguments:
+			image_size: to rescale fetched examples to (square ratio)
+			batch_size: to batch   fetched examples
+
+		Returns:
+			An optimized (cached and prefeched) TensorFlow dataset.
+		"""
+		(
+			source_train_images,
+			source_devel_images,
+			source_valid_images,
+		) = super(TransductiveZeroshotDataset, self).split(source,
+			image_size=image_size,
+			batch_size=batch_size,
+		)
+		(
+			target_train_images,
+			target_devel_images,
+			target_valid_images,
+		) = super(TransductiveZeroshotDataset, self).split(target,
+			image_size=image_size,
+			batch_size=batch_size,
+		)
+
+		train_images = source_train_images.concatenate(target_train_images)
+		devel_images = source_devel_images.concatenate(target_devel_images)
+		valid_images = source_valid_images.concatenate(target_valid_images)
+
+		return (
+			train_images,
+			devel_images,
+			valid_images,
 		)

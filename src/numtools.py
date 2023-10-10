@@ -1,4 +1,18 @@
-"""Basic integer numeric utilities."""
+"""Basic integer numeric utilities.
+
+Includes:
+	lcm: `math.lcm` is unavailable to `python < 3.9`
+
+	divisors: of an integer
+	is_prime: is an integer
+
+	hidden_sizes: devise hidden sizes of a pyramid-like MLP based on divisor logic given inputs and output size
+
+	mettalic: `a(n) = m * a(n - 1) + a(n - 2)'
+		golden: `m = 1` (Fibonacci)
+		silver: `m = 2`
+		bronze: `m = 3`
+"""
 
 
 from __future__ import annotations
@@ -9,12 +23,20 @@ import numpy
 
 
 def lcm(a, b):
-	"""Python<3.9 compatibility `lcm` function."""
+	"""`python3.8` compatibility `lcm` function.
+
+	Arguments:
+		a: number
+		b: number
+
+	Returns:
+		number
+	"""
 	return (a * b) // gcd(a, b)
 
 
 def divisors(dividee: int, reverse: bool = False) -> list[int]:
-	"""	Get all divisors of dividee.
+	"""Get all divisors of dividee.
 
 	Arguments:
 		dividee: the number to divide
@@ -23,7 +45,7 @@ def divisors(dividee: int, reverse: bool = False) -> list[int]:
 		reverse: the order of devisors
 
 	Returns:
-		list of divisors
+		list` of divisors
 	"""
 	_divisors = set()
 
@@ -36,50 +58,48 @@ def divisors(dividee: int, reverse: bool = False) -> list[int]:
 
 
 def is_prime(dividee: int) -> bool:
-	"""	Check if dividee is prime or not.
+	"""Check if dividee is prime or not.
 
 	Arguments:
 		dividee: the number to check
 
 	Returns:
-		True if dividee is prime
+		True` if dividee is prime else `False`
 	"""
 #	return dividee > 1 and all(dividee % divisor for divisor in range(2, int(numpy.sqrt(dividee)) + 1))
 	return dividee > 1 and len(divisors(dividee)) == 1
 
 
-def hidden_dims(
-	inputs_dim: int,
-	output_dim: int, skip: int = 1, less: bool = True,
+def hidden_sizes(
+	inputs_size: int,
+	output_size: int, skip: int = 1, less: bool = True,
 ) -> list[int]:
 	"""Get all possible layers given by a divisor logic.
 
 	Take inputs_dim*outputs_dim and find all divisors in range(inputs_dim, outputs_dim+1, skip).
 
 	Arguments:
-		inputs_dim: the inputs dimension for the requested architecture
-		output_dim: the output dimension for the requested architecture
-		skip: subsample proposed architecture uniformly by skipping layers with (possibly) a divisor of the depth
-			default: no skip
-		less: whether to thin out results by selection of multiples of the GCD only
-			default: thin out
+		inputs_size: the inputs dimension for the requested architecture
+		output_size: the output dimension for the requested architecture
+		skip: subsample proposed architecture uniformly by skipping layers with a divisor of the depth (default no skip)
+		less: whether to thinout results by selection of multiples of the GCD only (default thinout)
 
 	Returns:
-		reversed list of divisors as proposed layer sizes
+		reversed` `list` of divisors as proposed layer sizes
 	"""
-	_lcm = lcm(inputs_dim, output_dim) if less else inputs_dim * output_dim
-	_gcd = gcd(inputs_dim, output_dim) if less else 1
+	_lcm = lcm(inputs_size, output_size) if less else inputs_size * output_size
+	_gcd = gcd(inputs_size, output_size) if less else 1
 
 #	shrinking model
-	if inputs_dim > output_dim:
-		return [x for x in divisors(_lcm) if inputs_dim >= x >= output_dim and x % _gcd == 0][::-skip]
+	if inputs_size > output_size:
+		return [x for x in divisors(_lcm) if inputs_size >= x >= output_size and x % _gcd == 0][::-skip]
 
 #	expanding model
-	if inputs_dim < output_dim:
-		return [x for x in divisors(_lcm) if inputs_dim <= x <= output_dim and x % _gcd == 0][::+skip]
+	if inputs_size < output_size:
+		return [x for x in divisors(_lcm) if inputs_size <= x <= output_size and x % _gcd == 0][::+skip]
 
 #	projecting model
-	return [inputs_dim]
+	return [inputs_size]
 
 
 def metallic(n: int, m: int) -> int:
@@ -105,7 +125,7 @@ def metallic(n: int, m: int) -> int:
 
 
 def golden(n: int) -> int:
-	"""Golden ratio (m=1, Fibonacci) sequence.
+	"""Golden ratio (`m=1`, Fibonacci) sequence.
 
 	Arguments:
 		n: input
@@ -117,7 +137,7 @@ def golden(n: int) -> int:
 
 
 def silver(n: int) -> int:
-	"""	Silver ratio (m=2) sequence.
+	"""	Silver ratio (`m=2`) sequence.
 
 	Arguments:
 		n: input
@@ -129,7 +149,7 @@ def silver(n: int) -> int:
 
 
 def bronze(n: int) -> int:
-	"""	Bronze ratio (m-3) sequence.
+	"""	Bronze ratio (`m=3`) sequence.
 
 	Arguments:
 		n: input
