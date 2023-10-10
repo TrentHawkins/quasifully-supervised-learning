@@ -315,7 +315,7 @@ class AnimalsWithAttributesDataset(torchvision.datasets.ImageFolder):
 				6.,
 			)
 		)
-		fig.set_tight_layout(True)
+	#	fig.set_tight_layout(True)
 
 		labels = self.labels()
 		target = self.labels(selection="testclasses.txt")
@@ -383,7 +383,7 @@ class AnimalsWithAttributesDataset(torchvision.datasets.ImageFolder):
 				10.
 			)
 		)
-		fig.set_tight_layout(True)
+	#	fig.set_tight_layout(True)
 
 		ax.xaxis.set_tick_params(length=0)
 		ax.yaxis.set_tick_params(length=0)
@@ -432,7 +432,7 @@ class AnimalsWithAttributesDataset(torchvision.datasets.ImageFolder):
 				10.
 			)
 		)
-		fig.set_tight_layout(True)
+	#	fig.set_tight_layout(True)
 
 		ax.xaxis.set_tick_params(length=0)
 		ax.yaxis.set_tick_params(length=0)
